@@ -1,143 +1,42 @@
 # Magnitude
 
-Adult mental arithmetic trainer: scientific-notation estimation, big-number ops, and percents, with timed practice.
+Adult mental arithmetic trainer. Opens straight into interleaved practice; no menus, no login.
 
-## What it is
+## How it works
 
-Magnitude is a mobile-first PWA designed for adults who want to improve their mental arithmetic skills. It focuses on three core areas:
+**Identity.** A UUID is minted in `localStorage` on first visit (`lib/user.ts`). All learner state is namespaced under it, so a sync layer can be added later without changing the app.
 
-1. **Big Numbers** — Multiply and divide large quantities (thousands through trillions)
-2. **Estimation** — Order-of-magnitude arithmetic with scientific notation scaffolding
-3. **Percents** — Fast percentage calculations with instant feedback
+**Skills.** Practice is decomposed into 15 atomic skills (`lib/skills.ts`), each with prerequisites, a target latency, and the Common Core standard it comes from:
 
-The app uses scientific notation as a teaching method: convert numbers to scientific notation, perform operations on coefficients and exponents, then convert back. This scaffold can be shown or hidden as you improve.
+| Family | Skill | Example | CCSS |
+|---|---|---|---|
+| Place value | Count the zeros | `1,000,000 → 6` | 5.NBT.A.2 |
+| | Word → power of ten | `a hundred million → 8` | 4.NBT.A.2 |
+| Exponents | Add exponents | `10^7 × 10^3 → 10` | 8.EE.A.1 |
+| | Subtract exponents | `10^9 ÷ 10^4 → 5` | 8.EE.A.1 |
+| | Coefficient facts | `7 × 8 → 56` | 3.OA.C.7 |
+| Scientific | Digits → scientific | `68,000,000 → 6.8e7` | 8.EE.A.3 |
+| | Words → scientific | `sixty-eight million → 6.8e7` | 8.EE.A.3 |
+| | Scientific → words | `2 × 10^11 → 200 billion` | 8.EE.A.3 |
+| | Renormalize | `48 × 10^7 → 4.8e8` | 8.EE.A.4 |
+| | Multiply in scientific | `(6e7)(3e3) → 1.8e11` | 8.EE.A.4 |
+| | Divide in scientific | `(8e9)/(2e4) → 4e5` | 8.EE.A.4 |
+| Magnitude | Magnitude of a product | `68 million × 3 thousand → ~200 billion` | 8.EE.A.3/4 |
+| | Magnitude of a quotient | `8 billion ÷ 40 thousand → ~200 thousand` | 8.EE.A.3/4 |
+| Percents | 10% / 1% anchors | `10% of 3,400 → 340` | 6.RP.A.3c |
+| | Compose percents | `15% of 80 → 12` | 6.RP.A.3c |
 
-## Features
+**Engine** (`lib/engine.ts`). Per skill: EMA accuracy, EMA latency, streak. Mastery = accuracy discounted while slower than target. A skill unlocks when each prerequisite has ≥5 attempts and mastery ≥ 0.7. Selection is interleaved weighted-random over unlocked skills — weight rises with weakness and time-since-seen, with a floor so mastered skills keep recurring — and never repeats the last skill.
 
-- **Three practice modes** with adaptive difficulty
-- **Progress tracking** with localStorage persistence
-- **Scientific notation hints** that can be toggled on/off
-- **Order-of-magnitude scoring** for estimation mode
-- **Session summaries** showing accuracy and median time
-- **PWA support** — install to your phone's home screen
-- **Dark mode** support
-- **No accounts required** — all data stored locally
+**Items** (`lib/items.ts`). One generator per skill. Answers are a single typed value; the parser accepts `6.8e7`, `6.8 x 10^7`, `6.8 7`, `68 million`, `68m`, `200b`, and plain digits. Estimation skills accept anything within 0.3 orders of magnitude.
 
-## Getting Started
+**UI** (`components/Trainer.tsx`). Prompt → type → Enter. Correct answers auto-advance; misses show the answer and a one-line why. The `▦` corner opens the skill map.
 
-### Prerequisites
+## Dev
 
-- Node.js 18+ and npm
-
-### Local Development
-
-```bash
-# Install dependencies
+```
 npm install
-
-# Run the development server
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser. The app works best in mobile viewport (use responsive design mode in your browser's dev tools, or open it on your phone).
-
-### Building for Production
-
-```bash
-npm run build
-npm start
-```
-
-## Deploying to Vercel
-
-This app is optimized for deployment on Vercel:
-
-1. Push your code to a Git repository (GitHub, GitLab, or Bitbucket)
-2. Import your repository on [Vercel](https://vercel.com)
-3. Vercel will automatically detect Next.js and configure the build settings
-4. Deploy!
-
-Alternatively, using the Vercel CLI:
-
-```bash
-npm install -g vercel
-vercel
-```
-
-## PWA Installation
-
-Once deployed (or running locally), you can install Magnitude as a PWA:
-
-- **iOS Safari**: Tap the Share button, then "Add to Home Screen"
-- **Android Chrome**: Tap the menu (⋮), then "Install app" or "Add to Home Screen"
-- **Desktop Chrome**: Click the install icon in the address bar
-
-## How Practice Works
-
-Each mode generates 10 questions per round. The app tracks:
-
-- Accuracy (correct vs. incorrect)
-- Response time (milliseconds)
-- Magnitude error (for estimation mode)
-
-After each round, you'll see a summary and your progress over time. Difficulty adapts based on your performance.
-
-### Big Numbers Mode
-
-Practice multiplying and dividing large quantities. Numbers are presented in various formats (numeric, word form like "5 million"). The scientific notation hint shows the calculation breakdown.
-
-### Estimation Mode
-
-Focus on order-of-magnitude accuracy, not exact answers. The optional step-by-step walkthrough shows:
-1. Convert to scientific notation
-2. Perform operations on coefficients and exponents
-3. Result
-
-Scoring uses logarithmic error, so being within the right order of magnitude is what matters.
-
-### Percents Mode
-
-Drill percentage calculations until they're instant. Mix of easy (10% of 80), medium (15% of 1,000), and harder (2.5% of 200) problems. Hints available for common patterns.
-
-## Technology Stack
-
-- **Next.js 15** with App Router
-- **React 19** with TypeScript
-- **Tailwind CSS** for styling
-- **localStorage** for progress persistence
-- **PWA** with service worker for offline support
-
-## Project Structure
-
-```
-├── app/                  # Next.js app directory
-│   ├── layout.tsx       # Root layout with PWA setup
-│   ├── page.tsx         # Home screen
-│   └── globals.css      # Global styles
-├── components/          # React components
-│   ├── BigNumbers.tsx   # Big numbers practice mode
-│   ├── Estimation.tsx   # Estimation practice mode
-│   ├── Percents.tsx     # Percents practice mode
-│   ├── Progress.tsx     # Progress tracking screen
-│   ├── PracticeSession.tsx  # Shared practice logic
-│   └── PWAInstaller.tsx # Service worker registration
-├── lib/                 # Utilities and helpers
-│   ├── progress.ts      # Progress tracking and persistence
-│   └── utils.ts         # Number parsing and formatting
-└── public/              # Static assets
-    ├── manifest.json    # PWA manifest
-    ├── sw.js           # Service worker
-    └── icon-*.svg      # App icons
-```
-
-## Design Principles
-
-- **Mobile-first**: Designed for phone screens with large tap targets
-- **Calm and grown-up**: No gamification, no cutesy copy, no distractions
-- **Fast to start**: One tap from home screen to practice
-- **Minimal settings**: Just enough options, nothing more
-- **Progress-focused**: Clear feedback on improvement over time
-
-## License
-
-MIT
+Deployed on Vercel; pushes to `main` go to production.
