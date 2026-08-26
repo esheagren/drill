@@ -15,6 +15,8 @@ export interface Item {
   why: string;
   /** Keyboard hint for the input. */
   inputMode: "numeric" | "decimal" | "text";
+  /** For integer answers: auto-submit once this many characters are typed. */
+  autoLen?: number;
   placeholder: string;
   check: (input: string) => boolean;
 }
@@ -52,6 +54,7 @@ const GENERATORS: Record<SkillId, () => Item> = {
       why: `${e} zeros → 10^${e}`,
       inputMode: "numeric",
       placeholder: "exponent",
+      autoLen: String(e).length,
       check: (s) => intEq(s, e),
     };
   },
@@ -73,6 +76,7 @@ const GENERATORS: Record<SkillId, () => Item> = {
       why: `${sc.word} = 10^${sc.exp}${v.e !== sc.exp ? `, times 10^${v.e - sc.exp}` : ""}`,
       inputMode: "numeric",
       placeholder: "exponent",
+      autoLen: String(v.e).length,
       check: (s) => intEq(s, v.e),
     };
   },
@@ -88,6 +92,7 @@ const GENERATORS: Record<SkillId, () => Item> = {
       why: `${a} + ${b} = ${a + b}`,
       inputMode: "numeric",
       placeholder: "exponent",
+      autoLen: String(a + b).length,
       check: (s) => intEq(s, a + b),
     };
   },
@@ -103,6 +108,7 @@ const GENERATORS: Record<SkillId, () => Item> = {
       why: `${a} − ${b} = ${a - b}`,
       inputMode: "numeric",
       placeholder: "exponent",
+      autoLen: String(a - b).length,
       check: (s) => intEq(s, a - b),
     };
   },
@@ -117,6 +123,7 @@ const GENERATORS: Record<SkillId, () => Item> = {
       why: `${a} × ${b} = ${a * b}`,
       inputMode: "numeric",
       placeholder: "product",
+      autoLen: String(a * b).length,
       check: (s) => intEq(s, a * b),
     };
   },

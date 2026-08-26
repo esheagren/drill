@@ -41,13 +41,13 @@ export default function Trainer() {
     if (phase === "answer") inputRef.current?.focus();
   }, [phase, item]);
 
-  const submit = () => {
-    if (!item || !state || phase !== "answer" || !input.trim()) return;
+  const submit = (value: string = input) => {
+    if (!item || !state || phase !== "answer" || !value.trim()) return;
     const latency = Math.round(performance.now() - startRef.current);
-    const ok = item.check(input);
+    const ok = item.check(value);
     const next = record(state, item.skillId, ok, latency);
     saveState(next);
-    appendLog({ skillId: item.skillId, prompt: item.prompt, answer: input, correct: ok, latencyMs: latency, ts: Date.now() });
+    appendLog({ skillId: item.skillId, prompt: item.prompt, answer: value, correct: ok, latencyMs: latency, ts: Date.now() });
     setState(next);
     setCount((c) => c + 1);
     if (ok) {
@@ -56,6 +56,13 @@ export default function Trainer() {
     } else {
       setPhase("wrong");
     }
+  };
+
+  const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value;
+    setInput(v);
+    // Integer answers: fire as soon as the expected number of characters is in.
+    if (item?.autoLen && v.trim().length >= item.autoLen) submit(v);
   };
 
   const onKey = (e: React.KeyboardEvent) => {
@@ -100,7 +107,7 @@ export default function Trainer() {
           <input
             ref={inputRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={onChange}
             onKeyDown={onKey}
             inputMode={item.inputMode}
             enterKeyHint="go"
@@ -119,7 +126,17 @@ export default function Trainer() {
             ].join(" ")}
           />
 
-          <div className="h-24 mt-5 text-center">
+          <div className="min-h-24 mt-5 text-center">
+            {phase === "answer" && (
+              <button
+                type="button"
+                onClick={() => submit()}
+                disabled={!input.trim()}
+                className="w-full py-3.5 rounded-xl text-base font-medium bg-gray-900 text-white dark:bg-gray-100 dark:text-black disabled:opacity-20 active:scale-[0.98] transition"
+              >
+                {item.autoLen ? "Check" : "Check  ↵"}
+              </button>
+            )}
             {phase === "wrong" && (
               <button
                 onClick={() => advance(state)}
@@ -127,7 +144,7 @@ export default function Trainer() {
               >
                 <div className="text-2xl font-light text-gray-900 dark:text-gray-100">{item.answerText}</div>
                 <div className="text-sm text-gray-500">{item.why}</div>
-                <div className="text-xs text-gray-400 dark:text-gray-600 pt-2">tap or Enter to continue</div>
+                <div className="text-xs text-gray-400 dark:text-gray-600 pt-2">tap to continue</div>
               </button>
             )}
           </div>
