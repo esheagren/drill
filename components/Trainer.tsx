@@ -5,6 +5,7 @@ import { generateItem, type Item } from "@/lib/items";
 import { appendLog, loadState, mastery, nextSkill, record, saveState, type EngineState } from "@/lib/engine";
 import { SKILL_BY_ID, type SkillId } from "@/lib/skills";
 import { SESSION_MS, saveSession, type SessionRecord } from "@/lib/sessions";
+import { flush, queueAttempt, queueSession } from "@/lib/sync";
 import Keypad from "./Keypad";
 import SkillMap from "./SkillMap";
 
@@ -40,6 +41,10 @@ export default function Trainer() {
     const st = loadState();
     setState(st);
     advance(st);
+    void flush();
+    const onHide = () => { if (document.visibilityState === "hidden") void flush(); };
+    document.addEventListener("visibilitychange", onHide);
+    return () => document.removeEventListener("visibilitychange", onHide);
   }, [advance]);
 
   // ── Timer ────────────────────────────────────────────────────────────────
@@ -52,6 +57,8 @@ export default function Trainer() {
       bySkill: tallyRef.current,
     };
     saveSession(rec);
+    queueSession(rec);
+    void flush();
     setSession(rec);
     setPhase("done");
   }, []);
@@ -83,11 +90,14 @@ export default function Trainer() {
     const ok = item.check(value);
     const next = record(state, item.skillId, ok, latency);
     saveState(next);
-    appendLog({ skillId: item.skillId, prompt: item.prompt, answer: value, correct: ok, latencyMs: latency, ts: Date.now() });
+    const entry = { skillId: item.skillId, prompt: item.prompt, answer: value, correct: ok, latencyMs: latency, ts: Date.now() };
+    appendLog(entry);
+    queueAttempt(entry);
     setState(next);
 
     countRef.current.n += 1;
     if (ok) countRef.current.c += 1;
+    if (countRef.current.n % 10 === 0) void flush();
     const t = (tallyRef.current[item.skillId] ||= { n: 0, c: 0 });
     t.n += 1; if (ok) t.c += 1;
 
