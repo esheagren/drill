@@ -139,7 +139,7 @@ const GENERATORS: Record<SkillId, () => Item> = {
       answerText: fmtSci(c, e),
       why: `leading digit ${Math.floor(c)}, then ${e} more places`,
       inputMode: "text",
-      placeholder: "6.8e7  or  6.8 x 10^7",
+      placeholder: "6.8e7",
       check: (s) => sciEq(s, c, e),
     };
   },
@@ -159,7 +159,7 @@ const GENERATORS: Record<SkillId, () => Item> = {
       answerText: fmtSci(cRound, e),
       why: `${sc.word} = 10^${sc.exp}; ${head} = ${fmtSci(cRound, e - sc.exp)}`,
       inputMode: "text",
-      placeholder: "6.8e7  or  6.8 x 10^7",
+      placeholder: "6.8e7",
       check: (s) => sciEq(s, cRound, e),
     };
   },
@@ -172,10 +172,10 @@ const GENERATORS: Record<SkillId, () => Item> = {
     return {
       skillId: "sn.back",
       prompt: fmtSci(c, e),
-      answerText: `${toScaleWords(n)}  (${fmtDigits(n)})`,
+      answerText: `${fmtDigits(n)}  (${toScaleWords(n)})`,
       why: `10^${e} → ${toScaleWords(10 ** e)}`,
       inputMode: "text",
-      placeholder: "200 billion  or  200b",
+      placeholder: "2e11",
       check: (s) => magEq(s, n, 0.02),
     };
   },
@@ -245,7 +245,7 @@ const GENERATORS: Record<SkillId, () => Item> = {
       answerText: `≈ ${toScaleWords(n)}  (${fmtSci(Math.round(t.c * 10) / 10, t.e)})`,
       why: `${h1}×${h2} ≈ ${h1 * h2}; 10^${s1.exp}×10^${s2.exp} = 10^${s1.exp + s2.exp}`,
       inputMode: "text",
-      placeholder: "200 billion  /  2e11",
+      placeholder: "2e11",
       check: (s) => magEq(s, n, 0.3),
     };
   },
@@ -263,7 +263,7 @@ const GENERATORS: Record<SkillId, () => Item> = {
       answerText: `≈ ${toScaleWords(n)}  (${fmtSci(Math.round(t.c * 10) / 10, t.e)})`,
       why: `${h1}÷${h2} = ${q}; 10^${s1.exp}÷10^${s2.exp} = 10^${s1.exp - s2.exp}`,
       inputMode: "text",
-      placeholder: "200 thousand  /  2e5",
+      placeholder: "2e5",
       check: (s) => magEq(s, n, 0.3),
     };
   },

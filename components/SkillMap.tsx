@@ -3,10 +3,13 @@
 import { isUnlocked, mastery, type EngineState } from "@/lib/engine";
 import { FAMILY_LABEL, SKILLS, type Family } from "@/lib/skills";
 import { getUserToken } from "@/lib/user";
+import { dayKey, dayTotals, loadDays } from "@/lib/sessions";
 
 const FAMILIES: Family[] = ["place-value", "exponents", "scientific", "magnitude", "percents"];
 
 export default function SkillMap({ state, onClose }: { state: EngineState; onClose: () => void }) {
+  const days = loadDays();
+  const last14 = Array.from({ length: 14 }, (_, i) => dayKey(Date.now() - i * 86400e3));
   return (
     <div className="fixed inset-0 z-20 bg-white dark:bg-black text-gray-900 dark:text-gray-100 overflow-y-auto">
       <div className="max-w-md mx-auto px-5 py-5">
@@ -16,6 +19,21 @@ export default function SkillMap({ state, onClose }: { state: EngineState; onClo
             close
           </button>
         </div>
+
+        <section className="mb-8">
+          <h2 className="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">Days</h2>
+          <ul className="space-y-1 text-sm tabular-nums">
+            {last14.map((k) => {
+              const t = dayTotals(days, k);
+              return (
+                <li key={k} className={`flex justify-between ${t.sessions ? "" : "text-gray-300 dark:text-gray-700"}`}>
+                  <span>{k.slice(5)}</span>
+                  <span>{t.sessions ? `${t.correct}/${t.answered} · ${t.sessions}×8m` : "—"}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
 
         {FAMILIES.map((fam) => (
           <section key={fam} className="mb-6">
