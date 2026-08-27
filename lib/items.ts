@@ -40,7 +40,90 @@ const magEq = (input: string, target: number, tol: number) => {
   return Math.abs(Math.log10(v) - Math.log10(target)) <= tol;
 };
 
+/** Percent answer within ±0.5 point (so 1/12 accepts 8, 8.3, 8.33). */
+const pctEq = (input: string, target: number) => {
+  const v = parseValue(input.replace(/%/g, ""));
+  return v !== null && Math.abs(v - target) <= 0.5;
+};
+const fmtPct = (p: number) => (Number.isInteger(p) ? String(p) : p.toFixed(1).replace(/\.0$/, ""));
+
 const GENERATORS: Record<SkillId, () => Item> = {
+  // 13 × 17 → 221  (at least one factor above 12)
+  "ar.mul20": () => {
+    const a = ri(11, 20), b = ri(2, 20);
+    const [x, y] = Math.random() < 0.5 ? [a, b] : [b, a];
+    return {
+      skillId: "ar.mul20",
+      prompt: `${x} × ${y}`,
+      answerText: String(x * y),
+      why: x > 10 && y > 10 ? `${x}×${y} = ${x}×10 + ${x}×${y - 10} = ${x * 10} + ${x * (y - 10)}` : `${x} × ${y} = ${x * y}`,
+      inputMode: "numeric",
+      placeholder: "product",
+      check: (s) => intEq(s, x * y),
+    };
+  },
+
+  // 17² → 289
+  "ar.sq": () => {
+    const n = ri(2, 25);
+    return {
+      skillId: "ar.sq",
+      prompt: `${n}²`,
+      answerText: String(n * n),
+      why: n > 10 ? `${n}² = (${n - 10}+10)² = ${(n - 10) ** 2} + ${2 * 10 * (n - 10)} + 100` : `${n} × ${n}`,
+      inputMode: "numeric",
+      placeholder: "value",
+      check: (s) => intEq(s, n * n),
+    };
+  },
+
+  // 7³ → 343
+  "ar.cube": () => {
+    const n = ri(2, 15);
+    return {
+      skillId: "ar.cube",
+      prompt: `${n}³`,
+      answerText: String(n ** 3),
+      why: `${n}² = ${n * n}, × ${n} = ${n ** 3}`,
+      inputMode: "numeric",
+      placeholder: "value",
+      check: (s) => intEq(s, n ** 3),
+    };
+  },
+
+  // 1/12 → 8.3
+  "fr.unit": () => {
+    const d = ri(2, 20);
+    const p = 100 / d;
+    return {
+      skillId: "fr.unit",
+      prompt: `1/${d}`,
+      sub: "as a percent",
+      answerText: `${fmtPct(Math.round(p * 10) / 10)}%`,
+      why: `100 ÷ ${d}`,
+      inputMode: "decimal",
+      placeholder: "%",
+      check: (s) => pctEq(s, p),
+    };
+  },
+
+  // 5/12 → 41.7
+  "fr.common": () => {
+    const d = pick([3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 16, 20]);
+    const n = ri(2, d - 1);
+    const p = (100 * n) / d;
+    return {
+      skillId: "fr.common",
+      prompt: `${n}/${d}`,
+      sub: "as a percent",
+      answerText: `${fmtPct(Math.round(p * 10) / 10)}%`,
+      why: `1/${d} = ${fmtPct(Math.round((1000 / d)) / 10)}%, × ${n}`,
+      inputMode: "decimal",
+      placeholder: "%",
+      check: (s) => pctEq(s, p),
+    };
+  },
+
   // 1,000,000 → 6
   "pv.zeros": () => {
     const e = ri(2, 12);
