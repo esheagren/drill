@@ -2,25 +2,46 @@
 
 import { useEffect } from "react";
 
+/**
+ * Registers the service worker and keeps an installed (home-screen) app fresh:
+ *  - checks for a new worker every time the app comes to the foreground
+ *  - when a new worker takes control, reloads — immediately if no timed session
+ *    is running, otherwise deferred until the session ends (see Trainer).
+ */
 export function PWAInstaller() {
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
-    // When a new service worker takes over, reload once so the fresh shell is shown.
+    const inSession = () => document.body.dataset.inSession === "1";
     let reloaded = false;
-    const onChange = () => {
-      if (reloaded) return;
-      reloaded = true;
-      window.location.reload();
-    };
-    navigator.serviceWorker.addEventListener("controllerchange", onChange);
+    const reload = () => { if (!reloaded) { reloaded = true; window.location.reload(); } };
 
+    const onControllerChange = () => {
+      if (inSession()) document.body.dataset.updateReady = "1";
+      else reload();
+    };
+    navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
+
+    let reg: ServiceWorkerRegistration | undefined;
     navigator.serviceWorker
       .register("/sw.js", { updateViaCache: "none" })
-      .then((reg) => reg.update())
+      .then((r) => { reg = r; return r.update(); })
       .catch((err) => console.error("Service Worker registration failed:", err));
 
-    return () => navigator.serviceWorker.removeEventListener("controllerchange", onChange);
+    // Foreground → look for a newer build. Also reload if one was deferred and the session is over.
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      if (document.body.dataset.updateReady === "1" && !inSession()) reload();
+      reg?.update().catch(() => {});
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pageshow", onVisible);
+
+    return () => {
+      navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", onVisible);
+    };
   }, []);
 
   return null;
