@@ -66,9 +66,18 @@ export default function SkillMap({ state, onClose }: { state: EngineState; onClo
           </section>
         ))}
 
-        <div className="text-[10px] text-gray-300 dark:text-gray-700 mt-8 break-all">
-          user {getUserToken()}
-        </div>
+        <section className="mt-8 text-xs text-gray-400 dark:text-gray-500 space-y-1">
+          <h2 className="uppercase tracking-wide">This device</h2>
+          <p>Open this link on another device (or after re-adding the home-screen icon) to continue with the same history:</p>
+          <a
+            href={`/?u=${getUserToken()}`}
+            onClick={(e) => { e.preventDefault(); navigator.clipboard?.writeText(`${location.origin}/?u=${getUserToken()}`); }}
+            className="block break-all underline text-gray-500 dark:text-gray-400 select-all"
+          >
+            {typeof window !== "undefined" ? location.origin : ""}/?u={getUserToken()}
+          </a>
+          <p className="text-gray-300 dark:text-gray-700">tap to copy</p>
+        </section>
       </div>
     </div>
   );

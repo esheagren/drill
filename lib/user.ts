@@ -10,6 +10,12 @@ const TOKEN_KEY = "magnitude:user";
 export function getUserToken(): string {
   if (typeof window === "undefined") return "server";
   try {
+    // /?u=<token> adopts an existing identity (link another device / reinstall).
+    const fromUrl = new URLSearchParams(window.location.search).get("u");
+    if (fromUrl && /^[\w-]{8,64}$/.test(fromUrl)) {
+      localStorage.setItem(TOKEN_KEY, fromUrl);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
     let token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
       token =

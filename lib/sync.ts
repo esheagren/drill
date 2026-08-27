@@ -5,6 +5,8 @@
  * the UI; the database is for analytics.
  */
 import { getUserToken, scopedKey } from "./user";
+import { loadState, saveState, type EngineState } from "./engine";
+import { loadDays, saveSession, type SessionRecord } from "./sessions";
 
 const A_KEY = () => scopedKey("outbox:attempts");
 const S_KEY = () => scopedKey("outbox:sessions");
@@ -33,5 +35,36 @@ export async function flush(): Promise<void> {
       const res = await fetch("/api/sessions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ user, sessions }), keepalive: true });
       if (res.ok) { const sent = new Set(sessions.map((s) => s.clientId)); write(S_KEY(), read<{ clientId: string }>(S_KEY()).filter((s) => !sent.has(s.clientId))); }
     }
+    // Engine snapshot — the server is the durable memory across reinstalls/devices.
+    const engine = loadState();
+    const total = Object.values(engine).reduce((a, s) => a + s.attempts, 0);
+    if (total > 0) {
+      await fetch("/api/state", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ user, engine, attempts: total }), keepalive: true });
+    }
   } catch { /* stay queued */ } finally { inflight = false; }
+}
+
+/**
+ * On boot: if the server knows more about this token than this install does
+ * (fresh install, re-added home-screen app, new device via ?u=), adopt it.
+ * Returns the engine state to use.
+ */
+export async function hydrate(): Promise<EngineState> {
+  const local = loadState();
+  if (typeof window === "undefined" || !navigator.onLine) return local;
+  try {
+    const res = await fetch(`/api/state?user=${encodeURIComponent(getUserToken())}`);
+    if (!res.ok) return local;
+    const data = (await res.json()) as { engine: EngineState | null; attempts: number; sessions: SessionRecord[] };
+    // Sessions: merge anything the local day log doesn't have (keyed by start ts).
+    const have = new Set(Object.values(loadDays()).flat().map((r) => r.ts));
+    for (const rec of data.sessions ?? []) if (!have.has(rec.ts)) saveSession(rec);
+    const localAttempts = Object.values(local).reduce((a, s) => a + s.attempts, 0);
+    if (data.engine && data.attempts > localAttempts) {
+      const merged = { ...local, ...data.engine } as EngineState;
+      saveState(merged);
+      return merged;
+    }
+  } catch { /* offline or server hiccup — local is fine */ }
+  return local;
 }

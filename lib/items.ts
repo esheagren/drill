@@ -157,22 +157,6 @@ const GENERATORS: Record<SkillId, () => Item> = {
     };
   },
 
-  // 2 × 10^11 → 200 billion
-  "sn.back": () => {
-    const e = ri(3, 13);
-    const c = pick([ri(1, 9), ri(11, 99) / 10]);
-    const n = c * 10 ** e;
-    return {
-      skillId: "sn.back",
-      prompt: fmtSci(c, e),
-      answerText: `${fmtDigits(n)}  (${toScaleWords(n)})`,
-      why: `10^${e} → ${toScaleWords(10 ** e)}`,
-      inputMode: "text",
-      placeholder: "2e11",
-      check: (s) => magEq(s, n, 0.02),
-    };
-  },
-
   // 48 × 10^7 → 4.8 × 10^8   (also 0.5 × 10^9 → 5 × 10^8)
   "sn.norm": () => {
     const e = ri(2, 11);
