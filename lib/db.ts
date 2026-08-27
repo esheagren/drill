@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS attempts (
   client_id   text        NOT NULL,
   UNIQUE (user_token, client_id)
 );
+ALTER TABLE attempts ADD COLUMN IF NOT EXISTS level smallint;
+ALTER TABLE attempts ADD COLUMN IF NOT EXISTS review boolean NOT NULL DEFAULT false;
 CREATE INDEX IF NOT EXISTS attempts_user_ts ON attempts (user_token, ts);
 CREATE INDEX IF NOT EXISTS attempts_skill   ON attempts (user_token, skill_id);
 

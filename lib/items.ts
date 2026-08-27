@@ -1,11 +1,13 @@
 import type { SkillId } from "./skills";
-import {
-  SCALES, fmtDigits, fmtSci, numberToWords, parseSci, parseValue, pick, ri, shortWords, toSci, toScaleWords,
-} from "./numbers";
+import { SCALES, fmtDigits, fmtSci, numberToWords, parseSci, parseValue, pick, ri, shortWords, toSci, toScaleWords } from "./numbers";
+
+/** Difficulty tier. Every generator scales its ranges by this. */
+export type Level = 1 | 2 | 3;
 
 /** One practice item. `check` returns whether the typed answer is acceptable. */
 export interface Item {
   skillId: SkillId;
+  level: Level;
   prompt: string;
   /** Small text under the prompt (e.g. "= 10^?"). */
   sub?: string;
@@ -18,6 +20,8 @@ export interface Item {
   placeholder: string;
   check: (input: string) => boolean;
 }
+
+// ── checkers ───────────────────────────────────────────────────────────────
 
 /** Integer answer. Accepts "12", "10^12", "^12", "e12", "1e12". */
 const intEq = (input: string, target: number) => {
@@ -41,327 +45,252 @@ const magEq = (input: string, target: number, tol: number) => {
 };
 
 /** Percent answer within ±0.5 point (so 1/12 accepts 8, 8.3, 8.33). */
+const PCT_TOL = 0.5;
 const pctEq = (input: string, target: number) => {
   const v = parseValue(input.replace(/%/g, ""));
-  return v !== null && Math.abs(v - target) <= 0.5;
+  return v !== null && Math.abs(v - target) <= PCT_TOL;
 };
 const fmtPct = (p: number) => (Number.isInteger(p) ? String(p) : p.toFixed(1).replace(/\.0$/, ""));
+const r1 = (x: number) => Math.round(x * 10) / 10;
 
-const GENERATORS: Record<SkillId, () => Item> = {
-  // 13 × 17 → 221  (at least one factor above 12)
-  "ar.mul20": () => {
-    const a = ri(11, 20), b = ri(2, 20);
+const by = <T,>(level: Level, l1: T, l2: T, l3: T): T => (level === 1 ? l1 : level === 2 ? l2 : l3);
+
+type Gen = (level: Level) => Omit<Item, "level">;
+
+const GENERATORS: Record<SkillId, Gen> = {
+  // ── Arithmetic ─────────────────────────────────────────────────────────
+  // 13 × 17 → 221
+  "ar.mul20": (L) => {
+    const a = by(L, ri(11, 15), ri(11, 20), ri(11, 20));
+    const b = by(L, ri(2, 9), ri(2, 12), ri(11, 20));
     const [x, y] = Math.random() < 0.5 ? [a, b] : [b, a];
     return {
-      skillId: "ar.mul20",
-      prompt: `${x} × ${y}`,
-      answerText: String(x * y),
+      skillId: "ar.mul20", prompt: `${x} × ${y}`, answerText: String(x * y),
       why: x > 10 && y > 10 ? `${x}×${y} = ${x}×10 + ${x}×${y - 10} = ${x * 10} + ${x * (y - 10)}` : `${x} × ${y} = ${x * y}`,
-      inputMode: "numeric",
-      placeholder: "product",
-      check: (s) => intEq(s, x * y),
+      inputMode: "numeric", placeholder: "product", check: (s) => intEq(s, x * y),
     };
   },
-
   // 17² → 289
-  "ar.sq": () => {
-    const n = ri(2, 25);
+  "ar.sq": (L) => {
+    const n = by(L, ri(2, 12), ri(11, 20), ri(13, 25));
     return {
-      skillId: "ar.sq",
-      prompt: `${n}²`,
-      answerText: String(n * n),
-      why: n > 10 ? `${n}² = (${n - 10}+10)² = ${(n - 10) ** 2} + ${2 * 10 * (n - 10)} + 100` : `${n} × ${n}`,
-      inputMode: "numeric",
-      placeholder: "value",
-      check: (s) => intEq(s, n * n),
+      skillId: "ar.sq", prompt: `${n}²`, answerText: String(n * n),
+      why: n > 10 ? `(${n - 10}+10)² = ${(n - 10) ** 2} + ${20 * (n - 10)} + 100` : `${n} × ${n}`,
+      inputMode: "numeric", placeholder: "value", check: (s) => intEq(s, n * n),
     };
   },
-
   // 7³ → 343
-  "ar.cube": () => {
-    const n = ri(2, 15);
+  "ar.cube": (L) => {
+    const n = by(L, ri(2, 6), ri(2, 10), ri(7, 15));
     return {
-      skillId: "ar.cube",
-      prompt: `${n}³`,
-      answerText: String(n ** 3),
+      skillId: "ar.cube", prompt: `${n}³`, answerText: String(n ** 3),
       why: `${n}² = ${n * n}, × ${n} = ${n ** 3}`,
-      inputMode: "numeric",
-      placeholder: "value",
-      check: (s) => intEq(s, n ** 3),
+      inputMode: "numeric", placeholder: "value", check: (s) => intEq(s, n ** 3),
     };
   },
 
+  // ── Fractions → percents ───────────────────────────────────────────────
   // 1/12 → 8.3
-  "fr.unit": () => {
-    const d = ri(2, 20);
+  "fr.unit": (L) => {
+    const d = pick(by(L, [2, 3, 4, 5, 10], [2, 3, 4, 5, 6, 8, 10, 12, 20], [6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]));
     const p = 100 / d;
     return {
-      skillId: "fr.unit",
-      prompt: `1/${d}`,
-      sub: "as a percent",
-      answerText: `${fmtPct(Math.round(p * 10) / 10)}%`,
-      why: `100 ÷ ${d}`,
-      inputMode: "decimal",
-      placeholder: "%",
-      check: (s) => pctEq(s, p),
+      skillId: "fr.unit", prompt: `1/${d}`, sub: `as a percent · within ${PCT_TOL}`,
+      answerText: `${fmtPct(r1(p))}%`, why: `100 ÷ ${d}`,
+      inputMode: "decimal", placeholder: "%", check: (s) => pctEq(s, p),
     };
   },
-
   // 5/12 → 41.7
-  "fr.common": () => {
-    const d = pick([3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 16, 20]);
+  "fr.common": (L) => {
+    const d = pick(by(L, [2, 4, 5, 10], [3, 4, 5, 6, 8, 10, 12], [7, 8, 9, 12, 15, 16, 20]));
     const n = ri(2, d - 1);
     const p = (100 * n) / d;
     return {
-      skillId: "fr.common",
-      prompt: `${n}/${d}`,
-      sub: "as a percent",
-      answerText: `${fmtPct(Math.round(p * 10) / 10)}%`,
-      why: `1/${d} = ${fmtPct(Math.round((1000 / d)) / 10)}%, × ${n}`,
-      inputMode: "decimal",
-      placeholder: "%",
-      check: (s) => pctEq(s, p),
+      skillId: "fr.common", prompt: `${n}/${d}`, sub: `as a percent · within ${PCT_TOL}`,
+      answerText: `${fmtPct(r1(p))}%`, why: `1/${d} = ${fmtPct(r1(100 / d))}%, × ${n}`,
+      inputMode: "decimal", placeholder: "%", check: (s) => pctEq(s, p),
     };
   },
 
+  // ── Powers of ten ──────────────────────────────────────────────────────
   // 1,000,000 → 6
-  "pv.zeros": () => {
-    const e = ri(2, 12);
+  "pv.zeros": (L) => {
+    const e = by(L, ri(2, 6), ri(3, 9), ri(6, 12));
     return {
-      skillId: "pv.zeros",
-      prompt: fmtDigits(10 ** e),
-      sub: "= 10 ^ ?",
-      answerText: `10^${e}`,
-      why: `${e} zeros → 10^${e}`,
-      inputMode: "numeric",
-      placeholder: "exponent",
-      check: (s) => intEq(s, e),
+      skillId: "pv.zeros", prompt: fmtDigits(10 ** e), sub: "= 10 ^ ?", answerText: `10^${e}`,
+      why: `${e} zeros → 10^${e}`, inputMode: "numeric", placeholder: "exponent", check: (s) => intEq(s, e),
     };
   },
-
   // "billion" → 9
-  "pv.word-exp": () => {
+  "pv.word-exp": (L) => {
     const sc = pick(SCALES);
-    const variants = [
-      { p: `one ${sc.word}`, e: sc.exp },
-      { p: `ten ${sc.word}`, e: sc.exp + 1 },
-      { p: `a hundred ${sc.word}`, e: sc.exp + 2 },
-    ];
-    const v = pick(variants);
+    const variants = [{ p: `one ${sc.word}`, e: sc.exp }, { p: `ten ${sc.word}`, e: sc.exp + 1 }, { p: `a hundred ${sc.word}`, e: sc.exp + 2 }];
+    const v = pick(by(L, variants.slice(0, 1), variants.slice(0, 2), variants));
     return {
-      skillId: "pv.word-exp",
-      prompt: v.p,
-      sub: "= 10 ^ ?",
-      answerText: `10^${v.e}`,
+      skillId: "pv.word-exp", prompt: v.p, sub: "= 10 ^ ?", answerText: `10^${v.e}`,
       why: `${sc.word} = 10^${sc.exp}${v.e !== sc.exp ? `, times 10^${v.e - sc.exp}` : ""}`,
-      inputMode: "numeric",
-      placeholder: "exponent",
-      check: (s) => intEq(s, v.e),
+      inputMode: "numeric", placeholder: "exponent", check: (s) => intEq(s, v.e),
     };
   },
 
-  // 10^7 × 10^3 → 10
-  "exp.add": () => {
-    const a = ri(1, 12), b = ri(1, 12);
+  // ── Exponent arithmetic ────────────────────────────────────────────────
+  "exp.add": (L) => {
+    const [lo, hi] = by(L, [1, 5], [1, 9], [3, 12]);
+    const a = ri(lo, hi), b = ri(lo, hi);
     return {
-      skillId: "exp.add",
-      prompt: `10^${a} × 10^${b}`,
-      sub: "= 10 ^ ?",
-      answerText: `10^${a + b}`,
-      why: `${a} + ${b} = ${a + b}`,
-      inputMode: "numeric",
-      placeholder: "exponent",
-      check: (s) => intEq(s, a + b),
+      skillId: "exp.add", prompt: `10^${a} × 10^${b}`, sub: "= 10 ^ ?", answerText: `10^${a + b}`,
+      why: `${a} + ${b} = ${a + b}`, inputMode: "numeric", placeholder: "exponent", check: (s) => intEq(s, a + b),
     };
   },
-
-  // 10^9 ÷ 10^4 → 5
-  "exp.sub": () => {
-    const b = ri(1, 9), a = b + ri(0, 6);
+  "exp.sub": (L) => {
+    const b = by(L, ri(1, 4), ri(1, 9), ri(3, 9));
+    const a = b + by(L, ri(0, 4), ri(0, 6), ri(1, 9));
     return {
-      skillId: "exp.sub",
-      prompt: `10^${a} ÷ 10^${b}`,
-      sub: "= 10 ^ ?",
-      answerText: `10^${a - b}`,
-      why: `${a} − ${b} = ${a - b}`,
-      inputMode: "numeric",
-      placeholder: "exponent",
-      check: (s) => intEq(s, a - b),
+      skillId: "exp.sub", prompt: `10^${a} ÷ 10^${b}`, sub: "= 10 ^ ?", answerText: `10^${a - b}`,
+      why: `${a} − ${b} = ${a - b}`, inputMode: "numeric", placeholder: "exponent", check: (s) => intEq(s, a - b),
     };
   },
-
-  // 7 × 8 → 56 (single-digit fact fluency; the coefficient step of sn.mul)
-  "coef.mul": () => {
-    const a = ri(2, 9), b = ri(2, 9);
+  // 7 × 8 → 56
+  "coef.mul": (L) => {
+    const [lo, hi] = by(L, [2, 5], [2, 9], [3, 9]);
+    const a = ri(lo, hi), b = ri(lo, hi);
     return {
-      skillId: "coef.mul",
-      prompt: `${a} × ${b}`,
-      answerText: String(a * b),
-      why: `${a} × ${b} = ${a * b}`,
-      inputMode: "numeric",
-      placeholder: "product",
-      check: (s) => intEq(s, a * b),
+      skillId: "coef.mul", prompt: `${a} × ${b}`, answerText: String(a * b), why: `${a} × ${b} = ${a * b}`,
+      inputMode: "numeric", placeholder: "product", check: (s) => intEq(s, a * b),
     };
   },
 
+  // ── Scientific notation ────────────────────────────────────────────────
   // 68,000,000 → 6.8 × 10^7
-  "sn.digits": () => {
-    const e = ri(3, 12);
-    const c = pick([ri(1, 9), ri(10, 99) / 10]);
-    const n = c * 10 ** e;
+  "sn.digits": (L) => {
+    const e = by(L, ri(3, 6), ri(3, 9), ri(6, 12));
+    const c = by(L, ri(1, 9), pick([ri(1, 9), ri(10, 99) / 10]), ri(10, 99) / 10);
     return {
-      skillId: "sn.digits",
-      prompt: fmtDigits(n),
-      answerText: fmtSci(c, e),
+      skillId: "sn.digits", prompt: fmtDigits(c * 10 ** e), answerText: fmtSci(c, e),
       why: `leading digit ${Math.floor(c)}, then ${e} more places`,
-      inputMode: "text",
-      placeholder: "6.8e7",
-      check: (s) => sciEq(s, c, e),
+      inputMode: "text", placeholder: "6.8e7", check: (s) => sciEq(s, c, e),
     };
   },
-
   // "sixty-eight million" → 6.8 × 10^7
-  "sn.words": () => {
-    const sc = pick(SCALES);
-    // heads: 4, 40, 400, 6.8, 68, 680 → all map cleanly
-    const head = pick([ri(2, 9), ri(11, 99), ri(101, 999), ri(11, 99) / 10]);
+  "sn.words": (L) => {
+    const sc = pick(by(L, SCALES.slice(0, 2), SCALES, SCALES));
+    const head = by(L, ri(2, 9), pick([ri(2, 9), ri(11, 99)]), pick([ri(11, 99), ri(101, 999), ri(11, 99) / 10]));
     const n = head * 10 ** sc.exp;
     const { c, e } = toSci(n);
-    const cRound = Math.round(c * 10) / 10;
+    const cRound = r1(c);
     const prompt = Number.isInteger(head) ? numberToWords(n) : shortWords(head, sc.exp);
     return {
-      skillId: "sn.words",
-      prompt,
-      answerText: fmtSci(cRound, e),
+      skillId: "sn.words", prompt, answerText: fmtSci(cRound, e),
       why: `${sc.word} = 10^${sc.exp}; ${head} = ${fmtSci(cRound, e - sc.exp)}`,
-      inputMode: "text",
-      placeholder: "6.8e7",
-      check: (s) => sciEq(s, cRound, e),
+      inputMode: "text", placeholder: "6.8e7", check: (s) => sciEq(s, cRound, e),
     };
   },
-
-  // 48 × 10^7 → 4.8 × 10^8   (also 0.5 × 10^9 → 5 × 10^8)
-  "sn.norm": () => {
-    const e = ri(2, 11);
+  // 48 × 10^7 → 4.8 × 10^8
+  "sn.norm": (L) => {
+    const e = by(L, ri(2, 6), ri(2, 9), ri(4, 11));
     let c: number, t: { c: number; e: number }, tc: number;
     do {
-      c = pick([ri(10, 99), ri(100, 999), ri(1, 9) / 10]);
+      c = by(L, ri(10, 99), pick([ri(10, 99), ri(100, 999)]), pick([ri(100, 999), ri(1, 9) / 10]));
       t = toSci(c * 10 ** e);
-      tc = Math.round(t.c * 10) / 10;
-    } while (tc >= 10); // e.g. 999 → 9.99 → rounds to 10.0; not a normalized form
+      tc = r1(t.c);
+    } while (tc >= 10);
     return {
-      skillId: "sn.norm",
-      prompt: fmtSci(c, e),
-      answerText: fmtSci(tc, t.e),
+      skillId: "sn.norm", prompt: fmtSci(c, e), answerText: fmtSci(tc, t.e),
       why: `move the point ${t.e - e > 0 ? "left" : "right"} ${Math.abs(t.e - e)} → exponent ${e} ${t.e - e >= 0 ? "+" : "−"} ${Math.abs(t.e - e)}`,
-      inputMode: "text",
-      placeholder: "4.8e8",
-      check: (s) => sciEq(s, tc, t.e),
+      inputMode: "text", placeholder: "4.8e8", check: (s) => sciEq(s, tc, t.e),
     };
   },
 
+  // ── Operating in scientific notation ───────────────────────────────────
   // (6 × 10^7)(3 × 10^3) → 1.8 × 10^11
-  "sn.mul": () => {
-    const a = ri(2, 9), b = ri(2, 9), ea = ri(2, 9), eb = ri(2, 9);
+  "sn.mul": (L) => {
+    const [lo, hi] = by(L, [2, 3], [2, 9], [3, 9]);
+    const a = ri(lo, hi), b = ri(lo, hi);
+    const [elo, ehi] = by(L, [2, 5], [2, 9], [5, 12]);
+    const ea = ri(elo, ehi), eb = ri(elo, ehi);
     const t = toSci(a * b * 10 ** (ea + eb));
-    const tc = Math.round(t.c * 10) / 10;
+    const tc = r1(t.c);
     return {
-      skillId: "sn.mul",
-      prompt: `(${a} × 10^${ea}) × (${b} × 10^${eb})`,
-      answerText: fmtSci(tc, t.e),
+      skillId: "sn.mul", prompt: `(${a} × 10^${ea}) × (${b} × 10^${eb})`, answerText: fmtSci(tc, t.e),
       why: `${a}×${b} = ${a * b}; ${ea}+${eb} = ${ea + eb}${a * b >= 10 ? ` → renormalize, +1` : ""}`,
-      inputMode: "text",
-      placeholder: "1.8e11",
-      check: (s) => sciEq(s, tc, t.e),
+      inputMode: "text", placeholder: "1.8e11", check: (s) => sciEq(s, tc, t.e),
     };
   },
-
   // (8 × 10^9) ÷ (2 × 10^4) → 4 × 10^5
-  "sn.div": () => {
-    const b = ri(2, 9), q = ri(1, 9), a = b * q; // a/b exact
-    const eb = ri(1, 6), ea = eb + ri(1, 8);
-    const t = toSci(a * 10 ** ea / (b * 10 ** eb));
-    const tc = Math.round(t.c * 10) / 10;
+  "sn.div": (L) => {
+    const b = by(L, ri(2, 5), ri(2, 9), ri(2, 9));
+    const q = by(L, ri(1, 5), ri(1, 9), ri(2, 9));
+    const a = b * q;
+    const eb = by(L, ri(1, 3), ri(1, 6), ri(3, 8));
+    const ea = eb + by(L, ri(1, 4), ri(1, 8), ri(2, 9));
+    const t = toSci((a * 10 ** ea) / (b * 10 ** eb));
+    const tc = r1(t.c);
     return {
-      skillId: "sn.div",
-      prompt: `(${a} × 10^${ea}) ÷ (${b} × 10^${eb})`,
-      answerText: fmtSci(tc, t.e),
+      skillId: "sn.div", prompt: `(${a} × 10^${ea}) ÷ (${b} × 10^${eb})`, answerText: fmtSci(tc, t.e),
       why: `${a}÷${b} = ${q}; ${ea}−${eb} = ${ea - eb}${a >= 10 && q < 10 ? ` → renormalize` : ""}`,
-      inputMode: "text",
-      placeholder: "4e5",
-      check: (s) => sciEq(s, tc, t.e),
+      inputMode: "text", placeholder: "4e5", check: (s) => sciEq(s, tc, t.e),
     };
   },
 
-  // 68 million × 3 thousand → ~200 billion   (within 0.3 orders)
-  "mag.mul": () => {
-    const s1 = pick(SCALES), s2 = pick(SCALES.slice(0, 2));
-    const h1 = pick([ri(2, 9), ri(11, 99)]), h2 = pick([ri(2, 9), ri(11, 99)]);
+  // ── Magnitude estimation ───────────────────────────────────────────────
+  // 68 million × 3 thousand → ~2e11   (within 0.3 orders)
+  "mag.mul": (L) => {
+    const s1 = pick(by(L, SCALES.slice(0, 2), SCALES, SCALES));
+    const s2 = pick(by(L, SCALES.slice(0, 1), SCALES.slice(0, 2), SCALES.slice(0, 3)));
+    const h1 = by(L, ri(2, 9), pick([ri(2, 9), ri(11, 99)]), ri(11, 99));
+    const h2 = by(L, ri(2, 9), pick([ri(2, 9), ri(11, 99)]), ri(11, 99));
     const n = h1 * 10 ** s1.exp * h2 * 10 ** s2.exp;
     const t = toSci(n);
     return {
-      skillId: "mag.mul",
-      prompt: `${h1} ${s1.word} × ${h2} ${s2.word}`,
-      answerText: `≈ ${toScaleWords(n)}  (${fmtSci(Math.round(t.c * 10) / 10, t.e)})`,
+      skillId: "mag.mul", prompt: `${h1} ${s1.word} × ${h2} ${s2.word}`, sub: "roughly · within ½ an order of magnitude",
+      answerText: `≈ ${toScaleWords(n)}  (${fmtSci(r1(t.c), t.e)})`,
       why: `${h1}×${h2} ≈ ${h1 * h2}; 10^${s1.exp}×10^${s2.exp} = 10^${s1.exp + s2.exp}`,
-      inputMode: "text",
-      placeholder: "2e11",
-      check: (s) => magEq(s, n, 0.3),
+      inputMode: "text", placeholder: "2e11", check: (s) => magEq(s, n, 0.3),
     };
   },
-
-  // 8 billion ÷ 40 thousand → ~200 thousand
-  "mag.div": () => {
-    const s1 = pick(SCALES.slice(1)), s2 = pick(SCALES.filter((s) => s.exp < s1.exp));
-    const h2 = pick([ri(2, 9), ri(2, 9) * 10]), q = pick([ri(1, 9), ri(1, 9) * 10]);
+  // 8 billion ÷ 40 thousand → ~2e5
+  "mag.div": (L) => {
+    const s1 = pick(by(L, SCALES.slice(1, 3), SCALES.slice(1), SCALES.slice(1)));
+    const s2 = pick(SCALES.filter((s) => s.exp < s1.exp));
+    const h2 = by(L, ri(2, 9), pick([ri(2, 9), ri(2, 9) * 10]), pick([ri(2, 9), ri(2, 9) * 10]));
+    const q = by(L, ri(1, 5), pick([ri(1, 9), ri(1, 9) * 10]), pick([ri(2, 9), ri(2, 9) * 10]));
     const h1 = h2 * q;
-    const n = h1 * 10 ** s1.exp / (h2 * 10 ** s2.exp);
+    const n = (h1 * 10 ** s1.exp) / (h2 * 10 ** s2.exp);
     const t = toSci(n);
     return {
-      skillId: "mag.div",
-      prompt: `${h1} ${s1.word} ÷ ${h2} ${s2.word}`,
-      answerText: `≈ ${toScaleWords(n)}  (${fmtSci(Math.round(t.c * 10) / 10, t.e)})`,
+      skillId: "mag.div", prompt: `${h1} ${s1.word} ÷ ${h2} ${s2.word}`, sub: "roughly · within ½ an order of magnitude",
+      answerText: `≈ ${toScaleWords(n)}  (${fmtSci(r1(t.c), t.e)})`,
       why: `${h1}÷${h2} = ${q}; 10^${s1.exp}÷10^${s2.exp} = 10^${s1.exp - s2.exp}`,
-      inputMode: "text",
-      placeholder: "2e5",
-      check: (s) => magEq(s, n, 0.3),
+      inputMode: "text", placeholder: "2e5", check: (s) => magEq(s, n, 0.3),
     };
   },
 
-  // 10% of 3,400 → 340 ; 1% of 560 → 5.6
-  "pct.anchor": () => {
-    const p = pick([10, 1, 50, 5]);
-    const base = pick([ri(2, 99) * 10, ri(2, 99) * 100, ri(2, 9) * 1000]);
+  // ── Percents ───────────────────────────────────────────────────────────
+  // 10% of 3,400 → 340
+  "pct.anchor": (L) => {
+    const p = pick(by(L, [10, 50], [10, 1, 50, 5], [1, 5, 50, 10]));
+    const base = pick(by(L, [ri(2, 99) * 10, ri(2, 9) * 100], [ri(2, 99) * 10, ri(2, 99) * 100, ri(2, 9) * 1000], [ri(11, 99) * 100, ri(11, 99) * 1000, ri(101, 999) * 10]));
     const ans = (p / 100) * base;
     return {
-      skillId: "pct.anchor",
-      prompt: `${p}% of ${fmtDigits(base)}`,
-      answerText: String(Math.round(ans * 100) / 100),
+      skillId: "pct.anchor", prompt: `${p}% of ${fmtDigits(base)}`, answerText: String(Math.round(ans * 100) / 100),
       why: p === 10 ? "shift one place left" : p === 1 ? "shift two places left" : p === 50 ? "halve it" : "half of 10%",
-      inputMode: "decimal",
-      placeholder: "value",
-      check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) < 0.011; },
+      inputMode: "decimal", placeholder: "value", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) < 0.011; },
     };
   },
-
-  // 15% of 80 → 12  (compose from 10% + 5%)
-  "pct.compose": () => {
-    const p = pick([15, 20, 25, 30, 35, 40, 60, 70, 75, 80, 90, 12, 18, 22]);
-    const base = pick([ri(2, 20) * 10, ri(2, 9) * 100, ri(11, 99) * 10]);
+  // 15% of 80 → 12
+  "pct.compose": (L) => {
+    const p = pick(by(L, [20, 25, 30, 15], [15, 20, 25, 30, 40, 60, 70, 75, 80, 90], [12, 18, 22, 35, 45, 65, 85, 95]));
+    const base = pick(by(L, [ri(2, 20) * 10], [ri(2, 20) * 10, ri(2, 9) * 100], [ri(11, 99) * 10, ri(2, 9) * 100, ri(11, 49) * 100]));
     const ans = (p / 100) * base;
     const tens = Math.floor(p / 10) * 10, ones = p - tens;
     return {
-      skillId: "pct.compose",
-      prompt: `${p}% of ${fmtDigits(base)}`,
-      answerText: String(Math.round(ans * 100) / 100),
+      skillId: "pct.compose", prompt: `${p}% of ${fmtDigits(base)}`, answerText: String(Math.round(ans * 100) / 100),
       why: ones ? `${tens}% + ${ones}% → ${(tens / 100) * base} + ${(ones / 100) * base}` : `${p / 10} × (10% = ${base / 10})`,
-      inputMode: "decimal",
-      placeholder: "value",
-      check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) / ans < 0.005; },
+      inputMode: "decimal", placeholder: "value", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) / ans < 0.005; },
     };
   },
 };
 
-export function generateItem(skillId: SkillId): Item {
-  return GENERATORS[skillId]();
+export function generateItem(skillId: SkillId, level: Level = 1): Item {
+  return { ...GENERATORS[skillId](level), level };
 }

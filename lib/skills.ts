@@ -256,5 +256,5 @@ export const FAMILY_BLURB: Record<Family, string> = {
   percents: "anchors and composition",
 };
 
-export const FAMILIES: Family[] = ["arithmetic", "place-value", "exponents", "scientific", "operations", "magnitude", "fractions", "percents"];
+export const FAMILIES: Family[] = ["arithmetic", "fractions", "place-value", "exponents", "scientific", "operations", "magnitude", "percents"];
 export const skillsIn = (f: Family) => SKILLS.filter((s) => s.family === f);
