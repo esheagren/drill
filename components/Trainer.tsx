@@ -4,9 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { generateItem, type Item } from "@/lib/items";
 import { appendLog, mastery, nextSkill, record, saveState, type EngineState } from "@/lib/engine";
 import { SKILL_BY_ID, type SkillId } from "@/lib/skills";
-import { SESSION_MS, saveSession, type SessionRecord } from "@/lib/sessions";
+import { MIXED, saveSession, type Plan, type SessionRecord } from "@/lib/sessions";
 import { flush, hydrate, queueAttempt, queueSession } from "@/lib/sync";
 import Keypad from "./Keypad";
+import Units from "./Units";
 import SkillMap from "./SkillMap";
 
 type Phase = "answer" | "correct" | "wrong" | "done";
@@ -19,7 +20,10 @@ export default function Trainer() {
   const [input, setInput] = useState("");
   const [phase, setPhase] = useState<Phase>("answer");
   const [showMap, setShowMap] = useState(false);
-  const [remaining, setRemaining] = useState(SESSION_MS);
+  const [showUnits, setShowUnits] = useState(false);
+  const [plan, setPlan] = useState<Plan>(MIXED);
+  const planRef = useRef<Plan>(MIXED);
+  const [remaining, setRemaining] = useState(MIXED.durationMs);
   const [session, setSession] = useState<SessionRecord | null>(null);
 
   const startRef = useRef(0);          // item start
@@ -29,7 +33,7 @@ export default function Trainer() {
   const countRef = useRef({ n: 0, c: 0 });
 
   const advance = useCallback((st: EngineState) => {
-    const id = nextSkill(st, lastSkillRef.current);
+    const id = nextSkill(st, lastSkillRef.current, planRef.current.pool);
     lastSkillRef.current = id;
     setItem(generateItem(id));
     setInput("");
@@ -53,8 +57,9 @@ export default function Trainer() {
   // ── Timer ────────────────────────────────────────────────────────────────
   const finish = useCallback(() => {
     const rec: SessionRecord = {
+      plan: planRef.current.id,
       ts: sessionStartRef.current,
-      durationMs: Math.min(SESSION_MS, Date.now() - sessionStartRef.current),
+      durationMs: Math.min(planRef.current.durationMs, Date.now() - sessionStartRef.current),
       answered: countRef.current.n,
       correct: countRef.current.c,
       bySkill: tallyRef.current,
@@ -71,21 +76,31 @@ export default function Trainer() {
     if (phase === "done") return;
     const id = setInterval(() => {
       if (!sessionStartRef.current) return;
-      const left = SESSION_MS - (Date.now() - sessionStartRef.current);
+      const left = planRef.current.durationMs - (Date.now() - sessionStartRef.current);
       if (left <= 0) { setRemaining(0); finish(); } else setRemaining(left);
     }, 250);
     return () => clearInterval(id);
   }, [phase, finish]);
 
-  const restart = () => {
+  const restart = (next: Plan = planRef.current) => {
     if (!state) return;
     if (document.body.dataset.updateReady === "1") { window.location.reload(); return; } // pick up a deferred deploy
+    planRef.current = next;
+    setPlan(next);
     sessionStartRef.current = 0;
+    delete document.body.dataset.inSession;
     countRef.current = { n: 0, c: 0 };
     tallyRef.current = {};
-    setRemaining(SESSION_MS);
+    setRemaining(next.durationMs);
     setSession(null);
+    setShowUnits(false);
     advance(state);
+  };
+
+  // Choosing a plan mid-session abandons the current one (recorded if anything was answered).
+  const pick = (next: Plan) => {
+    if (sessionStartRef.current && countRef.current.n > 0 && phase !== "done") finish();
+    restart(next);
   };
 
   // ── Answering ────────────────────────────────────────────────────────────
@@ -125,7 +140,7 @@ export default function Trainer() {
   // Hardware keyboard support (desktop).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (showMap || phase === "done") return;
+      if (showMap || showUnits || phase === "done") return;
       if (/^[0-9.e]$/.test(e.key)) { e.preventDefault(); press(e.key); }
       else if (e.key === "Backspace") { e.preventDefault(); backspace(); }
       else if (e.key === "Enter") { e.preventDefault(); enter(); }
@@ -144,7 +159,7 @@ export default function Trainer() {
       <div className="min-h-dvh flex flex-col bg-white dark:bg-black text-gray-900 dark:text-gray-100">
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
           <div className="text-7xl font-light tabular-nums">{session.answered}</div>
-          <div className="text-sm text-gray-400 mt-1">answered in 8 minutes</div>
+          <div className="text-sm text-gray-400 mt-1">answered · {plan.label} · {Math.round(plan.durationMs / 60000)} min</div>
           <div className="text-2xl font-light mt-6 tabular-nums">{session.correct} correct · {pct}%</div>
           <ul className="mt-8 w-full max-w-xs text-sm space-y-1">
             {rows.map(([id, t]) => (
@@ -156,11 +171,16 @@ export default function Trainer() {
           </ul>
         </div>
         <div className="px-6 pb-[max(env(safe-area-inset-bottom),24px)] space-y-2 max-w-md mx-auto w-full">
-          <button onClick={restart} className="w-full h-14 rounded-2xl bg-gray-900 text-white dark:bg-gray-100 dark:text-black text-lg active:scale-[0.98] transition">
+          <button onClick={() => restart()} className="w-full h-14 rounded-2xl bg-gray-900 text-white dark:bg-gray-100 dark:text-black text-lg active:scale-[0.98] transition">
             Again
           </button>
-          <button onClick={() => setShowMap(true)} className="w-full h-12 text-sm text-gray-500">skills & days</button>
+          <div className="flex justify-between text-sm text-gray-500 px-1">
+            <button onClick={() => setShowUnits(true)} className="h-12">practice a unit</button>
+            {plan.id !== "mixed" && <button onClick={() => restart(MIXED)} className="h-12">back to mixed</button>}
+            <button onClick={() => setShowMap(true)} className="h-12">days</button>
+          </div>
         </div>
+        {showUnits && <Units state={state} onPick={pick} onClose={() => setShowUnits(false)} />}
         {showMap && <SkillMap state={state} onClose={() => setShowMap(false)} />}
       </div>
     );
@@ -175,10 +195,10 @@ export default function Trainer() {
   return (
     <div className="h-dvh flex flex-col bg-white dark:bg-black text-gray-900 dark:text-gray-100 select-none overflow-hidden">
       <header className="grid grid-cols-3 items-center px-5 pt-[max(env(safe-area-inset-top),16px)] pb-2 text-xs text-gray-400 dark:text-gray-500">
-        <div className="flex items-center gap-2 min-w-0">
+        <button onClick={() => setShowUnits(true)} className="flex items-center gap-2 min-w-0 text-left" aria-label="Choose practice">
           <MasteryDots value={m} />
-          <span className="tracking-wide uppercase truncate">{skill.name}</span>
-        </div>
+          <span className="tracking-wide uppercase truncate">{plan.id === "mixed" ? skill.name : `${plan.label} · ${skill.name}`}</span>
+        </button>
         <div className={`text-center text-base tabular-nums ${started ? "text-gray-900 dark:text-gray-100" : ""}`}>
           {mm}:{String(ss).padStart(2, "0")}
         </div>
@@ -221,6 +241,7 @@ export default function Trainer() {
 
       <Keypad onKey={press} onBackspace={backspace} onSubmit={enter} submitDisabled={phase === "answer" && !input} />
 
+      {showUnits && <Units state={state} onPick={pick} onClose={() => setShowUnits(false)} />}
       {showMap && <SkillMap state={state} onClose={() => setShowMap(false)} />}
     </div>
   );

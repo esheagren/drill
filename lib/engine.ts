@@ -104,12 +104,13 @@ export function record(state: EngineState, id: SkillId, correct: boolean, latenc
 }
 
 /** Pick the next skill. Interleaved weighted-random, avoiding `lastId`. */
-export function nextSkill(state: EngineState, lastId: SkillId | null): SkillId {
+export function nextSkill(state: EngineState, lastId: SkillId | null, pool?: SkillId[]): SkillId {
   const now = Date.now();
-  const unlocked = SKILLS.filter((s) => isUnlocked(s.id, state));
-  const pool = unlocked.length > 1 ? unlocked.filter((s) => s.id !== lastId) : unlocked;
+  // Focused practice: the learner chose these skills explicitly, so no unlock gating.
+  const unlocked = pool ? SKILLS.filter((s) => pool.includes(s.id)) : SKILLS.filter((s) => isUnlocked(s.id, state));
+  const candidates = unlocked.length > 1 ? unlocked.filter((s) => s.id !== lastId) : unlocked;
 
-  const weighted = pool.map((s) => {
+  const weighted = candidates.map((s) => {
     const st = state[s.id];
     const m = mastery(s.id, st);
     const weakness = 1 - m;                                   // 0 (mastered) .. 1 (unseen/failing)

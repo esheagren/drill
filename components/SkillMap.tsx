@@ -1,11 +1,10 @@
 "use client";
 
 import { isUnlocked, mastery, type EngineState } from "@/lib/engine";
-import { FAMILY_LABEL, SKILLS, type Family } from "@/lib/skills";
+import { FAMILIES, FAMILY_LABEL, SKILLS } from "@/lib/skills";
 import { getUserToken } from "@/lib/user";
 import { dayKey, dayTotals, loadDays } from "@/lib/sessions";
 
-const FAMILIES: Family[] = ["place-value", "exponents", "scientific", "magnitude", "percents"];
 
 export default function SkillMap({ state, onClose }: { state: EngineState; onClose: () => void }) {
   const days = loadDays();
@@ -14,7 +13,7 @@ export default function SkillMap({ state, onClose }: { state: EngineState; onClo
     <div className="fixed inset-0 z-20 bg-white dark:bg-black text-gray-900 dark:text-gray-100 overflow-y-auto">
       <div className="max-w-md mx-auto px-5 py-5">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-lg font-light tracking-tight">Skills</h1>
+          <h1 className="text-lg font-light tracking-tight">Days & skills</h1>
           <button onClick={onClose} className="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-gray-100">
             close
           </button>
@@ -28,7 +27,7 @@ export default function SkillMap({ state, onClose }: { state: EngineState; onClo
               return (
                 <li key={k} className={`flex justify-between ${t.sessions ? "" : "text-gray-300 dark:text-gray-700"}`}>
                   <span>{k.slice(5)}</span>
-                  <span>{t.sessions ? `${t.correct}/${t.answered} · ${t.sessions}×8m` : "—"}</span>
+                  <span>{t.sessions ? `${t.correct}/${t.answered} · ${t.sessions} session${t.sessions > 1 ? "s" : ""}` : "—"}</span>
                 </li>
               );
             })}
