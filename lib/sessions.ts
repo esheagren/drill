@@ -1,10 +1,24 @@
 /** Timed-session log, grouped by local calendar day. */
 import { scopedKey } from "./user";
-import type { SkillId } from "./skills";
+import { FAMILY_LABEL, SKILL_BY_ID, skillsIn, type Family, type SkillId } from "./skills";
 
 export const SESSION_MS = 8 * 60 * 1000;
+export const FOCUS_MS = 2 * 60 * 1000;
+
+/** What a session practices and for how long. */
+export interface Plan {
+  id: string;            // "mixed" | "unit:<family>" | "skill:<id>"
+  label: string;
+  durationMs: number;
+  pool?: SkillId[];      // undefined = engine's unlocked set (mixed)
+}
+
+export const MIXED: Plan = { id: "mixed", label: "Mixed practice", durationMs: SESSION_MS };
+export const unitPlan = (f: Family): Plan => ({ id: `unit:${f}`, label: FAMILY_LABEL[f], durationMs: FOCUS_MS, pool: skillsIn(f).map((s) => s.id) });
+export const skillPlan = (id: SkillId): Plan => ({ id: `skill:${id}`, label: SKILL_BY_ID[id].name, durationMs: FOCUS_MS, pool: [id] });
 
 export interface SessionRecord {
+  plan?: string;       // Plan.id; absent = mixed (older records)
   ts: number;          // start epoch ms
   durationMs: number;  // actual elapsed (may be < SESSION_MS if abandoned)
   answered: number;

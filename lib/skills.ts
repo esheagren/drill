@@ -24,7 +24,7 @@ export type SkillId =
   | "pct.anchor"
   | "pct.compose";
 
-export type Family = "place-value" | "exponents" | "scientific" | "magnitude" | "percents";
+export type Family = "place-value" | "exponents" | "scientific" | "operations" | "magnitude" | "percents";
 
 export interface Skill {
   id: SkillId;
@@ -117,7 +117,7 @@ export const SKILLS: Skill[] = [
   },
   {
     id: "sn.mul",
-    family: "scientific",
+    family: "operations",
     name: "Multiply in scientific",
     ask: "as a × 10^b",
     prereqs: ["coef.mul", "exp.add", "sn.norm"],
@@ -126,7 +126,7 @@ export const SKILLS: Skill[] = [
   },
   {
     id: "sn.div",
-    family: "scientific",
+    family: "operations",
     name: "Divide in scientific",
     ask: "as a × 10^b",
     prereqs: ["exp.sub", "sn.norm"],
@@ -180,9 +180,23 @@ export const SKILL_BY_ID: Record<SkillId, Skill> = Object.fromEntries(
 ) as Record<SkillId, Skill>;
 
 export const FAMILY_LABEL: Record<Family, string> = {
-  "place-value": "Place value",
-  exponents: "Exponents",
+  "place-value": "Powers of ten",
+  exponents: "Exponent arithmetic",
   scientific: "Scientific notation",
-  magnitude: "Magnitude",
+  operations: "Operating in scientific notation",
+  magnitude: "Magnitude estimation",
   percents: "Percents",
 };
+
+/** One line per unit: the capability it builds. */
+export const FAMILY_BLURB: Record<Family, string> = {
+  "place-value": "10ⁿ and its name, both directions, instantly",
+  exponents: "the two moves inside every product: add exponents, multiply leading digits",
+  scientific: "see any number as a × 10ⁿ",
+  operations: "combine two numbers in a × 10ⁿ form",
+  magnitude: "the payoff — rough size of a real-world product or quotient",
+  percents: "anchors and composition",
+};
+
+export const FAMILIES: Family[] = ["place-value", "exponents", "scientific", "operations", "magnitude", "percents"];
+export const skillsIn = (f: Family) => SKILLS.filter((s) => s.family === f);
