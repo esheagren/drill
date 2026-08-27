@@ -59,6 +59,7 @@ export default function Trainer() {
     saveSession(rec);
     queueSession(rec);
     void flush();
+    delete document.body.dataset.inSession;
     setSession(rec);
     setPhase("done");
   }, []);
@@ -75,6 +76,7 @@ export default function Trainer() {
 
   const restart = () => {
     if (!state) return;
+    if (document.body.dataset.updateReady === "1") { window.location.reload(); return; } // pick up a deferred deploy
     sessionStartRef.current = 0;
     countRef.current = { n: 0, c: 0 };
     tallyRef.current = {};
@@ -108,7 +110,7 @@ export default function Trainer() {
   const press = (k: string) => {
     if (phase === "wrong") { if (state) advance(state); return; }
     if (phase !== "answer" || !item) return;
-    if (!sessionStartRef.current) sessionStartRef.current = Date.now(); // timer starts on first key
+    if (!sessionStartRef.current) { sessionStartRef.current = Date.now(); document.body.dataset.inSession = "1"; } // timer starts on first key
     const v = input + k;
     setInput(v);
     if (item.autoLen && v.length >= item.autoLen) submit(v);
