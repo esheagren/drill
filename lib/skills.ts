@@ -9,6 +9,11 @@
  * skill counts as automatic.
  */
 export type SkillId =
+  | "ar.mul20"
+  | "ar.sq"
+  | "ar.cube"
+  | "fr.unit"
+  | "fr.common"
   | "pv.zeros"
   | "pv.word-exp"
   | "sn.digits"
@@ -24,7 +29,7 @@ export type SkillId =
   | "pct.anchor"
   | "pct.compose";
 
-export type Family = "place-value" | "exponents" | "scientific" | "operations" | "magnitude" | "percents";
+export type Family = "arithmetic" | "place-value" | "exponents" | "scientific" | "operations" | "magnitude" | "fractions" | "percents";
 
 export interface Skill {
   id: SkillId;
@@ -38,6 +43,55 @@ export interface Skill {
 }
 
 export const SKILLS: Skill[] = [
+  // ── Arithmetic fluency ────────────────────────────────────────────────
+  {
+    id: "ar.mul20",
+    family: "arithmetic",
+    name: "Times tables to 20",
+    ask: "product",
+    prereqs: [],
+    ccss: ["3.OA.C.7+"],
+    targetMs: 3000,
+  },
+  {
+    id: "ar.sq",
+    family: "arithmetic",
+    name: "Squares to 25",
+    ask: "value",
+    prereqs: [],
+    ccss: ["8.EE.A.2"],
+    targetMs: 2500,
+  },
+  {
+    id: "ar.cube",
+    family: "arithmetic",
+    name: "Cubes to 15",
+    ask: "value",
+    prereqs: ["ar.sq"],
+    ccss: ["8.EE.A.2"],
+    targetMs: 3500,
+  },
+
+  // ── Fractions → percents ──────────────────────────────────────────────
+  {
+    id: "fr.unit",
+    family: "fractions",
+    name: "Unit fraction → %",
+    ask: "as a percent",
+    prereqs: [],
+    ccss: ["7.NS.A.2d", "6.RP.A.3c"],
+    targetMs: 3000,
+  },
+  {
+    id: "fr.common",
+    family: "fractions",
+    name: "Fraction → %",
+    ask: "as a percent",
+    prereqs: ["fr.unit"],
+    ccss: ["7.NS.A.2d", "6.RP.A.3c"],
+    targetMs: 5000,
+  },
+
   // ── Place value & powers of ten ────────────────────────────────────────
   {
     id: "pv.zeros",
@@ -180,23 +234,27 @@ export const SKILL_BY_ID: Record<SkillId, Skill> = Object.fromEntries(
 ) as Record<SkillId, Skill>;
 
 export const FAMILY_LABEL: Record<Family, string> = {
+  arithmetic: "Arithmetic",
   "place-value": "Powers of ten",
   exponents: "Exponent arithmetic",
   scientific: "Scientific notation",
   operations: "Operating in scientific notation",
   magnitude: "Magnitude estimation",
+  fractions: "Fractions → percents",
   percents: "Percents",
 };
 
 /** One line per unit: the capability it builds. */
 export const FAMILY_BLURB: Record<Family, string> = {
+  arithmetic: "tables to 20×20, squares, cubes — the raw facts everything else leans on",
   "place-value": "10ⁿ and its name, both directions, instantly",
   exponents: "the two moves inside every product: add exponents, multiply leading digits",
   scientific: "see any number as a × 10ⁿ",
   operations: "combine two numbers in a × 10ⁿ form",
   magnitude: "the payoff — rough size of a real-world product or quotient",
+  fractions: "1/12 is 8.3% — fractions as percents, on sight",
   percents: "anchors and composition",
 };
 
-export const FAMILIES: Family[] = ["place-value", "exponents", "scientific", "operations", "magnitude", "percents"];
+export const FAMILIES: Family[] = ["arithmetic", "place-value", "exponents", "scientific", "operations", "magnitude", "fractions", "percents"];
 export const skillsIn = (f: Family) => SKILLS.filter((s) => s.family === f);
