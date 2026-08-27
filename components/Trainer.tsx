@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { generateItem, type Item } from "@/lib/items";
-import { appendLog, loadState, mastery, nextSkill, record, saveState, type EngineState } from "@/lib/engine";
+import { appendLog, mastery, nextSkill, record, saveState, type EngineState } from "@/lib/engine";
 import { SKILL_BY_ID, type SkillId } from "@/lib/skills";
 import { SESSION_MS, saveSession, type SessionRecord } from "@/lib/sessions";
-import { flush, queueAttempt, queueSession } from "@/lib/sync";
+import { flush, hydrate, queueAttempt, queueSession } from "@/lib/sync";
 import Keypad from "./Keypad";
 import SkillMap from "./SkillMap";
 
@@ -38,13 +38,16 @@ export default function Trainer() {
   }, []);
 
   useEffect(() => {
-    const st = loadState();
-    setState(st);
-    advance(st);
-    void flush();
+    let alive = true;
+    hydrate().then((st) => {
+      if (!alive) return;
+      setState(st);
+      advance(st);
+      void flush();
+    });
     const onHide = () => { if (document.visibilityState === "hidden") void flush(); };
     document.addEventListener("visibilitychange", onHide);
-    return () => document.removeEventListener("visibilitychange", onHide);
+    return () => { alive = false; document.removeEventListener("visibilitychange", onHide); };
   }, [advance]);
 
   // ── Timer ────────────────────────────────────────────────────────────────

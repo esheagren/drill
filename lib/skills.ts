@@ -13,7 +13,6 @@ export type SkillId =
   | "pv.word-exp"
   | "sn.digits"
   | "sn.words"
-  | "sn.back"
   | "exp.add"
   | "exp.sub"
   | "coef.mul"
@@ -108,15 +107,6 @@ export const SKILLS: Skill[] = [
     targetMs: 4000,
   },
   {
-    id: "sn.back",
-    family: "scientific",
-    name: "Scientific → words",
-    ask: "as digits or e-notation",
-    prereqs: ["pv.word-exp"],
-    ccss: ["8.EE.A.3"],
-    targetMs: 4000,
-  },
-  {
     id: "sn.norm",
     family: "scientific",
     name: "Renormalize",
@@ -150,7 +140,7 @@ export const SKILLS: Skill[] = [
     family: "magnitude",
     name: "Magnitude of a product",
     ask: "roughly, e-notation",
-    prereqs: ["sn.words", "sn.mul", "sn.back"],
+    prereqs: ["sn.words", "sn.mul"],
     ccss: ["8.EE.A.3", "8.EE.A.4"],
     targetMs: 8000,
   },
@@ -159,7 +149,7 @@ export const SKILLS: Skill[] = [
     family: "magnitude",
     name: "Magnitude of a quotient",
     ask: "roughly, e-notation",
-    prereqs: ["sn.div", "sn.back"],
+    prereqs: ["sn.div"],
     ccss: ["8.EE.A.3", "8.EE.A.4"],
     targetMs: 8000,
   },

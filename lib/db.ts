@@ -35,4 +35,11 @@ CREATE TABLE IF NOT EXISTS sessions (
   UNIQUE (user_token, client_id)
 );
 CREATE INDEX IF NOT EXISTS sessions_user_ts ON sessions (user_token, started_at);
+
+CREATE TABLE IF NOT EXISTS user_state (
+  user_token  text PRIMARY KEY,
+  engine      jsonb       NOT NULL,
+  attempts    integer     NOT NULL DEFAULT 0,
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
 `;
