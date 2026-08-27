@@ -111,9 +111,7 @@ export default function Trainer() {
     if (phase === "wrong") { if (state) advance(state); return; }
     if (phase !== "answer" || !item) return;
     if (!sessionStartRef.current) { sessionStartRef.current = Date.now(); document.body.dataset.inSession = "1"; } // timer starts on first key
-    const v = input + k;
-    setInput(v);
-    if (item.autoLen && v.length >= item.autoLen) submit(v);
+    setInput(input + k);
   };
   const backspace = () => { if (phase === "answer") setInput((s) => s.slice(0, -1)); };
   const enter = () => {
