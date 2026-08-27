@@ -18,6 +18,8 @@ import { SKILLS, SKILL_BY_ID, type SkillId } from "./skills";
 import { scopedKey } from "./user";
 
 export interface SkillState {
+  level?: 1 | 2 | 3;      // difficulty tier (default 1); promoted on 4-streak with acc ≥ 0.8, demoted if acc < 0.45
+  levelStreak?: number;   // consecutive correct at the current level
   attempts: number;
   correct: number;
   acc: number;      // EMA accuracy, starts at 0.5 (uninformed)
@@ -33,6 +35,8 @@ export interface AttemptLog {
   correct: boolean;
   latencyMs: number;
   ts: number;
+  level: 1 | 2 | 3;
+  review: boolean;   // re-presentation of a missed item
 }
 
 export type EngineState = Record<SkillId, SkillState>;
@@ -85,6 +89,10 @@ export function mastery(id: SkillId, s: SkillState): number {
   return Math.max(0, Math.min(1, s.acc * (0.6 + 0.4 * speedFactor)));
 }
 
+export function levelOf(state: EngineState, id: SkillId): 1 | 2 | 3 {
+  return state[id].level ?? 1;
+}
+
 export function isUnlocked(id: SkillId, state: EngineState): boolean {
   return SKILL_BY_ID[id].prereqs.every((p) => {
     const ps = state[p];
@@ -100,6 +108,11 @@ export function record(state: EngineState, id: SkillId, correct: boolean, latenc
   s.speed = s.speed === 0 ? latencyMs : s.speed + ALPHA * (latencyMs - s.speed);
   s.streak = correct ? s.streak + 1 : 0;
   s.lastSeen = Date.now();
+  // Difficulty: climb after 4 straight at this level with solid accuracy; fall back if accuracy collapses.
+  const lvl = s.level ?? 1;
+  s.levelStreak = correct ? (s.levelStreak ?? 0) + 1 : 0;
+  if (correct && s.levelStreak >= 4 && s.acc >= 0.8 && lvl < 3) { s.level = (lvl + 1) as 1 | 2 | 3; s.levelStreak = 0; }
+  else if (!correct && s.acc < 0.45 && lvl > 1) { s.level = (lvl - 1) as 1 | 2 | 3; s.levelStreak = 0; }
   return { ...state, [id]: s };
 }
 

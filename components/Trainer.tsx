@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { generateItem, type Item } from "@/lib/items";
-import { appendLog, mastery, nextSkill, record, saveState, type EngineState } from "@/lib/engine";
+import { appendLog, levelOf, mastery, nextSkill, record, saveState, type EngineState } from "@/lib/engine";
 import { SKILL_BY_ID, type SkillId } from "@/lib/skills";
 import { MIXED, saveSession, type Plan, type SessionRecord } from "@/lib/sessions";
 import { flush, hydrate, queueAttempt, queueSession } from "@/lib/sync";
@@ -13,6 +13,7 @@ import SkillMap from "./SkillMap";
 type Phase = "answer" | "correct" | "wrong" | "done";
 
 const ADVANCE_MS = 450;
+const REVIEW_GAP = 2;
 
 export default function Trainer() {
   const [state, setState] = useState<EngineState | null>(null);
@@ -31,11 +32,26 @@ export default function Trainer() {
   const lastSkillRef = useRef<SkillId | null>(null);
   const tallyRef = useRef<SessionRecord["bySkill"]>({});
   const countRef = useRef({ n: 0, c: 0 });
+  // Spaced review inside the session: a missed item returns after REVIEW_GAP others.
+  const reviewRef = useRef<{ item: Item; due: number }[]>([]);
+  const isReviewRef = useRef(false);
 
   const advance = useCallback((st: EngineState) => {
+    const due = reviewRef.current.find((r) => r.due <= countRef.current.n);
+    if (due) {
+      reviewRef.current = reviewRef.current.filter((r) => r !== due);
+      isReviewRef.current = true;
+      lastSkillRef.current = due.item.skillId;
+      setItem(due.item);
+      setInput("");
+      setPhase("answer");
+      startRef.current = performance.now();
+      return;
+    }
+    isReviewRef.current = false;
     const id = nextSkill(st, lastSkillRef.current, planRef.current.pool);
     lastSkillRef.current = id;
-    setItem(generateItem(id));
+    setItem(generateItem(id, levelOf(st, id)));
     setInput("");
     setPhase("answer");
     startRef.current = performance.now();
@@ -91,6 +107,7 @@ export default function Trainer() {
     delete document.body.dataset.inSession;
     countRef.current = { n: 0, c: 0 };
     tallyRef.current = {};
+    reviewRef.current = [];
     setRemaining(next.durationMs);
     setSession(null);
     setShowUnits(false);
@@ -110,7 +127,8 @@ export default function Trainer() {
     const ok = item.check(value);
     const next = record(state, item.skillId, ok, latency);
     saveState(next);
-    const entry = { skillId: item.skillId, prompt: item.prompt, answer: value, correct: ok, latencyMs: latency, ts: Date.now() };
+    const entry = { skillId: item.skillId, prompt: item.prompt, answer: value, correct: ok, latencyMs: latency, ts: Date.now(), level: item.level, review: isReviewRef.current };
+    if (!ok) reviewRef.current.push({ item, due: countRef.current.n + 1 + REVIEW_GAP }); // comes back after REVIEW_GAP others
     appendLog(entry);
     queueAttempt(entry);
     setState(next);
@@ -198,6 +216,7 @@ export default function Trainer() {
         <button onClick={() => setShowUnits(true)} className="flex items-center gap-2 min-w-0 text-left" aria-label="Choose practice">
           <MasteryDots value={m} />
           <span className="tracking-wide uppercase truncate">{plan.id === "mixed" ? skill.name : `${plan.label} · ${skill.name}`}</span>
+          <span className="shrink-0 tabular-nums">{isReviewRef.current ? "↺" : `L${item.level}`}</span>
         </button>
         <div className={`text-center text-base tabular-nums ${started ? "text-gray-900 dark:text-gray-100" : ""}`}>
           {mm}:{String(ss).padStart(2, "0")}
