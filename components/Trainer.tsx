@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { generateItem, type Item } from "@/lib/items";
-import { appendLog, levelOf, mastery, nextSkill, record, saveState, type EngineState } from "@/lib/engine";
+import type { Item } from "@/lib/items";
+import { appendLog, expectedScore, mastery, nextSkill, pickItem, record, saveState, type EngineState } from "@/lib/engine";
 import { SKILL_BY_ID, type SkillId } from "@/lib/skills";
 import { MIXED, saveSession, type Plan, type SessionRecord } from "@/lib/sessions";
 import { flush, hydrate, queueAttempt, queueSession } from "@/lib/sync";
@@ -51,7 +51,7 @@ export default function Trainer() {
     isReviewRef.current = false;
     const id = nextSkill(st, lastSkillRef.current, planRef.current.pool);
     lastSkillRef.current = id;
-    setItem(generateItem(id, levelOf(st, id)));
+    setItem(pickItem(st, id));
     setInput("");
     setPhase("answer");
     startRef.current = performance.now();
@@ -125,9 +125,10 @@ export default function Trainer() {
     if (!item || !state || phase !== "answer" || !value.trim()) return;
     const latency = Math.round(performance.now() - startRef.current);
     const ok = item.check(value);
-    const next = record(state, item.skillId, ok, latency);
+    const res = record(state, item, ok, latency);
+    const next = res.state;
     saveState(next);
-    const entry = { skillId: item.skillId, prompt: item.prompt, answer: value, correct: ok, latencyMs: latency, ts: Date.now(), level: item.level, review: isReviewRef.current };
+    const entry = { skillId: item.skillId, itemKey: item.key, prompt: item.prompt, answer: value, correct: ok, latencyMs: latency, ts: Date.now(), review: isReviewRef.current, score: res.score, expected: res.expected, theta: res.theta, beta: res.beta };
     if (!ok) reviewRef.current.push({ item, due: countRef.current.n + 1 + REVIEW_GAP }); // comes back after REVIEW_GAP others
     appendLog(entry);
     queueAttempt(entry);
@@ -206,7 +207,8 @@ export default function Trainer() {
 
   // ── Practice ─────────────────────────────────────────────────────────────
   const skill = SKILL_BY_ID[item.skillId];
-  const m = mastery(item.skillId, state[item.skillId]);
+  const m = mastery(item.skillId, state.skills[item.skillId]);
+  const exp = expectedScore(state, item);
   const mm = Math.floor(remaining / 60000), ss = Math.floor((remaining % 60000) / 1000);
   const started = sessionStartRef.current !== 0;
 
@@ -216,7 +218,7 @@ export default function Trainer() {
         <button onClick={() => setShowUnits(true)} className="flex items-center gap-2 min-w-0 text-left" aria-label="Choose practice">
           <MasteryDots value={m} />
           <span className="tracking-wide uppercase truncate">{plan.id === "mixed" ? skill.name : `${plan.label} · ${skill.name}`}</span>
-          <span className="shrink-0 tabular-nums">{isReviewRef.current ? "↺" : `L${item.level}`}</span>
+          <span className="shrink-0 tabular-nums">{isReviewRef.current ? "↺" : `${Math.round(exp * 100)}%`}</span>
         </button>
         <div className={`text-center text-base tabular-nums ${started ? "text-gray-900 dark:text-gray-100" : ""}`}>
           {mm}:{String(ss).padStart(2, "0")}

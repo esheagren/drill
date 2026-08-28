@@ -5,7 +5,7 @@
  * the UI; the database is for analytics.
  */
 import { getUserToken, scopedKey } from "./user";
-import { loadState, saveState, type EngineState } from "./engine";
+import { loadState, normalize, saveState, totalAttempts, type EngineState } from "./engine";
 import { loadDays, saveSession, type SessionRecord } from "./sessions";
 
 const A_KEY = () => scopedKey("outbox:attempts");
@@ -37,7 +37,7 @@ export async function flush(): Promise<void> {
     }
     // Engine snapshot — the server is the durable memory across reinstalls/devices.
     const engine = loadState();
-    const total = Object.values(engine).reduce((a, s) => a + s.attempts, 0);
+    const total = totalAttempts(engine);
     if (total > 0) {
       await fetch("/api/state", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ user, engine, attempts: total }), keepalive: true });
     }
@@ -59,11 +59,10 @@ export async function hydrate(): Promise<EngineState> {
     // Sessions: merge anything the local day log doesn't have (keyed by start ts).
     const have = new Set(Object.values(loadDays()).flat().map((r) => r.ts));
     for (const rec of data.sessions ?? []) if (!have.has(rec.ts)) saveSession(rec);
-    const localAttempts = Object.values(local).reduce((a, s) => a + s.attempts, 0);
-    if (data.engine && data.attempts > localAttempts) {
-      const merged = { ...local, ...data.engine } as EngineState;
-      saveState(merged);
-      return merged;
+    if (data.engine && data.attempts > totalAttempts(local)) {
+      const server = normalize(data.engine);
+      saveState(server);
+      return server;
     }
   } catch { /* offline or server hiccup — local is fine */ }
   return local;

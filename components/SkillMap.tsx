@@ -39,7 +39,7 @@ export default function SkillMap({ state, onClose }: { state: EngineState; onClo
             <h2 className="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">{FAMILY_LABEL[fam]}</h2>
             <ul className="space-y-2">
               {SKILLS.filter((s) => s.family === fam).map((s) => {
-                const st = state[s.id];
+                const st = state.skills[s.id];
                 const m = mastery(s.id, st);
                 const unlocked = isUnlocked(s.id, state);
                 return (
