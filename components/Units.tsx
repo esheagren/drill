@@ -1,6 +1,6 @@
 "use client";
 
-import { isUnlocked, mastery, type EngineState } from "@/lib/engine";
+import { isUnlocked, mastery, ratingOf, type EngineState } from "@/lib/engine";
 import { FAMILIES, FAMILY_BLURB, FAMILY_LABEL, skillsIn } from "@/lib/skills";
 import { MIXED, skillPlan, unitPlan, type Plan } from "@/lib/sessions";
 
@@ -33,13 +33,13 @@ export default function Units({ state, onPick, onClose }: { state: EngineState; 
         <ol className="space-y-3">
           {FAMILIES.map((fam, i) => {
             const skills = skillsIn(fam);
-            const unitM = skills.reduce((a, s) => a + mastery(s.id, state[s.id]), 0) / skills.length;
+            const unitM = skills.reduce((a, s) => a + mastery(s.id, state.skills[s.id]), 0) / skills.length;
             return (
               <li key={fam} className="rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
                 <button onClick={() => onPick(unitPlan(fam))} className="w-full text-left p-4 active:bg-gray-50 dark:active:bg-gray-900 transition">
                   <div className="flex items-baseline justify-between">
                     <span className="text-base"><span className="text-gray-400 tabular-nums mr-2">{i + 1}</span>{FAMILY_LABEL[fam]}</span>
-                    <span className="text-xs text-gray-400 tabular-nums">{Math.round(unitM * 100)}%</span>
+                    <span className="text-xs text-gray-400 tabular-nums">{ratingOf(state, fam).n ? `rating ${ratingOf(state, fam).theta.toFixed(1)} · ` : ""}{Math.round(unitM * 100)}%</span>
                   </div>
                   <div className="text-xs text-gray-500 mt-0.5">{FAMILY_BLURB[fam]}</div>
                   <div className="h-1 mt-2 rounded bg-gray-100 dark:bg-gray-900 overflow-hidden">
@@ -48,7 +48,7 @@ export default function Units({ state, onPick, onClose }: { state: EngineState; 
                 </button>
                 <ul className="border-t border-gray-100 dark:border-gray-900">
                   {skills.map((s) => {
-                    const st = state[s.id];
+                    const st = state.skills[s.id];
                     const m = mastery(s.id, st);
                     const unlocked = isUnlocked(s.id, state);
                     return (
