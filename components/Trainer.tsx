@@ -25,7 +25,7 @@ export default function Trainer() {
   const [overlay, setOverlay] = useState<View | null>(null);
   const showMap = overlay !== null;
   const showUnits = false; // folded into the single overlay
-  const setShowMap = (v: boolean) => setOverlay(v ? { kind: "history" } : null);
+  const setShowMap = (v: boolean) => setOverlay(v ? { kind: "practice" } : null);
   const setShowUnits = (v: boolean) => setOverlay(v ? { kind: "practice" } : null);
   const [profile, setProfile] = useState<Profile | null>(null);   // null = not loaded yet
   const [plan, setPlan] = useState<Plan>(MIXED);
@@ -248,13 +248,13 @@ export default function Trainer() {
   return (
     <div className="h-dvh flex flex-col bg-white dark:bg-black text-gray-900 dark:text-gray-100 select-none overflow-hidden">
       <header className="grid grid-cols-3 items-center px-5 pt-[max(env(safe-area-inset-top),16px)] pb-2 text-xs text-gray-400 dark:text-gray-500">
-        <button onClick={() => setShowUnits(true)} className="justify-self-start -ml-3 px-3 py-2 text-base leading-none" aria-label="Choose practice">
-          ≡{plan.id !== "mixed" && <span className="ml-2 text-xs uppercase tracking-wide">{plan.label}</span>}{isReviewRef.current && <span className="ml-2">↺</span>}
-        </button>
+        <div className="min-w-0 truncate">
+          {plan.id !== "mixed" && <span className="text-xs uppercase tracking-wide">{plan.label}</span>}{isReviewRef.current && <span className="ml-2">↺</span>}
+        </div>
         <button onClick={() => setTimerMenu(true)} aria-label="Change session length" className={`text-center text-base tabular-nums ${started ? "text-gray-900 dark:text-gray-100" : ""}`}>
           {mm}:{String(ss).padStart(2, "0")}
         </button>
-        <button onClick={() => setShowMap(true)} aria-label="History" className="justify-self-end -mr-3 px-3 py-2 tabular-nums hover:text-gray-900 dark:hover:text-gray-100">
+        <button onClick={() => setShowMap(true)} aria-label="Menu" className="justify-self-end -mr-3 px-3 py-2 tabular-nums hover:text-gray-900 dark:hover:text-gray-100">
           {countRef.current.n} · ▦
         </button>
       </header>
