@@ -1,0 +1,134 @@
+/**
+ * Strength/weakness map specs — one per subsection.
+ *
+ * A map is a grid (rows × cols) or a strip (rows only). Each cell aggregates
+ * every answered item whose key parses into it. For fact-type subsections a
+ * cell is one fact (7×8); for generated ones a cell is a structural bucket
+ * ("coefficient product needs a carry" × "exponent sum 9–13").
+ */
+import { SCALES } from "./numbers";
+
+export interface MapSpec {
+  /** item_key prefix to fetch, e.g. "mul:" */
+  prefix: string;
+  rows: string[];
+  /** null → strip (one cell per row, laid out horizontally) */
+  cols: string[] | null;
+  /** key → [rowIndex, colIndex] (colIndex 0 for strips), or null if it doesn't belong on this map */
+  parse: (key: string) => [number, number] | null;
+  /** text for a cell, e.g. "7 × 8 = 56" */
+  label: (r: number, c: number) => string;
+  /** whether a cell exists (e.g. lower triangle); default all */
+  valid?: (r: number, c: number) => boolean;
+  /** typical characters typed for an answer (drives the fluency budget) */
+  typed: number;
+  rowTitle?: string;
+  colTitle?: string;
+}
+
+const range = (lo: number, hi: number) => Array.from({ length: hi - lo + 1 }, (_, i) => String(lo + i));
+const idx = (arr: string[], v: string | number) => arr.indexOf(String(v));
+const band = (v: number, edges: number[]) => edges.findIndex((e) => v <= e);
+const scaleName = (exp: number) => SCALES.find((s) => s.exp === exp)?.word ?? `10^${exp}`;
+const headClass = (h: number) => (!Number.isInteger(h) ? 3 : h < 10 ? 0 : h < 100 ? 1 : 2);
+const HEAD_CLASSES = ["1 digit", "2 digits", "3 digits", "decimal"];
+const SCALE_WORDS = SCALES.map((s) => s.word);
+const scalePairs = (() => { const out: string[] = []; for (const a of SCALE_WORDS) for (const b of SCALE_WORDS) out.push(`${a} × ${b}`); return out; })();
+const scaleDivPairs = (() => { const out: string[] = []; for (const a of SCALE_WORDS) for (const b of SCALE_WORDS) if (SCALES.find(s=>s.word===a)!.exp > SCALES.find(s=>s.word===b)!.exp) out.push(`${a} ÷ ${b}`); return out; })();
+
+export const MAPS: Record<string, MapSpec> = {
+  // ── Multiplicative arithmetic ──
+  "Times tables": {
+    prefix: "mul:", rows: range(2, 25), cols: range(2, 25), typed: 3,
+    parse: (k) => { const m = k.match(/^mul:(\d+)x(\d+)$/); if (!m) return null; const a = +m[1], b = +m[2]; const r = idx(range(2, 25), a), c = idx(range(2, 25), b); return r < 0 || c < 0 ? null : [r, c]; },
+    label: (r, c) => `${r + 2} × ${c + 2} = ${(r + 2) * (c + 2)}`, valid: (r, c) => c >= r,
+  },
+  Squares: { prefix: "sq:", rows: range(2, 25), cols: null, typed: 3, parse: (k) => { const m = k.match(/^sq:(\d+)$/); const r = m ? idx(range(2, 25), m[1]) : -1; return r < 0 ? null : [r, 0]; }, label: (r) => `${r + 2}² = ${(r + 2) ** 2}` },
+  Cubes: { prefix: "cube:", rows: range(2, 15), cols: null, typed: 4, parse: (k) => { const m = k.match(/^cube:(\d+)$/); const r = m ? idx(range(2, 15), m[1]) : -1; return r < 0 ? null : [r, 0]; }, label: (r) => `${r + 2}³ = ${(r + 2) ** 3}` },
+
+  // ── Fractions → percents ──
+  "Unit fraction → %": { prefix: "fr:1/", rows: range(2, 20), cols: null, typed: 3, parse: (k) => { const m = k.match(/^fr:1\/(\d+)$/); const r = m ? idx(range(2, 20), m[1]) : -1; return r < 0 ? null : [r, 0]; }, label: (r) => `1/${r + 2} = ${(100 / (r + 2)).toFixed(1).replace(/\.0$/, "")}%` },
+  "Fraction → %": {
+    prefix: "fr:", rows: range(3, 20), cols: range(2, 19), typed: 4, rowTitle: "denominator", colTitle: "numerator",
+    parse: (k) => { const m = k.match(/^fr:(\d+)\/(\d+)$/); if (!m || m[1] === "1") return null; const n = +m[1], d = +m[2]; const r = idx(range(3, 20), d), c = idx(range(2, 19), n); return r < 0 || c < 0 ? null : [r, c]; },
+    label: (r, c) => `${c + 2}/${r + 3} = ${((100 * (c + 2)) / (r + 3)).toFixed(1).replace(/\.0$/, "")}%`, valid: (r, c) => c + 2 < r + 3,
+  },
+
+  // ── Powers of ten ──
+  "Count the zeros": { prefix: "zeros:", rows: range(2, 12), cols: null, typed: 2, parse: (k) => { const m = k.match(/^zeros:(\d+)$/); const r = m ? idx(range(2, 12), m[1]) : -1; return r < 0 ? null : [r, 0]; }, label: (r) => `1${"0".repeat(r + 2)} = 10^${r + 2}` },
+  "Word → power of ten": {
+    prefix: "wexp:", rows: SCALE_WORDS, cols: ["one", "ten", "a hundred"], typed: 2,
+    parse: (k) => { const m = k.match(/^wexp:(one|ten|a hundred) (\w+)$/); if (!m) return null; const r = idx(SCALE_WORDS, m[2]), c = idx(["one", "ten", "a hundred"], m[1]); return r < 0 || c < 0 ? null : [r, c]; },
+    label: (r, c) => `${["one", "ten", "a hundred"][c]} ${SCALE_WORDS[r]} = 10^${SCALES[r].exp + c}`,
+  },
+
+  // ── Exponent arithmetic ──
+  "Add exponents": {
+    prefix: "eadd:", rows: range(1, 12), cols: range(1, 12), typed: 2,
+    parse: (k) => { const m = k.match(/^eadd:(\d+)\+(\d+)$/); if (!m) return null; const r = idx(range(1, 12), m[1]), c = idx(range(1, 12), m[2]); return r < 0 || c < 0 ? null : [r, c]; },
+    label: (r, c) => `10^${r + 1} × 10^${c + 1} = 10^${r + c + 2}`, valid: (r, c) => c >= r,
+  },
+  "Subtract exponents": {
+    prefix: "esub:", rows: range(2, 18), cols: range(1, 9), typed: 2, rowTitle: "a", colTitle: "b",
+    parse: (k) => { const m = k.match(/^esub:(\d+)-(\d+)$/); if (!m) return null; const r = idx(range(2, 18), m[1]), c = idx(range(1, 9), m[2]); return r < 0 || c < 0 ? null : [r, c]; },
+    label: (r, c) => `10^${r + 2} ÷ 10^${c + 1} = 10^${r + 2 - (c + 1)}`, valid: (r, c) => r + 2 > c + 1,
+  },
+  "Coefficient facts": {
+    prefix: "mul:", rows: range(2, 9), cols: range(2, 9), typed: 2,
+    parse: (k) => { const m = k.match(/^mul:(\d+)x(\d+)$/); if (!m) return null; const r = idx(range(2, 9), m[1]), c = idx(range(2, 9), m[2]); return r < 0 || c < 0 ? null : [r, c]; },
+    label: (r, c) => `${r + 2} × ${c + 2} = ${(r + 2) * (c + 2)}`, valid: (r, c) => c >= r,
+  },
+
+  // ── Scientific notation (structural buckets) ──
+  "Digits → scientific": {
+    prefix: "snd:", rows: range(3, 12), cols: ["whole coefficient", "decimal coefficient"], typed: 5, rowTitle: "exponent",
+    parse: (k) => { const m = k.match(/^snd:([\d.]+)e(\d+)$/); if (!m) return null; const r = idx(range(3, 12), m[2]); return r < 0 ? null : [r, m[1].includes(".") ? 1 : 0]; },
+    label: (r, c) => `${c ? "d.d" : "d"} × 10^${r + 3}`,
+  },
+  "Words → scientific": {
+    prefix: "snw:", rows: SCALE_WORDS, cols: HEAD_CLASSES, typed: 5, rowTitle: "scale word", colTitle: "leading number",
+    parse: (k) => { const m = k.match(/^snw:([\d.]+)e(\d+)$/); if (!m) return null; const r = SCALES.findIndex((s) => s.exp === +m[2]); return r < 0 ? null : [r, headClass(+m[1])]; },
+    label: (r, c) => `${HEAD_CLASSES[c]} ${SCALE_WORDS[r]}`,
+  },
+  Renormalize: {
+    prefix: "snn:", rows: range(2, 11), cols: ["10–99", "100–999", "less than 1"], typed: 5, rowTitle: "exponent", colTitle: "coefficient",
+    parse: (k) => { const m = k.match(/^snn:([\d.]+)e(\d+)$/); if (!m) return null; const c = +m[1]; const r = idx(range(2, 11), m[2]); return r < 0 ? null : [r, c < 1 ? 2 : c < 100 ? 0 : 1]; },
+    label: (r, c) => `${["10–99", "100–999", "0.x"][c]} × 10^${r + 2}`,
+  },
+
+  // ── Operating in scientific notation ──
+  "Multiply in scientific": {
+    prefix: "snm:", rows: ["sum 4–8", "sum 9–13", "sum 14–21"], cols: ["no carry (a·b < 10)", "carry (a·b ≥ 10)"], typed: 6, rowTitle: "exponent sum",
+    parse: (k) => { const m = k.match(/^snm:(\d+)e(\d+)\*(\d+)e(\d+)$/); if (!m) return null; const a = +m[1], b = +m[3], e = +m[2] + +m[4]; return [band(e, [8, 13, 99]), a * b >= 10 ? 1 : 0]; },
+    label: (r, c) => `${["sum 4–8", "sum 9–13", "sum 14–21"][r]}, ${c ? "carry" : "no carry"}`,
+  },
+  "Divide in scientific": {
+    prefix: "snv:", rows: ["diff 1–3", "diff 4–6", "diff 7–9"], cols: ["a < 10", "a ≥ 10 (renormalize)"], typed: 4, rowTitle: "exponent difference",
+    parse: (k) => { const m = k.match(/^snv:(\d+)e(\d+)\/(\d+)e(\d+)$/); if (!m) return null; const a = +m[1], d = +m[2] - +m[4]; return [band(d, [3, 6, 99]), a >= 10 ? 1 : 0]; },
+    label: (r, c) => `${["diff 1–3", "diff 4–6", "diff 7–9"][r]}, ${c ? "a ≥ 10" : "a < 10"}`,
+  },
+
+  // ── Magnitude estimation ──
+  "Magnitude of a product": {
+    prefix: "magm:", rows: scalePairs, cols: ["both 1-digit", "one 2-digit", "both 2-digit"], typed: 4, rowTitle: "scales", colTitle: "leading numbers",
+    parse: (k) => { const m = k.match(/^magm:(\d+)e(\d+)\*(\d+)e(\d+)$/); if (!m) return null; const r = idx(scalePairs, `${scaleName(+m[2])} × ${scaleName(+m[4])}`); const big = (+m[1] >= 10 ? 1 : 0) + (+m[3] >= 10 ? 1 : 0); return r < 0 ? null : [r, big]; },
+    label: (r, c) => `${scalePairs[r]}, ${["both 1-digit", "one 2-digit", "both 2-digit"][c]}`,
+  },
+  "Magnitude of a quotient": {
+    prefix: "magd:", rows: scaleDivPairs, cols: ["quotient < 10", "quotient ≥ 10"], typed: 3, rowTitle: "scales",
+    parse: (k) => { const m = k.match(/^magd:(\d+)e(\d+)\/(\d+)e(\d+)$/); if (!m) return null; const r = idx(scaleDivPairs, `${scaleName(+m[2])} ÷ ${scaleName(+m[4])}`); const q = +m[1] / +m[3]; return r < 0 ? null : [r, q >= 10 ? 1 : 0]; },
+    label: (r, c) => `${scaleDivPairs[r]}, ${c ? "quotient ≥ 10" : "quotient < 10"}`,
+  },
+
+  // ── Percents ──
+  "10% and 1% anchors": {
+    prefix: "pcta:", rows: ["1%", "5%", "10%", "50%"], cols: ["2-digit base", "3-digit base", "4-digit base", "5-digit base"], typed: 3,
+    parse: (k) => { const m = k.match(/^pcta:(\d+)%(\d+)$/); if (!m) return null; const r = idx(["1%", "5%", "10%", "50%"], `${m[1]}%`); const c = Math.min(3, Math.max(0, m[2].length - 2)); return r < 0 ? null : [r, c]; },
+    label: (r, c) => `${["1%", "5%", "10%", "50%"][r]} of a ${c + 2}-digit number`,
+  },
+  "Compose percents": {
+    prefix: "pctc:", rows: ["tens only (20, 30…)", "quarters (25, 75)", "with fives (15, 35…)", "odd (12, 18, 22…)"], cols: ["2-digit base", "3-digit base", "4-digit base"], typed: 3,
+    parse: (k) => { const m = k.match(/^pctc:(\d+)%(\d+)$/); if (!m) return null; const p = +m[1]; const r = p % 10 === 0 ? 0 : p === 25 || p === 75 ? 1 : p % 5 === 0 ? 2 : 3; const c = Math.min(2, Math.max(0, m[2].length - 2)); return [r, c]; },
+    label: (r, c) => `${["tens-only %", "25 / 75 %", "…5 %", "odd %"][r]} of a ${c + 2}-digit number`,
+  },
+};
