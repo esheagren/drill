@@ -330,6 +330,78 @@ const GENERATORS: Record<SkillId, Gen> = {
       inputMode: "decimal", placeholder: "value", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) / ans < 0.005; },
     };
   },
+  // ── Combinations ───────────────────────────────────────────────────────
+  // 15% of 2.4 million → 360,000
+  "co.pctbig": (L) => {
+    const p = pick(by(L, [10, 20, 25, 50], [5, 10, 15, 20, 25, 30, 40, 75], [5, 12, 15, 18, 30, 35, 40, 60, 85]));
+    const sc = pick(by(L, SCALES.slice(0, 2), SCALES.slice(0, 3), SCALES));
+    const head = pick(by(L, [ri(2, 9), ri(2, 9) * 10], [ri(2, 9), ri(11, 99), ri(12, 98) / 10], [ri(11, 99), ri(11, 99) / 10, ri(101, 999)]));
+    const base = head * 10 ** sc.exp; const ans = (p / 100) * base;
+    return { skillId: "co.pctbig", key: `cpb:${p}%${head}e${sc.exp}`, prior: P.pctBigPrior(p, SCALES.indexOf(sc), !Number.isInteger(head)), prompt: `${p}% of ${shortWords(head, sc.exp)}`, sub: "value · within ½%",
+      answerText: `${fmtDigits(ans)}  (${toScaleWords(ans)})`, why: `10% is ${toScaleWords(base / 10)}; ${p}% = ${p / 10} × that`, inputMode: "text", placeholder: "3.6e5 or 360000", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) / ans <= 0.005; } };
+  },
+  // 1/12 of 3 billion → 2.5e8
+  "co.fracsci": (L) => {
+    const d = pick(by(L, [2, 4, 5, 10], [3, 4, 5, 6, 8, 10, 12], [6, 7, 8, 9, 12, 15, 16]));
+    const sc = pick(by(L, SCALES.slice(1, 3), SCALES.slice(1), SCALES.slice(1)));
+    const head = pick(by(L, [ri(2, 9)], [ri(2, 9), ri(11, 99)], [ri(2, 9), ri(11, 99), ri(12, 98) / 10]));
+    const base = head * 10 ** sc.exp; const ans = base / d; const t = toSci(ans);
+    return { skillId: "co.fracsci", key: `cfs:1/${d}x${head}e${sc.exp}`, prior: P.fracSciPrior(d, head / d < 1), prompt: `1/${d} of ${shortWords(head, sc.exp)}`, sub: "in e-notation · within ½%",
+      answerText: `${Number(t.c.toFixed(3))}e${t.e}  (${toScaleWords(ans)})`, why: `${head} ÷ ${d} = ${(head / d).toFixed(2)}, × 10^${sc.exp}${head / d < 1 ? " → renormalize" : ""}`, inputMode: "text", placeholder: "2.5e8", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) / ans <= 0.005; } };
+  },
+  // 250 thousand up 40%, then down 25% → 262,500
+  "co.chainbig": (L) => {
+    const ps = by(L, [10, 20, 25, 50], [5, 10, 15, 20, 25, 30, 40, 50], [5, 8, 12, 15, 20, 30, 35, 40, 60]);
+    const p1 = pick(ps), p2 = pick(ps); const d1 = Math.random() < 0.5, d2 = Math.random() < 0.5;
+    const sc = pick(SCALES.slice(0, 3)); const head = pick(by(L, [ri(2, 9), ri(2, 9) * 10], [ri(11, 99), ri(2, 9) * 100], [ri(11, 99), ri(12, 98) / 10, ri(101, 999)]));
+    const base = head * 10 ** sc.exp; const ans = base * (1 + (d1 ? -p1 : p1) / 100) * (1 + (d2 ? -p2 : p2) / 100);
+    return { skillId: "co.chainbig", key: `ccb:${d1 ? "down" : "up"}${p1},${d2 ? "down" : "up"}${p2}%${head}e${sc.exp}`, prior: P.chainBigPrior(p1, p2), prompt: `${shortWords(head, sc.exp)} ${d1 ? "down" : "up"} ${p1}%, then ${d2 ? "down" : "up"} ${p2}%`, sub: "final amount · within ½%",
+      answerText: `${fmtDigits(Math.round(ans))}  (${toScaleWords(ans)})`, why: `× ${(1 + (d1 ? -p1 : p1) / 100).toFixed(2)} × ${(1 + (d2 ? -p2 : p2) / 100).toFixed(2)} = × ${((1 + (d1 ? -p1 : p1) / 100) * (1 + (d2 ? -p2 : p2) / 100)).toFixed(3)}`, inputMode: "text", placeholder: "2.6e5", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) / ans <= 0.005; } };
+  },
+  // 6.8 × 10^7 people, 3.4 × 10^5 doctors → 200 people per doctor
+  "co.percap": (L) => {
+    const [unit1, unit2] = pick([["people", "doctors"], ["dollars", "people"], ["kilometres", "cars"], ["tonnes", "farms"], ["users", "servers"], ["litres", "households"]]);
+    const b = pick(by(L, [ri(1, 9)], [ri(1, 9), ri(11, 99) / 10], [ri(11, 99) / 10, ri(11, 99)]));
+    const q = pick(by(L, [ri(2, 9), ri(1, 9) * 10], [ri(2, 9), ri(11, 99), ri(2, 9) * 100], [ri(11, 99), ri(12, 98) / 10 * 10, ri(101, 999)]));
+    const eb = by(L, ri(2, 5), ri(3, 7), ri(3, 8)); const a = b * q; const ta = toSci(a * 10 ** eb); const ans = q;
+    return { skillId: "co.percap", key: `cpc:${Math.round(ta.c * 100) / 100}e${ta.e}/${b}e${eb}`, prior: P.perCapPrior(q, eb), prompt: `${fmtSci(Math.round(ta.c * 100) / 100, ta.e)} ${unit1}, ${fmtSci(b, eb)} ${unit2}`, sub: `${unit1} per ${unit2.replace(/s$/, "")} · roughly`,
+      answerText: `≈ ${fmtDigits(ans)}`, why: `${Math.round(ta.c * 100) / 100} ÷ ${b} ≈ ${(ta.c / b).toFixed(2)}; 10^${ta.e} ÷ 10^${eb} = 10^${ta.e - eb}`, inputMode: "text", placeholder: "200 or 2e2", check: (s) => magEq(s, ans, 0.3) };
+  },
+  // 3.2 billion or 4.5 × 10^8 → 3.2e9
+  "co.compare": (L) => {
+    const sc1 = pick(SCALES), h1 = pick([ri(2, 9), ri(11, 99) / 10, ri(11, 99)]); const v1 = h1 * 10 ** sc1.exp;
+    const ratio = pick(by(L, [5, 10, 30, 100], [2, 3, 5, 10, 20], [1.2, 1.5, 2, 3])); const bigger2 = Math.random() < 0.5;
+    const v2raw = bigger2 ? v1 * ratio : v1 / ratio; const t2 = toSci(v2raw); const c2 = Math.round(t2.c * 10) / 10; const v2 = c2 * 10 ** t2.e;
+    const big = Math.max(v1, v2); const closeness = 1 / ratio;
+    return { skillId: "co.compare", key: `ccp:${h1}e${sc1.exp}v${c2}e${t2.e}`, prior: P.comparePairPrior(closeness, true), prompt: `${shortWords(h1, sc1.exp)}   or   ${fmtSci(c2, t2.e)}`, sub: "which is bigger? type it, any form",
+      answerText: `${toScaleWords(big)}  (${fmtSci(toSci(big).c, toSci(big).e)})`, why: `${shortWords(h1, sc1.exp)} = ${fmtSci(toSci(v1).c, toSci(v1).e)}`, inputMode: "text", placeholder: "3.2e9", check: (s) => magEq(s, big, 0.02) };
+  },
+  // 7% a year → years to double ≈ 10
+  "co.double": (L) => {
+    const r = pick(by(L, [6, 8, 9, 12], [3, 4, 6, 7, 8, 9, 10, 12], [2, 3, 5, 7, 11, 14, 15, 18, 24]));
+    const ans = 72 / r;
+    return { skillId: "co.double", key: `cdb:${r}`, prior: P.doublingTimePrior(r), prompt: `growing ${r}% a year`, sub: "years to double · within 1",
+      answerText: `≈ ${ans.toFixed(1)} years`, why: `rule of 72: 72 ÷ ${r}`, inputMode: "decimal", placeholder: "years", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) <= 1; } };
+  },
+  // 1,000 growing 10% a year for 3 years → 1,331
+  "co.growth": (L) => {
+    const r = pick(by(L, [10, 20, 50], [5, 10, 20, 25, 50], [5, 8, 10, 15, 20, 30]));
+    const y = by(L, 2, pick([2, 3]), pick([3, 4, 5]));
+    const base = pick(by(L, [100, 1000, 10000], [200, 500, 1000, 2000, 5000], [400, 800, 1500, 2500, 12000]));
+    const ans = base * (1 + r / 100) ** y;
+    return { skillId: "co.growth", key: `cgr:${r}%x${y}y${base}`, prior: P.growthPrior(r, y), prompt: `${fmtDigits(base)} growing ${r}% a year, for ${y} years`, sub: "within 2%",
+      answerText: `≈ ${fmtDigits(Math.round(ans))}`, why: `× ${(1 + r / 100).toFixed(2)}^${y} ≈ × ${((1 + r / 100) ** y).toFixed(3)}`, inputMode: "text", placeholder: "value", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) / ans <= 0.02; } };
+  },
+  // 2.5 kg for $9 → $3.60 per kg
+  "co.unitprice": (L) => {
+    const decimalQty = Math.random() < by(L, 0.2, 0.5, 0.7);
+    const qty = decimalQty ? pick([1.5, 2.5, 0.5, 0.75, 1.25, 4.5]) : pick(by(L, [2, 4, 5, 10], [3, 4, 6, 8, 12], [6, 7, 8, 9, 12, 16]));
+    const per = pick(by(L, [ri(1, 9), ri(1, 9) / 2], [ri(1, 19) / 2, ri(11, 99) / 10], [ri(11, 199) / 10, ri(11, 99) / 4]));
+    const total = Math.round(qty * per * 100) / 100; const ans = total / qty; const clean = Number.isInteger(ans * 100 / 5);
+    return { skillId: "co.unitprice", key: `cup:${total}/${qty}`, prior: P.unitPricePrior(clean, decimalQty), prompt: `${qty} ${decimalQty ? "kg" : "items"} for $${total}`, sub: `dollars per ${decimalQty ? "kg" : "item"} · within ½%`,
+      answerText: String(Math.round(ans * 1000) / 1000), why: `${total} ÷ ${qty}`, inputMode: "decimal", placeholder: "price", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) / ans <= 0.005; } };
+  },
+
   // ── Fractions core ─────────────────────────────────────────────────────
   // 12/16 → 3/4
   "fr.simplify": (L) => {

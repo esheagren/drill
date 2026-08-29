@@ -48,7 +48,44 @@ const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
 const SIZE3 = ["2–3 digits", "4 digits", "5+ digits"];
 const size3 = (n: string) => Math.min(2, Math.max(0, n.length - 3));
 
+const NEAR = ["ratio ≥ 5", "ratio 2–5", "ratio < 2"];
+
 export const MAPS: Record<string, MapSpec> = {
+  "Percent of a big number": {
+    prefix: "cpb:", rows: PCT_CLASSES, cols: SCALE_WORDS, typed: 5, rowTitle: "percent", colTitle: "scale",
+    parse: (k) => { const m = k.match(/^cpb:(\d+)%([\d.]+)e(\d+)$/); if (!m) return null; const c = SCALES.findIndex((s) => s.exp === +m[3]); return c < 0 ? null : [pctClass(+m[1]), c]; },
+    label: (r, c) => `${PCT_CLASSES[r]} of a number in ${SCALE_WORDS[c]}s`,
+  },
+  "Fraction of a big number": {
+    prefix: "cfs:", rows: ["1/2, 1/4, 1/5, 1/10", "1/3, 1/6, 1/8, 1/12", "1/7, 1/9, 1/15, 1/16"], cols: SCALE_WORDS.slice(1), typed: 5, rowTitle: "fraction", colTitle: "scale",
+    parse: (k) => { const m = k.match(/^cfs:1\/(\d+)x([\d.]+)e(\d+)$/); if (!m) return null; const d = +m[1]; const r = [2, 4, 5, 10].includes(d) ? 0 : [3, 6, 8, 12].includes(d) ? 1 : 2; const c = SCALES.findIndex((s) => s.exp === +m[3]) - 1; return c < 0 ? null : [r, c]; },
+    label: (r, c) => `${["easy", "eighths / thirds / twelfths", "hard"][r]} unit fraction of a number in ${SCALE_WORDS[c + 1]}s`,
+  },
+  "Successive changes": {
+    prefix: "ccb:", rows: PCT_CLASSES, cols: PCT_CLASSES, typed: 5, rowTitle: "first change", colTitle: "second change",
+    parse: (k) => { const m = k.match(/^ccb:(?:up|down)(\d+),(?:up|down)(\d+)%/); if (!m) return null; return [pctClass(+m[1]), pctClass(+m[2])]; },
+    label: (r, c) => `${PCT_CLASSES[r]} then ${PCT_CLASSES[c]}`,
+  },
+  "Per capita": {
+    prefix: "cpc:", rows: ["exponent gap 1–2", "gap 3–4", "gap 5+"], cols: ["clean quotient", "decimal coefficient"], typed: 3, rowTitle: "exponent gap",
+    parse: (k) => { const m = k.match(/^cpc:([\d.]+)e(\d+)\/([\d.]+)e(\d+)$/); if (!m) return null; const gap = +m[2] - +m[4]; return [gap <= 2 ? 0 : gap <= 4 ? 1 : 2, m[3].includes(".") ? 1 : 0]; },
+    label: (r, c) => `${["gap 1–2", "gap 3–4", "gap 5+"][r]}, ${c ? "decimal divisor" : "whole divisor"}`,
+  },
+  "Which is bigger": {
+    prefix: "ccp:", rows: NEAR, cols: ["words vs sci"], typed: 5, rowTitle: "how close",
+    parse: (k) => { const m = k.match(/^ccp:([\d.]+)e(\d+)v([\d.]+)e(\d+)$/); if (!m) return null; const v1 = +m[1] * 10 ** +m[2], v2 = +m[3] * 10 ** +m[4]; const ratio = Math.max(v1, v2) / Math.min(v1, v2); return [ratio >= 5 ? 0 : ratio >= 2 ? 1 : 2, 0]; },
+    label: (r) => `${NEAR[r]}`,
+  },
+  Growth: {
+    prefix: "c", rows: ["years to double", "compound, 2 years", "compound, 3 years", "compound, 4–5 years"], cols: ["round rate (10, 20, 50)", "other rate"], typed: 4,
+    parse: (k) => { let m = k.match(/^cdb:(\d+)$/); if (m) return [0, [10, 20, 50].includes(+m[1]) ? 0 : 1]; m = k.match(/^cgr:(\d+)%x(\d+)y/); if (!m) return null; const y = +m[2]; return [y <= 2 ? 1 : y === 3 ? 2 : 3, [10, 20, 50].includes(+m[1]) ? 0 : 1]; },
+    label: (r, c) => `${["years to double", "compound 2y", "compound 3y", "compound 4–5y"][r]}, ${c ? "other rate" : "round rate"}`,
+  },
+  "Unit price": {
+    prefix: "cup:", rows: ["whole quantity", "decimal quantity"], cols: ["clean price", "awkward price"], typed: 4,
+    parse: (k) => { const m = k.match(/^cup:([\d.]+)\/([\d.]+)$/); if (!m) return null; const ans = +m[1] / +m[2]; return [m[2].includes(".") ? 1 : 0, Number.isInteger(Math.round(ans * 100) / 5) ? 0 : 1]; },
+    label: (r, c) => `${r ? "decimal" : "whole"} quantity, ${c ? "awkward" : "clean"} price`,
+  },
   "Simplest form": {
     prefix: "simp:", rows: ["÷2", "÷3", "÷4", "÷5", "÷6+"], cols: ["halves–quarters", "fifths–sixths", "eighths–twelfths", "16ths+"], typed: 3, rowTitle: "common factor", colTitle: "result",
     parse: (k) => { const m = k.match(/^simp:(\d+)\/(\d+)$/); if (!m) return null; const n = +m[1], d = +m[2]; const g = gcd(n, d); const rd = d / g; return [Math.min(4, g - 2), rd <= 4 ? 0 : rd <= 6 ? 1 : rd <= 12 ? 2 : 3]; },

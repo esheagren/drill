@@ -9,6 +9,14 @@
  * skill counts as automatic.
  */
 export type SkillId =
+  | "co.pctbig"
+  | "co.fracsci"
+  | "co.chainbig"
+  | "co.percap"
+  | "co.compare"
+  | "co.double"
+  | "co.growth"
+  | "co.unitprice"
   | "fr.simplify"
   | "fr.compare"
   | "fr.of"
@@ -56,7 +64,7 @@ export type SkillId =
   | "pct.anchor"
   | "pct.compose";
 
-export type Family = "arithmetic" | "fractions" | "decimals" | "percents" | "place-value" | "exponents" | "scientific" | "operations" | "magnitude";
+export type Family = "arithmetic" | "fractions" | "decimals" | "percents" | "place-value" | "exponents" | "scientific" | "operations" | "magnitude" | "combo";
 
 /** Where a skill sits in the product: on-ramp (checked, not drilled), core, or combinations. */
 export type Tier = "onramp" | "core" | "combo";
@@ -127,6 +135,14 @@ const META: Record<SkillId, Meta> = {
   "pct.anchor": { level: 5, tier: "core",   kc: ["percent-anchor", "powers-of-ten"] },
   "pct.compose":{ level: 5, tier: "core",   kc: ["percent-anchor", "percent-compose"] },
   "pct.apply":  { level: 6, tier: "core",   kc: ["percent-compose", "percent-change"] },
+  "co.pctbig":  { level: 7, tier: "combo",  kc: ["percent-anchor", "percent-compose", "scale-words", "normalize"] },
+  "co.fracsci": { level: 7, tier: "combo",  kc: ["unit-fraction-percent", "division-by-small", "scale-words", "normalize"] },
+  "co.chainbig":{ level: 7, tier: "combo",  kc: ["percent-change", "successive-change", "scale-words"] },
+  "co.percap":  { level: 7, tier: "combo",  kc: ["division-by-small", "exponent-subtract", "normalize", "scale-words"] },
+  "co.compare": { level: 7, tier: "combo",  kc: ["scale-words", "normalize", "fraction-magnitude"] },
+  "co.double":  { level: 7, tier: "combo",  kc: ["rule-of-72", "division-by-small"] },
+  "co.growth":  { level: 7, tier: "combo",  kc: ["percent-change", "successive-change", "rule-of-72"] },
+  "co.unitprice":{ level: 6, tier: "combo", kc: ["division-by-small", "decimal-shift", "rounding"] },
   "pct.find":   { level: 6, tier: "core",   kc: ["percent-change", "ratio-to-percent"] },
   "pct.what":   { level: 6, tier: "core",   kc: ["ratio-to-percent", "unit-fraction-percent"] },
   "pct.reverse":{ level: 6, tier: "core",   kc: ["percent-reverse", "division-by-small"] },
@@ -260,6 +276,40 @@ export const SKILLS: Skill[] = withMeta([
   {
     id: "dec.ops", family: "decimals", group: "Decimal arithmetic", name: "Decimal arithmetic",
     ask: "value", prereqs: ["dec.scale", "ar.mul12"], ccss: ["5.NBT.B.7"], targetMs: 7000,
+  },
+
+  // ── Combinations ───────────────────────────────────────────────────────
+  {
+    id: "co.pctbig", family: "combo", group: "Percent of a big number", name: "Percent of a big number",
+    ask: "value · within ½%", prereqs: ["pct.compose", "sn.words"], ccss: ["7.RP.A.3", "8.EE.A.3"], targetMs: 10000,
+  },
+  {
+    id: "co.fracsci", family: "combo", group: "Fraction of a big number", name: "Fraction of a big number",
+    ask: "in e-notation · within ½%", prereqs: ["fr.of", "sn.words"], ccss: ["5.NF.B.4", "8.EE.A.3"], targetMs: 10000,
+  },
+  {
+    id: "co.chainbig", family: "combo", group: "Successive changes", name: "Successive changes",
+    ask: "final amount · within ½%", prereqs: ["pct.chain", "sn.words"], ccss: ["7.RP.A.3"], targetMs: 14000,
+  },
+  {
+    id: "co.percap", family: "combo", group: "Per capita", name: "Per capita",
+    ask: "roughly · within ½ an order", prereqs: ["sn.div", "mag.div"], ccss: ["8.EE.A.4"], targetMs: 12000,
+  },
+  {
+    id: "co.compare", family: "combo", group: "Which is bigger", name: "Which is bigger",
+    ask: "type the larger, any form", prereqs: ["sn.words", "sn.digits"], ccss: ["8.EE.A.3"], targetMs: 8000,
+  },
+  {
+    id: "co.double", family: "combo", group: "Growth", name: "Years to double",
+    ask: "years · within 1", prereqs: ["ar.divfacts"], ccss: ["F-LE"], targetMs: 7000,
+  },
+  {
+    id: "co.growth", family: "combo", group: "Growth", name: "Compound growth",
+    ask: "within 2%", prereqs: ["pct.chain", "co.double"], ccss: ["7.RP.A.3", "F-LE"], targetMs: 14000,
+  },
+  {
+    id: "co.unitprice", family: "combo", group: "Unit price", name: "Unit price",
+    ask: "per unit · within ½%", prereqs: ["ar.div1", "dec.ops"], ccss: ["6.RP.A.3b"], targetMs: 9000,
   },
 
   // ── Place value & powers of ten ────────────────────────────────────────
@@ -430,6 +480,7 @@ export const FAMILY_LABEL: Record<Family, string> = {
   scientific: "Scientific notation",
   operations: "Operating in scientific notation",
   magnitude: "Magnitude estimation",
+  combo: "Combinations",
   fractions: "Fractions",
   decimals: "Decimals & scaling",
   percents: "Percents",
@@ -445,10 +496,11 @@ export const FAMILY_BLURB: Record<Family, string> = {
   magnitude: "the payoff — rough size of a real-world product or quotient",
   fractions: "fractions as percents and decimals, simplest form, comparing, a fraction of a quantity",
   decimals: "sliding the decimal point — powers of ten, percent conversions, rounding",
+  combo: "the point of it all — two or three skills chained the way numbers arrive in real life",
   percents: "anchors, composition, change, reverse — the percents adults actually meet",
 };
 
-export const FAMILIES: Family[] = ["arithmetic", "fractions", "decimals", "percents", "place-value", "exponents", "scientific", "operations", "magnitude"];
+export const FAMILIES: Family[] = ["arithmetic", "fractions", "decimals", "percents", "place-value", "exponents", "scientific", "operations", "magnitude", "combo"];
 export const skillsIn = (f: Family) => SKILLS.filter((s) => s.family === f);
 /** Subsections of a unit, in order, each with its band skills. */
 export const groupsIn = (f: Family): { group: string; skills: Skill[] }[] => {
