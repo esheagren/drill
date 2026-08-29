@@ -14,6 +14,16 @@ export interface Plan {
 }
 
 export const MIXED: Plan = { id: "mixed", label: "Mixed practice", durationMs: SESSION_MS };
+
+const DEFAULT_KEY = () => scopedKey("defaultMinutes");
+export function loadDefaultMinutes(): number {
+  if (typeof window === "undefined") return SESSION_MS / 60000;
+  try { const v = Number(localStorage.getItem(DEFAULT_KEY())); return v > 0 ? v : SESSION_MS / 60000; } catch { return SESSION_MS / 60000; }
+}
+export function saveDefaultMinutes(min: number): void {
+  try { localStorage.setItem(DEFAULT_KEY(), String(min)); } catch { /* ignore */ }
+}
+export const mixedFor = (min: number): Plan => ({ ...MIXED, durationMs: min * 60000 });
 export const unitPlan = (f: Family): Plan => ({ id: `unit:${f}`, label: FAMILY_LABEL[f], durationMs: FOCUS_MS, pool: skillsIn(f).map((s) => s.id) });
 export const skillPlan = (id: SkillId): Plan => ({ id: `skill:${id}`, label: SKILL_BY_ID[id].name, durationMs: FOCUS_MS, pool: [id] });
 
