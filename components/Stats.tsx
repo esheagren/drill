@@ -3,14 +3,14 @@
 import { useMemo, useState } from "react";
 import { isUnlocked, mastery, ratingOf, type EngineState } from "@/lib/engine";
 import { FAMILIES, FAMILY_BLURB, FAMILY_LABEL, SKILL_BY_ID, skillsIn, type Family, type SkillId } from "@/lib/skills";
-import { dayKey, loadDays, mixedFor, skillPlan, unitPlan, type Plan, type SessionRecord } from "@/lib/sessions";
+import { dayKey, loadDays, skillPlan, unitPlan, type Plan, type SessionRecord } from "@/lib/sessions";
 import type { Profile } from "@/lib/user";
 import Account from "./Account";
 
-export type View = { kind: "practice" } | { kind: "history" } | { kind: "skills"; unit: Family } | { kind: "profile" };
+export type View = { kind: "history" } | { kind: "skills"; unit: Family } | { kind: "profile" };
 
-export default function Stats({ state, profile, onProfile, onClose, onPick, initial = { kind: "history" }, mixedMinutes }: {
-  state: EngineState; profile: Profile; onProfile: (p: Profile) => void; onClose: () => void; onPick: (p: Plan) => void; initial?: View; mixedMinutes: number;
+export default function Stats({ state, profile, onProfile, onClose, onPick, initial = { kind: "history" } }: {
+  state: EngineState; profile: Profile; onProfile: (p: Profile) => void; onClose: () => void; onPick: (p: Plan) => void; initial?: View;
 }) {
   const [view, setView] = useState<View>(initial);
   const days = useMemo(() => loadDays(), []);
@@ -23,7 +23,6 @@ export default function Stats({ state, profile, onProfile, onClose, onPick, init
       {/* Nav: sidebar on wide screens, scrolling tab row on phones */}
       <nav className="sm:w-56 shrink-0 border-b sm:border-b-0 sm:border-r border-gray-100 dark:border-gray-900 pt-[max(env(safe-area-inset-top),16px)] px-3 pb-2 sm:pb-6 flex sm:flex-col gap-1 overflow-x-auto sm:overflow-visible">
         <button onClick={onClose} className={navItem(false, "sm:mb-4")}>← close</button>
-        <button onClick={() => setView({ kind: "practice" })} className={navItem(view.kind === "practice")}>Practice</button>
         <button onClick={() => setView({ kind: "history" })} className={navItem(view.kind === "history")}>History</button>
         <button onClick={() => setView({ kind: "skills", unit: FAMILIES[0] })} className={navItem(view.kind === "skills" && false)}>Skills</button>
         <div className="flex sm:flex-col gap-1 sm:pl-3">
@@ -37,7 +36,6 @@ export default function Stats({ state, profile, onProfile, onClose, onPick, init
       </nav>
 
       <main className="flex-1 overflow-y-auto px-5 sm:px-8 py-6 pb-[max(env(safe-area-inset-bottom),24px)]">
-        {view.kind === "practice" && <Launcher onPick={onPick} mixedMinutes={mixedMinutes} onUnit={(u) => setView({ kind: "skills", unit: u })} />}
         {view.kind === "history" && <History days={days} />}
         {view.kind === "skills" && <UnitDetail unit={view.unit} state={state} days={days} onPick={onPick} />}
         {view.kind === "profile" && (
@@ -47,37 +45,6 @@ export default function Stats({ state, profile, onProfile, onClose, onPick, init
           </div>
         )}
       </main>
-    </div>
-  );
-}
-
-// ── Practice: a plain launcher — no stats here, those live under Skills ────
-
-function Launcher({ onPick, onUnit, mixedMinutes }: { onPick: (p: Plan) => void; onUnit: (u: Family) => void; mixedMinutes: number }) {
-  const play = "shrink-0 h-9 px-3 rounded-xl bg-gray-900 text-white dark:bg-gray-100 dark:text-black text-sm tabular-nums active:scale-95 transition";
-  return (
-    <div className="max-w-xl">
-      <h1 className="text-lg font-light mb-4">Practice</h1>
-      <button onClick={() => onPick(mixedFor(mixedMinutes))} className="w-full flex items-center justify-between rounded-2xl border border-gray-200 dark:border-gray-800 p-4 mb-6 active:scale-[0.99] transition text-left">
-        <div>
-          <div className="text-base">Mixed practice</div>
-          <div className="text-xs text-gray-500 mt-0.5">everything unlocked so far, interleaved — the default</div>
-        </div>
-        <span className={play}>{mixedMinutes} min ▸</span>
-      </button>
-      <div className="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">Units · 2 min each</div>
-      <ol className="divide-y divide-gray-100 dark:divide-gray-900">
-        {FAMILIES.map((fam, i) => (
-          <li key={fam} className="flex items-center gap-3 py-3">
-            <button onClick={() => onUnit(fam)} className="flex-1 text-left min-w-0">
-              <div className="text-base"><span className="text-gray-400 tabular-nums mr-2">{i + 1}</span>{FAMILY_LABEL[fam]}</div>
-              <div className="text-xs text-gray-500 truncate">{FAMILY_BLURB[fam]}</div>
-            </button>
-            <button onClick={() => onPick(unitPlan(fam))} className={play} aria-label={`Practice ${FAMILY_LABEL[fam]} for 2 minutes`}>2 min ▸</button>
-          </li>
-        ))}
-      </ol>
-      <p className="text-xs text-gray-400 mt-3">Tap a unit name for its detail and per-skill drills.</p>
     </div>
   );
 }
