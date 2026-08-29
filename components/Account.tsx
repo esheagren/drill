@@ -9,6 +9,7 @@ export default function Account({ profile, onChange }: { profile: Profile; onCha
   const [name, setName] = useState(profile.username ?? "");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [mode, setMode] = useState<"connect" | "signin">("connect");
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -24,7 +25,7 @@ export default function Account({ profile, onChange }: { profile: Profile; onCha
   const doConnect = async () => {
     setBusy(true); const j = await connectEmail(email, password); setBusy(false);
     setMsg(j.ok ? { ok: true, text: "connected — sign in with this on any device" } : { ok: false, text: j.error ?? "try again" });
-    if (j.ok) { onChange({ ...profile, email: j.email as string }); setPassword(""); }
+    if (j.ok) { onChange({ ...profile, email: j.email as string }); setPassword(""); setConfirm(""); }
   };
   const doSignIn = async () => {
     setBusy(true); const j = await signIn(email, password); setBusy(false);
@@ -61,12 +62,18 @@ export default function Account({ profile, onChange }: { profile: Profile; onCha
               : "Made an account on another device? Sign in here — anything done on this device is merged in."}
           </p>
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email" autoComplete="email" className={`${field} w-full`} />
-          <div className="flex gap-2">
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === "connect" ? "choose a password (8+)" : "password"} autoComplete={mode === "connect" ? "new-password" : "current-password"} className={field} />
-            <button onClick={mode === "connect" ? doConnect : doSignIn} disabled={busy || !email || password.length < (mode === "connect" ? 8 : 1)} className={btn}>
-              {mode === "connect" ? "connect" : "sign in"}
-            </button>
-          </div>
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === "connect" ? "choose a password (8+)" : "password"} autoComplete={mode === "connect" ? "new-password" : "current-password"} className={`${field} w-full`} />
+          {mode === "connect" && (
+            <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="confirm password" autoComplete="new-password" className={`${field} w-full ${confirm && confirm !== password ? "border-rose-400" : ""}`} />
+          )}
+          {mode === "connect" && confirm && confirm !== password && <p className="text-xs text-rose-500">passwords don't match</p>}
+          <button
+            onClick={mode === "connect" ? doConnect : doSignIn}
+            disabled={busy || !email || (mode === "connect" ? password.length < 8 || confirm !== password : password.length < 1)}
+            className={`${btn} w-full`}
+          >
+            {mode === "connect" ? "connect" : "sign in"}
+          </button>
         </div>
       )}
 
