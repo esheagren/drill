@@ -1,4 +1,4 @@
-# Magnitude
+# Drill
 
 Adult mental arithmetic trainer. Opens straight into interleaved practice; no menus, no login.
 
