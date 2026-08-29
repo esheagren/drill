@@ -81,3 +81,13 @@ export const magMulPrior = (h1: number, h2: number, s1: number, s2: number) => 0
 export const magDivPrior = (h2: number, q: number, s1: number) => 0.5 + (h2 >= 10 ? 0.2 : 0) + (q >= 10 ? 0.2 : 0) + 0.15 * s1;
 export const pctAnchorPrior = (p: number, base: number) => ({ 10: -2.5, 50: -2, 1: -1.5, 5: -1 } as Record<number, number>)[p] + 0.3 * (String(base).length - 2);
 export const pctComposePrior = (p: number, base: number) => -0.5 + (p % 10 ? 0.8 : 0) + 0.15 * (String(base).length - 2) + (p === 25 || p === 75 ? -0.4 : 0);
+
+/** Percent "friendliness" on a shared scale: 10/50 trivial … odd percents hard. */
+export const pctClass = (p: number) => (p === 10 || p === 50 ? 0 : p === 20 || p === 25 || p === 75 ? 1 : p % 5 === 0 ? 2 : 3);
+const PCT_CLASS_PRIOR = [-1.5, -0.8, 0, 0.8];
+const digits = (n: number) => String(Math.round(n)).length;
+export const pctApplyPrior = (p: number, base: number) => PCT_CLASS_PRIOR[pctClass(p)] + 0.15 * (digits(base) - 2) + 0.3;
+export const pctFindPrior = (p: number, down: boolean) => PCT_CLASS_PRIOR[pctClass(p)] + 0.5 + (down ? 0.4 : 0);
+export const pctWhatPrior = (p: number, whole: number) => PCT_CLASS_PRIOR[pctClass(p)] + 0.2 + 0.15 * (digits(whole) - 2);
+export const pctReversePrior = (p: number, off: boolean) => PCT_CLASS_PRIOR[pctClass(p)] + 1.0 + (off ? 0.4 : 0);
+export const pctChainPrior = (p1: number, p2: number, base: number) => PCT_CLASS_PRIOR[pctClass(p1)] * 0.5 + PCT_CLASS_PRIOR[pctClass(p2)] * 0.5 + 1.3 + 0.1 * (digits(base) - 3);
