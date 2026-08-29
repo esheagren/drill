@@ -179,7 +179,7 @@ export default function Trainer() {
       if (showMap || showUnits || timerMenu || askDefault !== null || phase === "done" || !profile?.username) return;
       if ((e.target as HTMLElement)?.tagName === "INPUT") return;
       if ((e.target as HTMLElement)?.tagName === "INPUT") return;
-      if (/^[0-9.e]$/.test(e.key)) { e.preventDefault(); press(e.key); }
+      if (/^[0-9.e/]$/.test(e.key)) { e.preventDefault(); press(e.key); }
       else if (e.key === "Backspace") { e.preventDefault(); backspace(); }
       else if (e.key === "Enter") { e.preventDefault(); enter(); }
     };

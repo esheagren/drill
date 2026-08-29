@@ -1,6 +1,6 @@
 import type { SkillId } from "./skills";
 import * as P from "./priors";
-import { SCALES, fmtDigits, fmtSci, numberToWords, parseSci, parseValue, pick, ri, shortWords, toSci, toScaleWords } from "./numbers";
+import { fmtFrac, parseFrac, reduce, SCALES, fmtDigits, fmtSci, numberToWords, parseSci, parseValue, pick, ri, shortWords, toSci, toScaleWords } from "./numbers";
 
 /** Sampling tier used only to draw candidates across the whole range; difficulty itself is the item's `prior`. */
 export type Level = 1 | 2 | 3;
@@ -214,7 +214,8 @@ const GENERATORS: Record<SkillId, Gen> = {
   // "sixty-eight million" → 6.8 × 10^7
   "sn.words": (L) => {
     const sc = pick(by(L, SCALES.slice(0, 2), SCALES, SCALES));
-    const head = by(L, ri(2, 9), pick([ri(2, 9), ri(11, 99)]), pick([ri(11, 99), ri(101, 999), ri(11, 99) / 10]));
+    let head: number;
+    do { head = by(L, ri(2, 9), pick([ri(2, 9), ri(11, 99)]), pick([ri(11, 99), ri(101, 999), ri(11, 99) / 10])); } while (Math.round((head / 10 ** Math.floor(Math.log10(head))) * 10) / 10 >= 10);
     const n = head * 10 ** sc.exp;
     const { c, e } = toSci(n);
     const cRound = r1(c);
@@ -329,6 +330,113 @@ const GENERATORS: Record<SkillId, Gen> = {
       inputMode: "decimal", placeholder: "value", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) / ans < 0.005; },
     };
   },
+  // ── Fractions core ─────────────────────────────────────────────────────
+  // 12/16 → 3/4
+  "fr.simplify": (L) => {
+    const [n0, d0] = pick(by(L, [[1, 2], [1, 3], [1, 4], [2, 3], [3, 4], [1, 5], [2, 5]], [[1, 4], [3, 4], [2, 3], [3, 5], [4, 5], [5, 6], [3, 8], [5, 8]], [[3, 8], [5, 8], [7, 8], [5, 12], [7, 12], [4, 9], [7, 10], [9, 16]]));
+    const g = pick(by(L, [2, 3, 4, 5], [3, 4, 5, 6, 8], [6, 7, 8, 9, 12]));
+    const n = n0 * g, d = d0 * g;
+    return { skillId: "fr.simplify", key: `simp:${n}/${d}`, prior: P.simplifyPrior(g, d0), prompt: `${n}/${d}`, sub: "in simplest form", answerText: `${n0}/${d0}`, why: `divide both by ${g}`,
+      inputMode: "text", placeholder: "3/4", check: (s) => { const f = parseFrac(s); return !!f && f[0] === n0 && f[1] === d0; } };
+  },
+  // 3/7 vs 4/9 → 4/9
+  "fr.compare": (L) => {
+    const kind = pick(by(L, [0, 1, 2], [0, 1, 2, 3], [2, 3, 3]));   // same denom, same numerator, unit fractions, general
+    let a: [number, number], b: [number, number];
+    if (kind === 0) { const d = ri(3, 12); const x = ri(1, d - 2); a = [x, d]; b = [ri(x + 1, d - 1), d]; }
+    else if (kind === 1) { const n = ri(1, 5); const d1 = ri(n + 1, 12); let d2 = ri(n + 1, 12); if (d2 === d1) d2 = d1 + 1; a = [n, d1]; b = [n, d2]; }
+    else if (kind === 2) { const d1 = ri(2, 15); let d2 = ri(2, 15); if (d2 === d1) d2 = d1 + 1; a = [1, d1]; b = [1, d2]; }
+    else { do { a = [ri(1, 9), ri(2, 12)]; b = [ri(1, 9), ri(2, 12)]; } while (a[0] >= a[1] || b[0] >= b[1] || a[0] * b[1] === b[0] * a[1]); }
+    if (Math.random() < 0.5) [a, b] = [b, a];
+    const big = a[0] * b[1] > b[0] * a[1] ? a : b;
+    const close = Math.abs(a[0] / a[1] - b[0] / b[1]) < 0.08;
+    return { skillId: "fr.compare", key: `cmp:${a[0]}/${a[1]}v${b[0]}/${b[1]}`, prior: P.comparePrior(kind, close), prompt: `${a[0]}/${a[1]}   or   ${b[0]}/${b[1]}`, sub: "which is larger?",
+      answerText: `${big[0]}/${big[1]}`, why: kind === 0 ? "same denominator: larger numerator" : kind === 1 ? "same numerator: smaller denominator" : `${(a[0] / a[1]).toFixed(3)} vs ${(b[0] / b[1]).toFixed(3)}`,
+      inputMode: "text", placeholder: "4/9", check: (s) => { const f = parseFrac(s); const r = reduce(big[0], big[1]); return !!f && f[0] === r[0] && f[1] === r[1]; } };
+  },
+  // 3/8 of 640 → 240
+  "fr.of": (L) => {
+    const d = pick(by(L, [2, 4, 5, 10], [3, 4, 5, 6, 8, 10], [6, 7, 8, 9, 12, 16]));
+    const n = ri(1, d - 1);
+    const unit = pick(by(L, [ri(2, 9) * 10, ri(2, 9) * 100], [ri(2, 9) * 100, ri(11, 99) * 10], [ri(11, 99) * 100, ri(2, 9) * 10000, ri(12, 98) * 1000]));
+    const qty = unit * d / (d % 10 === 0 ? 10 : 1) * (d % 10 === 0 ? 10 : 1);
+    const q = unit * d;   // guarantees divisibility
+    const ans = unit * n;
+    return { skillId: "fr.of", key: `frof:${n}/${d}x${q}`, prior: P.fracOfPrior(d, q), prompt: `${n}/${d} of ${fmtDigits(q)}`, sub: "value",
+      answerText: fmtDigits(ans), why: `1/${d} of ${fmtDigits(q)} = ${fmtDigits(unit)}, × ${n}`, inputMode: "text", placeholder: "value", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) / ans <= 0.005; } };
+  },
+  // 1/2 + 1/3 → 5/6
+  "fr.add": (L) => {
+    const kind = pick(by(L, [0, 0, 1], [0, 1, 1, 2], [1, 2, 2]));   // like, related, unlike
+    let a: [number, number], b: [number, number];
+    if (kind === 0) { const d = pick([3, 4, 5, 6, 8, 10, 12]); a = [ri(1, d - 1), d]; b = [ri(1, d - 1), d]; }
+    else if (kind === 1) { const d = pick([4, 6, 8, 9, 10, 12]); const f = pick([2, 3, 4, 6].filter((x) => d % x === 0 && x < d)); a = [ri(1, f - 1), f]; b = [ri(1, d - 1), d]; }
+    else { const d1 = pick([2, 3, 4, 5]); let d2 = pick([3, 4, 5, 6, 7, 8]); if (d2 === d1 || d2 % d1 === 0) d2 = d1 === 5 ? 3 : 5; a = [ri(1, d1 - 1), d1]; b = [ri(1, d2 - 1), d2]; }
+    const sub = Math.random() < 0.4 && a[0] * b[1] !== b[0] * a[1];
+    if (sub && a[0] * b[1] < b[0] * a[1]) [a, b] = [b, a];
+    const num = sub ? a[0] * b[1] - b[0] * a[1] : a[0] * b[1] + b[0] * a[1];
+    const [rn, rd] = reduce(num, a[1] * b[1]);
+    return { skillId: "fr.add", key: `fradd:${a[0]}/${a[1]}${sub ? "-" : "+"}${b[0]}/${b[1]}`, prior: P.fracAddPrior(kind, sub), prompt: `${a[0]}/${a[1]} ${sub ? "−" : "+"} ${b[0]}/${b[1]}`, sub: "in simplest form",
+      answerText: fmtFrac(rn, rd), why: `common denominator ${a[1] * b[1] / (kind === 0 ? a[1] : 1)}`, inputMode: "text", placeholder: "5/6", check: (s) => { const f = parseFrac(s); return !!f && f[0] === rn && f[1] === rd; } };
+  },
+  // 3/8 → 0.375
+  "fr.todec": (L) => {
+    const d = pick(by(L, [2, 4, 5, 10], [3, 4, 5, 8, 6, 20, 25], [6, 7, 8, 9, 12, 15, 16]));
+    const n = ri(1, d - 1);
+    const v = n / d;
+    return { skillId: "fr.todec", key: `f2d:${n}/${d}`, prior: P.toDecPrior(d), prompt: `${n}/${d}`, sub: "as a decimal · within 0.005",
+      answerText: String(Math.round(v * 1000) / 1000), why: `1/${d} = ${(1 / d).toFixed(3)}, × ${n}`, inputMode: "decimal", placeholder: "0.375", check: (s) => { const x = parseValue(s); return x !== null && Math.abs(x - v) <= 0.005; } };
+  },
+  // 0.375 → 3/8
+  "fr.fromdec": (L) => {
+    const [n, d] = pick(by(L, [[1, 2], [1, 4], [3, 4], [1, 5], [2, 5], [4, 5], [1, 10], [3, 10]], [[1, 8], [3, 8], [5, 8], [7, 8], [1, 20], [3, 20], [1, 25], [3, 25], [1, 3], [2, 3]], [[1, 16], [3, 16], [5, 16], [1, 6], [5, 6], [1, 9], [4, 9], [1, 12], [5, 12], [7, 12]]));
+    const v = n / d; const repeating = d % 3 === 0;
+    const shown = repeating ? v.toFixed(3) + "…" : String(v);
+    const places = repeating ? 3 : (String(v).split(".")[1] ?? "").length;
+    return { skillId: "fr.fromdec", key: `d2f:${n}/${d}`, prior: P.fromDecPrior(places, repeating), prompt: shown, sub: "as a fraction in simplest form",
+      answerText: `${n}/${d}`, why: repeating ? `repeating → ninths / thirds / sixths` : `${shown} = ${Math.round(v * 10 ** places)}/${10 ** places}, simplify`, inputMode: "text", placeholder: "3/8", check: (s) => { const f = parseFrac(s); return !!f && f[0] === n && f[1] === d; } };
+  },
+
+  // ── Decimals & scaling ─────────────────────────────────────────────────
+  // 3.47 × 1000 → 3,470   ·   52,000 ÷ 100 → 520
+  "dec.scale": (L) => {
+    const n = pick(by(L, [1, 2], [1, 2, 3], [2, 3, 4])); const div = Math.random() < 0.5; const decimal = Math.random() < by(L, 0.3, 0.6, 0.8);
+    const base = decimal ? ri(11, 999) / pick([10, 100]) : ri(2, 99) * (div ? 10 ** ri(1, 3) : 1);
+    const ans = div ? base / 10 ** n : base * 10 ** n;
+    return { skillId: "dec.scale", key: `scale:${base}${div ? "/" : "x"}${10 ** n}`, prior: P.scalePrior(n, div, decimal), prompt: `${base.toLocaleString("en-US", { maximumFractionDigits: 3 })} ${div ? "÷" : "×"} ${fmtDigits(10 ** n)}`, sub: "value",
+      answerText: ans.toLocaleString("en-US", { maximumFractionDigits: 7 }), why: `move the point ${n} place${n > 1 ? "s" : ""} ${div ? "left" : "right"}`, inputMode: "decimal", placeholder: "value", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) <= Math.max(1e-6, ans * 1e-6); } };
+  },
+  // 0.035 → 3.5%   ·   12.5% → 0.125
+  "dec.pct": (L) => {
+    const toPct = Math.random() < 0.5; const places = pick(by(L, [1, 2], [2, 3], [3, 4]));
+    const pct = pick(by(L, [5, 10, 20, 25, 50, 75, 80], [2.5, 7.5, 12.5, 15, 35, 62.5, 4, 8], [0.5, 1.25, 3.75, 0.25, 17.5, 99.5, 0.05]));
+    const dec = pct / 100;
+    return { skillId: "dec.pct", key: toPct ? `d2p:${dec}` : `p2d:${pct}`, prior: P.decPctPrior(toPct, places), prompt: toPct ? String(dec) : `${pct}%`, sub: toPct ? "as a percent" : "as a decimal",
+      answerText: toPct ? `${pct}%` : String(dec), why: toPct ? "× 100 (point right two)" : "÷ 100 (point left two)", inputMode: "decimal", placeholder: toPct ? "%" : "0.125",
+      check: (s) => { const v = parseValue(s.replace(/%/g, "")); return v !== null && Math.abs(v - (toPct ? pct : dec)) <= (toPct ? 0.01 : 0.0001); } };
+  },
+  // 4,371 → nearest 100 → 4,400   ·   3.456 → 1 dp → 3.5
+  "dec.round": (L) => {
+    const kind = pick(by(L, [0, 1, 3], [0, 1, 2, 3, 4], [1, 2, 3, 4]));
+    let n: number, ans: number, label: string;
+    if (kind <= 2) { const unit = [10, 100, 1000][kind]; n = ri(unit * 2, unit * 999); ans = Math.round(n / unit) * unit; label = `nearest ${fmtDigits(unit)}`; }
+    else { const dp = kind === 3 ? 1 : 2; n = ri(100, 99999) / 10 ** (dp + 1); ans = Math.round(n * 10 ** dp) / 10 ** dp; label = `${dp} decimal place${dp > 1 ? "s" : ""}`; }
+    return { skillId: "dec.round", key: `round:${n}@${kind}`, prior: P.roundPrior(kind, String(Math.round(n)).length), prompt: kind <= 2 ? fmtDigits(n) : String(n), sub: `to the ${label}`,
+      answerText: kind <= 2 ? fmtDigits(ans) : String(ans), why: `look at the next digit: ${kind <= 2 ? Math.floor((n % [10, 100, 1000][kind]) / [1, 10, 100][kind]) : String(n).split(".")[1]?.[kind === 3 ? 1 : 2]}`, inputMode: "decimal", placeholder: "value", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) < 1e-9; } };
+  },
+  // 3.4 + 2.75 → 6.15   ·   0.6 × 7 → 4.2
+  "dec.ops": (L) => {
+    const op = pick(by(L, [0, 0, 2], [0, 1, 2], [1, 2, 2]));   // +, −, ×
+    const places = pick(by(L, [1], [1, 2], [2]));
+    const a = ri(1, 99 * 10 ** (places - 1)) / 10 ** places * (op === 2 ? 1 : 1);
+    const b = op === 2 ? ri(2, 9) : ri(1, 99 * 10 ** (places - 1)) / 10 ** places;
+    const [x, y] = op === 1 && a < b ? [b, a] : [a, b];
+    const ans = Math.round((op === 0 ? x + y : op === 1 ? x - y : x * y) * 10 ** (places + 1)) / 10 ** (places + 1);
+    const sym = ["+", "−", "×"][op];
+    return { skillId: "dec.ops", key: `dop:${x}${["+", "-", "x"][op]}${y}`, prior: P.decOpsPrior(op, places), prompt: `${x} ${sym} ${y}`, sub: "value",
+      answerText: String(ans), why: op === 2 ? `${x * 10 ** places} × ${y} = ${x * 10 ** places * y}, point back ${places}` : `line up the points`, inputMode: "decimal", placeholder: "value", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) < 1e-9; } };
+  },
+
   // ── Multi-digit mental strategies ──────────────────────────────────────
   // 47 × 6 → 282
   "ar.split": (L) => {

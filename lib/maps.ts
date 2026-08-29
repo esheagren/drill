@@ -44,7 +44,56 @@ const SIZE_COLS = ["2-digit", "3-digit", "4-digit", "5-digit", "6-digit", "7-dig
 const mulKey = (k: string) => { const m = k.match(/^mul:(\d+)x(\d+)$/); return m ? [+m[1], +m[2]] as [number, number] : null; };
 const TENS = ["10s", "20s", "30s", "40s", "50s", "60s", "70s", "80s", "90s"];
 
+const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
+const SIZE3 = ["2–3 digits", "4 digits", "5+ digits"];
+const size3 = (n: string) => Math.min(2, Math.max(0, n.length - 3));
+
 export const MAPS: Record<string, MapSpec> = {
+  "Simplest form": {
+    prefix: "simp:", rows: ["÷2", "÷3", "÷4", "÷5", "÷6+"], cols: ["halves–quarters", "fifths–sixths", "eighths–twelfths", "16ths+"], typed: 3, rowTitle: "common factor", colTitle: "result",
+    parse: (k) => { const m = k.match(/^simp:(\d+)\/(\d+)$/); if (!m) return null; const n = +m[1], d = +m[2]; const g = gcd(n, d); const rd = d / g; return [Math.min(4, g - 2), rd <= 4 ? 0 : rd <= 6 ? 1 : rd <= 12 ? 2 : 3]; },
+    label: (r, c) => `${["÷2", "÷3", "÷4", "÷5", "÷6+"][r]} → ${["halves–quarters", "fifths–sixths", "eighths–twelfths", "16ths+"][c]}`,
+  },
+  Compare: {
+    prefix: "cmp:", rows: ["same denominator", "same numerator", "unit fractions", "general"], cols: ["far apart", "close (< 0.08)"], typed: 3,
+    parse: (k) => { const m = k.match(/^cmp:(\d+)\/(\d+)v(\d+)\/(\d+)$/); if (!m) return null; const [a, b, c, d] = m.slice(1).map(Number); const kind = b === d ? 0 : a === c && a !== 1 ? 1 : a === 1 && c === 1 ? 2 : 3; return [kind, Math.abs(a / b - c / d) < 0.08 ? 1 : 0]; },
+    label: (r, c) => `${["same denominator", "same numerator", "unit fractions", "general"][r]}, ${c ? "close" : "far apart"}`,
+  },
+  "Fraction of a quantity": {
+    prefix: "frof:", rows: range(2, 16), cols: ["2–3 digits", "4 digits", "5 digits", "6+ digits"], typed: 4, rowTitle: "denominator", colTitle: "quantity",
+    parse: (k) => { const m = k.match(/^frof:(\d+)\/(\d+)x(\d+)$/); if (!m) return null; const r = idx(range(2, 16), m[2]); return r < 0 ? null : [r, Math.min(3, Math.max(0, m[3].length - 3))]; },
+    label: (r, c) => `n/${r + 2} of a ${["2–3", "4", "5", "6+"][c]}-digit quantity`,
+  },
+  "Add & subtract": {
+    prefix: "fradd:", rows: ["like denominators", "related (one divides the other)", "unlike"], cols: ["add", "subtract"], typed: 4,
+    parse: (k) => { const m = k.match(/^fradd:(\d+)\/(\d+)([+-])(\d+)\/(\d+)$/); if (!m) return null; const b = +m[2], d = +m[5]; const kind = b === d ? 0 : b % d === 0 || d % b === 0 ? 1 : 2; return [kind, m[3] === "-" ? 1 : 0]; },
+    label: (r, c) => `${["like", "related", "unlike"][r]} denominators, ${c ? "subtract" : "add"}`,
+  },
+  "Fraction ↔ decimal": {
+    prefix: "", rows: range(2, 25), cols: ["fraction → decimal", "decimal → fraction"], typed: 4, rowTitle: "denominator",
+    parse: (k) => { const m = k.match(/^(f2d|d2f):(\d+)\/(\d+)$/); if (!m) return null; const r = idx(range(2, 25), m[3]); return r < 0 ? null : [r, m[1] === "d2f" ? 1 : 0]; },
+    label: (r, c) => `denominator ${r + 2}, ${c ? "decimal → fraction" : "fraction → decimal"}`,
+  },
+  "×÷ by powers of ten": {
+    prefix: "scale:", rows: ["× 10", "× 100", "× 1000", "× 10 000", "÷ 10", "÷ 100", "÷ 1000", "÷ 10 000"], cols: ["whole number", "decimal"], typed: 5,
+    parse: (k) => { const m = k.match(/^scale:([\d.]+)([x/])(\d+)$/); if (!m) return null; const n = Math.round(Math.log10(+m[3])) - 1; if (n < 0 || n > 3) return null; return [(m[2] === "/" ? 4 : 0) + n, m[1].includes(".") ? 1 : 0]; },
+    label: (r, c) => `${["× 10", "× 100", "× 1000", "× 10 000", "÷ 10", "÷ 100", "÷ 1000", "÷ 10 000"][r]}, ${c ? "decimal" : "whole number"}`,
+  },
+  "Decimal ↔ percent": {
+    prefix: "", rows: ["decimal → percent", "percent → decimal"], cols: ["whole percent", "one decimal", "two+ decimals"], typed: 4,
+    parse: (k) => { const m = k.match(/^(d2p|p2d):([\d.]+)$/); if (!m) return null; const pct = m[1] === "d2p" ? +m[2] * 100 : +m[2]; const dp = (String(Math.round(pct * 1000) / 1000).split(".")[1] ?? "").length; return [m[1] === "d2p" ? 0 : 1, Math.min(2, dp)]; },
+    label: (r, c) => `${r ? "percent → decimal" : "decimal → percent"}, ${["whole percent", "one decimal", "two+ decimals"][c]}`,
+  },
+  Rounding: {
+    prefix: "round:", rows: ["nearest 10", "nearest 100", "nearest 1000", "1 decimal place", "2 decimal places"], cols: SIZE3, typed: 4, rowTitle: "to", colTitle: "number size",
+    parse: (k) => { const m = k.match(/^round:([\d.]+)@(\d)$/); if (!m) return null; return [+m[2], size3(m[1].split(".")[0])]; },
+    label: (r, c) => `${["nearest 10", "nearest 100", "nearest 1000", "1 dp", "2 dp"][r]}, ${SIZE3[c]}`,
+  },
+  "Decimal arithmetic": {
+    prefix: "dop:", rows: ["add", "subtract", "× one digit"], cols: ["1 decimal place", "2 decimal places"], typed: 4,
+    parse: (k) => { const m = k.match(/^dop:([\d.]+)([+x-])([\d.]+)$/); if (!m) return null; const places = Math.max((m[1].split(".")[1] ?? "").length, (m[3].split(".")[1] ?? "").length); return [m[2] === "+" ? 0 : m[2] === "-" ? 1 : 2, Math.min(1, Math.max(0, places - 1))]; },
+    label: (r, c) => `${["add", "subtract", "× one digit"][r]}, ${c ? "2" : "1"} decimal place${c ? "s" : ""}`,
+  },
   "Two-digit × one-digit": {
     prefix: "mul:", rows: TENS, cols: range(2, 9), typed: 3, rowTitle: "two-digit factor", colTitle: "one-digit factor",
     parse: (k) => { const ab = mulKey(k); if (!ab) return null; const [a, b] = ab; if (a < 2 || a > 9 || b < 12 || b > 99) return null; return [Math.floor(b / 10) - 1, a - 2]; },

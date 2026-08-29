@@ -9,6 +9,16 @@
  * skill counts as automatic.
  */
 export type SkillId =
+  | "fr.simplify"
+  | "fr.compare"
+  | "fr.of"
+  | "fr.add"
+  | "fr.todec"
+  | "fr.fromdec"
+  | "dec.scale"
+  | "dec.pct"
+  | "dec.round"
+  | "dec.ops"
   | "ar.split"
   | "ar.short5"
   | "ar.short11"
@@ -46,7 +56,7 @@ export type SkillId =
   | "pct.anchor"
   | "pct.compose";
 
-export type Family = "arithmetic" | "place-value" | "exponents" | "scientific" | "operations" | "magnitude" | "fractions" | "percents";
+export type Family = "arithmetic" | "fractions" | "decimals" | "percents" | "place-value" | "exponents" | "scientific" | "operations" | "magnitude";
 
 /** Where a skill sits in the product: on-ramp (checked, not drilled), core, or combinations. */
 export type Tier = "onramp" | "core" | "combo";
@@ -91,6 +101,16 @@ const META: Record<SkillId, Meta> = {
   "ar.cube10":  { level: 4, tier: "core",   kc: ["cubes", "mul-facts"] },
   "ar.cube15":  { level: 4, tier: "core",   kc: ["cubes", "distributive-split"] },
   "fr.unit":    { level: 5, tier: "core",   kc: ["unit-fraction-percent", "division-by-small"] },
+  "fr.simplify":{ level: 5, tier: "core",   kc: ["common-factor", "div-facts"] },
+  "fr.compare": { level: 5, tier: "core",   kc: ["fraction-magnitude", "common-denominator"] },
+  "fr.of":      { level: 5, tier: "core",   kc: ["division-by-small", "scale-by-numerator"] },
+  "fr.add":     { level: 5, tier: "core",   kc: ["common-denominator", "add-partials", "common-factor"] },
+  "fr.todec":   { level: 5, tier: "core",   kc: ["fraction-decimal", "unit-fraction-percent"] },
+  "fr.fromdec": { level: 5, tier: "core",   kc: ["fraction-decimal", "common-factor"] },
+  "dec.scale":  { level: 5, tier: "core",   kc: ["powers-of-ten", "decimal-shift"] },
+  "dec.pct":    { level: 5, tier: "core",   kc: ["decimal-shift", "percent-anchor"] },
+  "dec.round":  { level: 5, tier: "core",   kc: ["rounding"] },
+  "dec.ops":    { level: 5, tier: "core",   kc: ["add-partials", "mul-facts", "decimal-shift"] },
   "fr.common":  { level: 5, tier: "core",   kc: ["unit-fraction-percent", "scale-by-numerator"] },
   "pv.zeros":   { level: 3, tier: "onramp", kc: ["powers-of-ten"] },
   "pv.word-exp":{ level: 3, tier: "onramp", kc: ["powers-of-ten", "scale-words"] },
@@ -197,6 +217,49 @@ export const SKILLS: Skill[] = withMeta([
     prereqs: ["fr.unit"],
     ccss: ["7.NS.A.2d", "6.RP.A.3c"],
     targetMs: 8000,
+  },
+
+  {
+    id: "fr.simplify", family: "fractions", group: "Simplest form", name: "Simplest form",
+    ask: "in simplest form", prereqs: ["ar.divfacts"], ccss: ["4.NF.A.1"], targetMs: 6000,
+  },
+  {
+    id: "fr.compare", family: "fractions", group: "Compare", name: "Compare",
+    ask: "the larger one", prereqs: ["fr.unit"], ccss: ["4.NF.A.2"], targetMs: 6000,
+  },
+  {
+    id: "fr.of", family: "fractions", group: "Fraction of a quantity", name: "Fraction of a quantity",
+    ask: "value", prereqs: ["ar.divfacts", "fr.unit"], ccss: ["4.NF.B.4", "5.NF.B.4"], targetMs: 7000,
+  },
+  {
+    id: "fr.add", family: "fractions", group: "Add & subtract", name: "Add & subtract",
+    ask: "in simplest form", prereqs: ["fr.simplify"], ccss: ["4.NF.B.3", "5.NF.A.1"], targetMs: 9000,
+  },
+  {
+    id: "fr.todec", family: "fractions", group: "Fraction ↔ decimal", name: "Fraction → decimal",
+    ask: "as a decimal", prereqs: ["fr.unit"], ccss: ["4.NF.C.6", "7.NS.A.2d"], targetMs: 6000,
+  },
+  {
+    id: "fr.fromdec", family: "fractions", group: "Fraction ↔ decimal", name: "Decimal → fraction",
+    ask: "in simplest form", prereqs: ["fr.simplify", "fr.todec"], ccss: ["4.NF.C.6"], targetMs: 6000,
+  },
+
+  // ── Decimals & scaling ─────────────────────────────────────────────────
+  {
+    id: "dec.scale", family: "decimals", group: "×÷ by powers of ten", name: "×÷ by powers of ten",
+    ask: "value", prereqs: ["pv.zeros"], ccss: ["5.NBT.A.2"], targetMs: 5000,
+  },
+  {
+    id: "dec.pct", family: "decimals", group: "Decimal ↔ percent", name: "Decimal ↔ percent",
+    ask: "convert", prereqs: ["dec.scale"], ccss: ["6.RP.A.3c"], targetMs: 4500,
+  },
+  {
+    id: "dec.round", family: "decimals", group: "Rounding", name: "Rounding",
+    ask: "rounded", prereqs: ["pv.zeros"], ccss: ["4.NBT.A.3", "5.NBT.A.4"], targetMs: 5000,
+  },
+  {
+    id: "dec.ops", family: "decimals", group: "Decimal arithmetic", name: "Decimal arithmetic",
+    ask: "value", prereqs: ["dec.scale", "ar.mul12"], ccss: ["5.NBT.B.7"], targetMs: 7000,
   },
 
   // ── Place value & powers of ten ────────────────────────────────────────
@@ -367,7 +430,8 @@ export const FAMILY_LABEL: Record<Family, string> = {
   scientific: "Scientific notation",
   operations: "Operating in scientific notation",
   magnitude: "Magnitude estimation",
-  fractions: "Fractions → percents",
+  fractions: "Fractions",
+  decimals: "Decimals & scaling",
   percents: "Percents",
 };
 
@@ -379,11 +443,12 @@ export const FAMILY_BLURB: Record<Family, string> = {
   scientific: "see any number as a × 10ⁿ",
   operations: "combine two numbers in a × 10ⁿ form",
   magnitude: "the payoff — rough size of a real-world product or quotient",
-  fractions: "1/12 is 8.3% — fractions as percents, on sight",
+  fractions: "fractions as percents and decimals, simplest form, comparing, a fraction of a quantity",
+  decimals: "sliding the decimal point — powers of ten, percent conversions, rounding",
   percents: "anchors, composition, change, reverse — the percents adults actually meet",
 };
 
-export const FAMILIES: Family[] = ["arithmetic", "fractions", "place-value", "exponents", "scientific", "operations", "magnitude", "percents"];
+export const FAMILIES: Family[] = ["arithmetic", "fractions", "decimals", "percents", "place-value", "exponents", "scientific", "operations", "magnitude"];
 export const skillsIn = (f: Family) => SKILLS.filter((s) => s.family === f);
 /** Subsections of a unit, in order, each with its band skills. */
 export const groupsIn = (f: Family): { group: string; skills: Skill[] }[] => {
