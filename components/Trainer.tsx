@@ -248,13 +248,13 @@ export default function Trainer() {
   return (
     <div className="h-dvh flex flex-col bg-white dark:bg-black text-gray-900 dark:text-gray-100 select-none overflow-hidden">
       <header className="grid grid-cols-3 items-center px-5 pt-[max(env(safe-area-inset-top),16px)] pb-2 text-xs text-gray-400 dark:text-gray-500">
-        <button onClick={() => setShowUnits(true)} className="text-left text-base leading-none" aria-label="Choose practice">
+        <button onClick={() => setShowUnits(true)} className="justify-self-start -ml-3 px-3 py-2 text-base leading-none" aria-label="Choose practice">
           ≡{plan.id !== "mixed" && <span className="ml-2 text-xs uppercase tracking-wide">{plan.label}</span>}{isReviewRef.current && <span className="ml-2">↺</span>}
         </button>
         <button onClick={() => setTimerMenu(true)} aria-label="Change session length" className={`text-center text-base tabular-nums ${started ? "text-gray-900 dark:text-gray-100" : ""}`}>
           {mm}:{String(ss).padStart(2, "0")}
         </button>
-        <button onClick={() => setShowMap(true)} aria-label="Skill map" className="text-right tabular-nums hover:text-gray-900 dark:hover:text-gray-100">
+        <button onClick={() => setShowMap(true)} aria-label="History" className="justify-self-end -mr-3 px-3 py-2 tabular-nums hover:text-gray-900 dark:hover:text-gray-100">
           {countRef.current.n} · ▦
         </button>
       </header>
