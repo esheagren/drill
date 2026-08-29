@@ -157,7 +157,7 @@ function StackedBars({ columns, yLabel, legend }: { columns: Column[]; yLabel: s
   const gap = 6;
   const bw = Math.max(4, (plotW - gap * (columns.length - 1)) / columns.length);
   const y = (v: number) => padT + plotH - (v / nice) * plotH;
-  const ticks = [0, nice / 2, nice];
+  const ticks = [0, nice / 2, nice].map((t) => Math.round(t));
   const isDark = typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches;
   const steps = isDark ? STEPS_DARK : STEPS_LIGHT;
 
@@ -219,6 +219,6 @@ function StackedBars({ columns, yLabel, legend }: { columns: Column[]; yLabel: s
 function niceMax(v: number): number {
   const p = 10 ** Math.floor(Math.log10(v));
   const m = v / p;
-  const n = m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10;
+  const n = m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10;
   return n * p;
 }
