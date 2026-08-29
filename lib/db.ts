@@ -49,6 +49,15 @@ CREATE TABLE IF NOT EXISTS pair_codes (
   expires_at  timestamptz NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS users (
+  user_token    text PRIMARY KEY,
+  username      text        NOT NULL,
+  email         text        UNIQUE,
+  password_hash text,
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at    timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS user_state (
   user_token  text PRIMARY KEY,
   engine      jsonb       NOT NULL,

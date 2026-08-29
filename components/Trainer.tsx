@@ -7,6 +7,9 @@ import { SKILL_BY_ID, type SkillId } from "@/lib/skills";
 import { MIXED, saveSession, type Plan, type SessionRecord } from "@/lib/sessions";
 import { flush, hydrate, queueAttempt, queueSession } from "@/lib/sync";
 import Keypad from "./Keypad";
+import Onboarding from "./Onboarding";
+import { getProfile } from "@/lib/account";
+import type { Profile } from "@/lib/user";
 import Units from "./Units";
 import SkillMap from "./SkillMap";
 
@@ -22,6 +25,7 @@ export default function Trainer() {
   const [phase, setPhase] = useState<Phase>("answer");
   const [showMap, setShowMap] = useState(false);
   const [showUnits, setShowUnits] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);   // null = not loaded yet
   const [plan, setPlan] = useState<Plan>(MIXED);
   const planRef = useRef<Plan>(MIXED);
   const [remaining, setRemaining] = useState(MIXED.durationMs);
@@ -65,6 +69,7 @@ export default function Trainer() {
       advance(st);
       void flush();
     });
+    getProfile().then((p) => { if (alive) setProfile(p); });
     const onHide = () => { if (document.visibilityState === "hidden") void flush(); };
     document.addEventListener("visibilitychange", onHide);
     return () => { alive = false; document.removeEventListener("visibilitychange", onHide); };
@@ -159,7 +164,8 @@ export default function Trainer() {
   // Hardware keyboard support (desktop).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (showMap || showUnits || phase === "done") return;
+      if (showMap || showUnits || phase === "done" || !profile?.username) return;
+      if ((e.target as HTMLElement)?.tagName === "INPUT") return;
       if ((e.target as HTMLElement)?.tagName === "INPUT") return;
       if (/^[0-9.e]$/.test(e.key)) { e.preventDefault(); press(e.key); }
       else if (e.key === "Backspace") { e.preventDefault(); backspace(); }
@@ -169,7 +175,8 @@ export default function Trainer() {
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  if (!state || !item) return <div className="min-h-dvh bg-white dark:bg-black" />;
+  if (!state || !item || profile === null) return <div className="min-h-dvh bg-white dark:bg-black" />;
+  if (!profile.username) return <Onboarding onDone={(username) => setProfile({ ...profile, username })} />;
 
   // ── Session summary ──────────────────────────────────────────────────────
   if (phase === "done" && session) {
@@ -217,7 +224,7 @@ export default function Trainer() {
           </div>
         </div>
         {showUnits && <Units state={state} onPick={pick} onClose={() => setShowUnits(false)} />}
-        {showMap && <SkillMap state={state} onClose={() => setShowMap(false)} />}
+        {showMap && <SkillMap state={state} profile={profile} onProfile={setProfile} onClose={() => setShowMap(false)} />}
       </div>
     );
   }
@@ -280,7 +287,7 @@ export default function Trainer() {
       <Keypad onKey={press} onBackspace={backspace} onSubmit={enter} submitDisabled={phase === "answer" && !input} />
 
       {showUnits && <Units state={state} onPick={pick} onClose={() => setShowUnits(false)} />}
-      {showMap && <SkillMap state={state} onClose={() => setShowMap(false)} />}
+      {showMap && <SkillMap state={state} profile={profile} onProfile={setProfile} onClose={() => setShowMap(false)} />}
     </div>
   );
 }

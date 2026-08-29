@@ -35,6 +35,24 @@ export function setUserToken(token: string): void {
   try { localStorage.setItem(TOKEN_KEY, token); } catch { /* ignore */ }
 }
 
+/** Adopt another identity (sign-in on a new device). Caller reloads so state re-hydrates from the server. */
+export function adoptIdentity(token: string): void {
+  try {
+    const old = getUserToken();
+    for (const k of Object.keys(localStorage)) if (k.startsWith(`magnitude:${old}:`)) localStorage.removeItem(k);
+    localStorage.setItem(TOKEN_KEY, token);
+  } catch { /* ignore */ }
+}
+
+const PROFILE_KEY = () => scopedKey("profile");
+export interface Profile { username: string | null; email: string | null }
+export function loadProfile(): Profile | null {
+  try { const r = localStorage.getItem(PROFILE_KEY()); return r ? JSON.parse(r) : null; } catch { return null; }
+}
+export function saveProfile(p: Profile): void {
+  try { localStorage.setItem(PROFILE_KEY(), JSON.stringify(p)); } catch { /* ignore */ }
+}
+
 export function scopedKey(suffix: string): string {
   return `magnitude:${getUserToken()}:${suffix}`;
 }
