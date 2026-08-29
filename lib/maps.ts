@@ -41,7 +41,35 @@ const pctClass = (p: number) => (p === 10 || p === 50 ? 0 : p === 20 || p === 25
 const sizeCol = (n: string, lo = 2, hi = 7) => Math.min(hi - lo, Math.max(0, n.length - lo));
 const SIZE_COLS = ["2-digit", "3-digit", "4-digit", "5-digit", "6-digit", "7-digit"];
 
+const mulKey = (k: string) => { const m = k.match(/^mul:(\d+)x(\d+)$/); return m ? [+m[1], +m[2]] as [number, number] : null; };
+const TENS = ["10s", "20s", "30s", "40s", "50s", "60s", "70s", "80s", "90s"];
+
 export const MAPS: Record<string, MapSpec> = {
+  "Two-digit × one-digit": {
+    prefix: "mul:", rows: TENS, cols: range(2, 9), typed: 3, rowTitle: "two-digit factor", colTitle: "one-digit factor",
+    parse: (k) => { const ab = mulKey(k); if (!ab) return null; const [a, b] = ab; if (a < 2 || a > 9 || b < 12 || b > 99) return null; return [Math.floor(b / 10) - 1, a - 2]; },
+    label: (r, c) => `${TENS[r]} × ${c + 2}`,
+  },
+  Shortcuts: {
+    prefix: "mul:", rows: ["×5", "×25", "×50", "×11", "×101"], cols: ["even / easy", "odd / awkward"], typed: 4, rowTitle: "multiplier",
+    parse: (k) => { const ab = mulKey(k); if (!ab) return null; const [a, b] = ab; const ms = [5, 25, 50, 11, 101]; const r = ms.indexOf(b) >= 0 && a !== b ? ms.indexOf(b) : ms.indexOf(a); if (r < 0) return null; const x = ms.indexOf(b) >= 0 && a !== b ? a : b; const awkward = b === 25 || a === 25 ? x % 4 !== 0 : b === 11 || a === 11 ? Math.floor(x / 10) + (x % 10) >= 10 : x % 2 !== 0; return [r, awkward ? 1 : 0]; },
+    label: (r, c) => `${["×5", "×25", "×50", "×11", "×101"][r]}, ${c ? "awkward" : "easy"} partner`,
+  },
+  "Doubling & halving": {
+    prefix: "mul:", rows: ["one halving", "two halvings"], cols: ["partner ≤ 45", "partner > 45"], typed: 4,
+    parse: (k) => { const ab = mulKey(k); if (!ab) return null; const [a, b] = ab; const even = a % 2 === 0 ? a : b % 2 === 0 ? b : null; if (even === null || (even !== a && even !== b)) return null; const odd = even === a ? b : a; if (odd % 5 !== 0 || odd < 15 || odd > 95) return null; return [even % 4 === 0 ? 1 : 0, odd > 45 ? 1 : 0]; },
+    label: (r, c) => `${r ? "two halvings" : "one halving"}, partner ${c ? "> 45" : "≤ 45"}`,
+  },
+  "Near 100": {
+    prefix: "mul:", rows: ["96–97", "98–99", "101–102", "103–104"], cols: ["×2–5", "×6–9", "×10–25"], typed: 4, rowTitle: "near-100 factor",
+    parse: (k) => { const ab = mulKey(k); if (!ab) return null; const [a, b] = ab; const big = Math.max(a, b), small = Math.min(a, b); if (big < 96 || big > 104 || big === 100) return null; const r = big <= 97 ? 0 : big <= 99 ? 1 : big <= 102 ? 2 : 3; return [r, small <= 5 ? 0 : small <= 9 ? 1 : 2]; },
+    label: (r, c) => `${["96–97", "98–99", "101–102", "103–104"][r]} × ${["2–5", "6–9", "10–25"][c]}`,
+  },
+  Division: {
+    prefix: "div:", rows: range(2, 12), cols: ["quotient ≤ 12", "13–49", "50–99"], typed: 2, rowTitle: "divisor", colTitle: "quotient",
+    parse: (k) => { const m = k.match(/^div:(\d+)\/(\d+)$/); if (!m) return null; const d = +m[2], q = +m[1] / d; const r = idx(range(2, 12), d); if (r < 0) return null; return [r, q <= 12 ? 0 : q < 50 ? 1 : 2]; },
+    label: (r, c) => `÷ ${r + 2}, quotient ${["≤ 12", "13–49", "50–99"][c]}`,
+  },
   "Apply a change": {
     prefix: "pctap:", rows: PCT_CLASSES, cols: SIZE_COLS, typed: 6, rowTitle: "percent", colTitle: "base size",
     parse: (k) => { const m = k.match(/^pctap:(up|down)(\d+)%(\d+)$/); if (!m) return null; return [pctClass(+m[2]), sizeCol(m[3])]; },
@@ -68,6 +96,11 @@ export const MAPS: Record<string, MapSpec> = {
     label: (r, c) => `${PCT_CLASSES[r]} then ${PCT_CLASSES[c]}`,
   },
   // ── Multiplicative arithmetic ──
+  Remainders: {
+    prefix: "rem:", rows: ["÷2, 5, 10", "÷3, 9", "÷4", "÷6", "÷7, 8"], cols: ["2–3 digits", "4 digits", "5 digits"], typed: 1, rowTitle: "divisor",
+    parse: (k) => { const m = k.match(/^rem:(\d+)%(\d+)$/); if (!m) return null; const d = +m[2]; const r = [2, 5, 10].includes(d) ? 0 : [3, 9].includes(d) ? 1 : d === 4 ? 2 : d === 6 ? 3 : 4; return [r, Math.min(2, Math.max(0, m[1].length - 3))]; },
+    label: (r, c) => `${["÷2, 5, 10", "÷3, 9", "÷4", "÷6", "÷7, 8"][r]}, ${["2–3", "4", "5"][c]}-digit number`,
+  },
   "Times tables": {
     prefix: "mul:", rows: range(2, 25), cols: range(2, 25), typed: 3,
     parse: (k) => { const m = k.match(/^mul:(\d+)x(\d+)$/); if (!m) return null; const a = +m[1], b = +m[2]; const r = idx(range(2, 25), a), c = idx(range(2, 25), b); return r < 0 || c < 0 ? null : [r, c]; },

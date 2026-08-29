@@ -91,3 +91,13 @@ export const pctFindPrior = (p: number, down: boolean) => PCT_CLASS_PRIOR[pctCla
 export const pctWhatPrior = (p: number, whole: number) => PCT_CLASS_PRIOR[pctClass(p)] + 0.2 + 0.15 * (digits(whole) - 2);
 export const pctReversePrior = (p: number, off: boolean) => PCT_CLASS_PRIOR[pctClass(p)] + 1.0 + (off ? 0.4 : 0);
 export const pctChainPrior = (p1: number, p2: number, base: number) => PCT_CLASS_PRIOR[pctClass(p1)] * 0.5 + PCT_CLASS_PRIOR[pctClass(p2)] * 0.5 + 1.3 + 0.1 * (digits(base) - 3);
+
+/** Multi-digit mental strategies. */
+export const splitPrior = (a: number, b: number) => -0.6 + 0.04 * a + 0.12 * b + (a % 10 >= 6 && b >= 6 ? 0.5 : 0) + ((a % 10) * b >= 40 ? 0.3 : 0);   // a two-digit, b one-digit
+export const short5Prior = (a: number, m: number) => (m === 5 ? -0.8 : m === 50 ? -0.4 : 0.2) + (a % 2 ? 0.4 : 0) + (m === 25 && a % 4 ? 0.5 : 0) + 0.02 * a;
+export const short11Prior = (a: number, m: number) => (m === 11 ? -0.6 : 0.2) + ((Math.floor(a / 10) + (a % 10)) >= 10 ? 0.7 : 0) + 0.01 * a;
+export const doublePrior = (a: number, b: number) => 0.2 + 0.02 * (a + b) + (a % 4 === 0 || b % 4 === 0 ? -0.3 : 0);
+export const near100Prior = (a: number, b: number) => -0.2 + 0.3 * Math.abs(a - 100) + 0.08 * b + (a > 100 ? 0.2 : 0);
+export const divFactsPrior = (q: number, d: number) => -2.2 + 0.12 * (q + d) + (d === 2 || d === 5 || d === 10 ? -0.6 : 0) + (q === d ? -0.4 : 0);
+export const div1Prior = (q: number, d: number) => -0.4 + 0.1 * d + 0.02 * q + (q >= 30 ? 0.3 : 0) + (q % 10 >= 6 ? 0.2 : 0);
+export const remPrior = (n: number, d: number) => (d === 2 || d === 5 || d === 10 ? -1.5 : d === 3 || d === 9 ? -0.2 : d === 4 ? 0 : 0.6) + 0.15 * (String(n).length - 2);

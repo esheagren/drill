@@ -329,6 +329,59 @@ const GENERATORS: Record<SkillId, Gen> = {
       inputMode: "decimal", placeholder: "value", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) / ans < 0.005; },
     };
   },
+  // ── Multi-digit mental strategies ──────────────────────────────────────
+  // 47 × 6 → 282
+  "ar.split": (L) => {
+    const a = by(L, ri(12, 39), ri(13, 69), ri(23, 99)); const b = by(L, ri(2, 5), ri(3, 8), ri(6, 9));
+    return { skillId: "ar.split", key: `mul:${Math.min(a, b)}x${Math.max(a, b)}`, prior: P.splitPrior(a, b), prompt: `${a} × ${b}`, answerText: String(a * b),
+      why: `${Math.floor(a / 10) * 10}×${b} + ${a % 10}×${b} = ${Math.floor(a / 10) * 10 * b} + ${(a % 10) * b}`, inputMode: "numeric", placeholder: "product", check: (s) => intEq(s, a * b) };
+  },
+  // 46 × 5 → 230  (half, then ×10)   ·  36 × 25 → 900 (quarter, ×100)
+  "ar.short5": (L) => {
+    const m = pick(by(L, [5], [5, 50], [25, 50, 5])); const a = by(L, ri(12, 48) * 2, ri(12, 99), m === 25 ? ri(3, 24) * 4 : ri(12, 199));
+    const why = m === 5 ? `half of ${a} = ${a / 2}, × 10` : m === 50 ? `half of ${a} = ${a / 2}, × 100` : `quarter of ${a} = ${a / 4}, × 100`;
+    return { skillId: "ar.short5", key: `mul:${Math.min(a, m)}x${Math.max(a, m)}`, prior: P.short5Prior(a, m), prompt: `${a} × ${m}`, answerText: String(a * m), why, inputMode: "numeric", placeholder: "product", check: (s) => intEq(s, a * m) };
+  },
+  // 34 × 11 → 374   ·   47 × 101 → 4747
+  "ar.short11": (L) => {
+    const m = pick(by(L, [11], [11, 11, 101], [11, 101])); const a = by(L, ri(12, 45), ri(12, 89), ri(23, 99));
+    const why = m === 11 ? `${a}×10 + ${a} = ${a * 10} + ${a}` : `${a}×100 + ${a}`;
+    return { skillId: "ar.short11", key: `mul:${Math.min(a, m)}x${Math.max(a, m)}`, prior: P.short11Prior(a, m), prompt: `${a} × ${m}`, answerText: String(a * m), why, inputMode: "numeric", placeholder: "product", check: (s) => intEq(s, a * m) };
+  },
+  // 16 × 35 → 8 × 70 → 560
+  "ar.double": (L) => {
+    const a = pick(by(L, [4, 8, 12, 16], [8, 12, 14, 16, 18, 24], [12, 14, 16, 18, 22, 24, 28, 32]));
+    const b = pick(by(L, [15, 25, 35, 45], [15, 25, 35, 45, 55, 75], [15, 35, 45, 55, 65, 75, 85, 95]));
+    return { skillId: "ar.double", key: `mul:${Math.min(a, b)}x${Math.max(a, b)}`, prior: P.doublePrior(a, b), prompt: `${a} × ${b}`, answerText: String(a * b),
+      why: `${a / 2} × ${b * 2}${a % 4 === 0 ? ` = ${a / 4} × ${b * 4}` : ""}`, inputMode: "numeric", placeholder: "product", check: (s) => intEq(s, a * b) };
+  },
+  // 98 × 7 → 700 − 14 → 686
+  "ar.near100": (L) => {
+    const a = pick(by(L, [99, 98, 101], [97, 98, 99, 101, 102, 103], [96, 97, 98, 99, 101, 102, 103, 104, 995, 1005].filter((x) => x < 200)));
+    const b = by(L, ri(3, 9), ri(4, 12), ri(6, 25));
+    return { skillId: "ar.near100", key: `mul:${Math.min(a, b)}x${Math.max(a, b)}`, prior: P.near100Prior(a, b), prompt: `${a} × ${b}`, answerText: String(a * b),
+      why: `${b}×100 ${a < 100 ? "−" : "+"} ${b}×${Math.abs(100 - a)} = ${100 * b} ${a < 100 ? "−" : "+"} ${b * Math.abs(100 - a)}`, inputMode: "numeric", placeholder: "product", check: (s) => intEq(s, a * b) };
+  },
+  // 72 ÷ 8 → 9
+  "ar.divfacts": (L) => {
+    const d = by(L, pick([2, 3, 4, 5, 10]), ri(2, 9), ri(6, 12)); const q = by(L, ri(2, 9), ri(2, 12), ri(6, 12));
+    return { skillId: "ar.divfacts", key: `div:${d * q}/${d}`, prior: P.divFactsPrior(q, d), prompt: `${d * q} ÷ ${d}`, answerText: String(q), why: `${d} × ${q} = ${d * q}`, inputMode: "numeric", placeholder: "quotient", check: (s) => intEq(s, q) };
+  },
+  // 156 ÷ 6 → 26
+  "ar.div1": (L) => {
+    const d = by(L, ri(2, 5), ri(3, 8), ri(6, 9)); const q = by(L, ri(11, 24), ri(13, 49), ri(23, 99));
+    return { skillId: "ar.div1", key: `div:${d * q}/${d}`, prior: P.div1Prior(q, d), prompt: `${d * q} ÷ ${d}`, answerText: String(q),
+      why: `${d}×${Math.floor(q / 10) * 10} = ${d * Math.floor(q / 10) * 10}, leaves ${d * q - d * Math.floor(q / 10) * 10} = ${d}×${q % 10}`, inputMode: "numeric", placeholder: "quotient", check: (s) => intEq(s, q) };
+  },
+  // 4,371 ÷ 9 → remainder 6  (digit sum)
+  "ar.rem": (L) => {
+    const d = pick(by(L, [2, 5, 10, 3], [3, 4, 9, 5, 6], [3, 4, 6, 7, 8, 9]));
+    const n = by(L, ri(20, 999), ri(100, 9999), ri(1000, 99999));
+    const r = n % d;
+    const why = d === 3 || d === 9 ? `digit sum ${String(n).split("").reduce((a, c) => a + +c, 0)}` : d === 4 ? `last two digits ${n % 100} ÷ 4` : d === 2 || d === 5 || d === 10 ? "last digit" : d === 6 ? "even and digit sum" : `${n} − ${d}×${Math.floor(n / d)}`;
+    return { skillId: "ar.rem", key: `rem:${n}%${d}`, prior: P.remPrior(n, d), prompt: `${fmtDigits(n)} ÷ ${d}`, sub: "remainder", answerText: String(r), why, inputMode: "numeric", placeholder: "remainder", check: (s) => intEq(s, r) };
+  },
+
   // ── Percents: change, reverse, chains ──────────────────────────────────
   // 250,000 up 40% → 350,000
   "pct.apply": (L) => {

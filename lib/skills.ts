@@ -9,6 +9,14 @@
  * skill counts as automatic.
  */
 export type SkillId =
+  | "ar.split"
+  | "ar.short5"
+  | "ar.short11"
+  | "ar.double"
+  | "ar.near100"
+  | "ar.divfacts"
+  | "ar.div1"
+  | "ar.rem"
   | "pct.apply"
   | "pct.find"
   | "pct.what"
@@ -68,6 +76,14 @@ export interface Skill {
 type Meta = { level: number; tier: Tier; kc: string[] };
 const META: Record<SkillId, Meta> = {
   "ar.mul12":   { level: 2, tier: "onramp", kc: ["mul-facts"] },
+  "ar.split":   { level: 4, tier: "core",   kc: ["mul-facts", "distributive-split", "add-partials"] },
+  "ar.short5":  { level: 4, tier: "core",   kc: ["halving", "powers-of-ten"] },
+  "ar.short11": { level: 4, tier: "core",   kc: ["distributive-split", "add-partials"] },
+  "ar.double":  { level: 4, tier: "core",   kc: ["halving", "doubling", "mul-facts"] },
+  "ar.near100": { level: 4, tier: "core",   kc: ["near-multiple-of-ten", "compensation"] },
+  "ar.divfacts":{ level: 2, tier: "onramp", kc: ["div-facts"] },
+  "ar.div1":    { level: 4, tier: "core",   kc: ["div-facts", "distributive-split"] },
+  "ar.rem":     { level: 4, tier: "core",   kc: ["div-facts", "divisibility"] },
   "ar.mul20":   { level: 4, tier: "core",   kc: ["mul-facts", "distributive-split"] },
   "ar.mul25":   { level: 4, tier: "core",   kc: ["distributive-split", "near-multiple-of-ten"] },
   "ar.sq12":    { level: 2, tier: "onramp", kc: ["squares"] },
@@ -128,6 +144,39 @@ export const SKILLS: Skill[] = withMeta([
   {
     id: "ar.cube15", family: "arithmetic", group: "Cubes", name: "11–15",
     ask: "value", prereqs: ["ar.cube10", "ar.sq25"], ccss: ["8.EE.A.2"], targetMs: 6000,
+  },
+
+  {
+    id: "ar.split", family: "arithmetic", group: "Two-digit × one-digit", name: "Two-digit × one-digit",
+    ask: "product", prereqs: ["ar.mul12"], ccss: ["4.NBT.B.5"], targetMs: 6000,
+  },
+  {
+    id: "ar.short5", family: "arithmetic", group: "Shortcuts", name: "×5, ×25, ×50",
+    ask: "product", prereqs: ["ar.mul12"], ccss: ["4.NBT.B.5"], targetMs: 5000,
+  },
+  {
+    id: "ar.short11", family: "arithmetic", group: "Shortcuts", name: "×11, ×101",
+    ask: "product", prereqs: ["ar.mul12"], ccss: ["4.NBT.B.5"], targetMs: 5000,
+  },
+  {
+    id: "ar.double", family: "arithmetic", group: "Doubling & halving", name: "Doubling & halving",
+    ask: "product", prereqs: ["ar.mul12"], ccss: ["4.NBT.B.5"], targetMs: 6000,
+  },
+  {
+    id: "ar.near100", family: "arithmetic", group: "Near 100", name: "Near 100",
+    ask: "product", prereqs: ["ar.mul12"], ccss: ["4.NBT.B.5"], targetMs: 6000,
+  },
+  {
+    id: "ar.divfacts", family: "arithmetic", group: "Division", name: "Facts within tables",
+    ask: "quotient", prereqs: ["ar.mul12"], ccss: ["3.OA.C.7"], targetMs: 3000,
+  },
+  {
+    id: "ar.div1", family: "arithmetic", group: "Division", name: "By one digit",
+    ask: "quotient", prereqs: ["ar.divfacts"], ccss: ["4.NBT.B.6"], targetMs: 6000,
+  },
+  {
+    id: "ar.rem", family: "arithmetic", group: "Remainders", name: "Remainders",
+    ask: "remainder", prereqs: ["ar.divfacts"], ccss: ["4.OA.B.4"], targetMs: 6000,
   },
 
   // ── Fractions → percents ──────────────────────────────────────────────
@@ -324,7 +373,7 @@ export const FAMILY_LABEL: Record<Family, string> = {
 
 /** One line per unit: the capability it builds. */
 export const FAMILY_BLURB: Record<Family, string> = {
-  arithmetic: "times tables, squares, cubes — the raw facts everything else leans on",
+  arithmetic: "tables, squares, cubes, the mental shortcuts, division — the moves everything else leans on",
   "place-value": "10ⁿ and its name, both directions, instantly",
   exponents: "the two moves inside every product: add exponents, multiply leading digits",
   scientific: "see any number as a × 10ⁿ",
