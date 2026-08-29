@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Item } from "@/lib/items";
 import { appendLog, expectedScore, mastery, nextSkill, pickItem, record, saveState, type EngineState } from "@/lib/engine";
 import { SKILL_BY_ID, type SkillId } from "@/lib/skills";
-import { MIXED, saveSession, type Plan, type SessionRecord } from "@/lib/sessions";
+import { MIXED, loadDefaultMinutes, mixedFor, saveDefaultMinutes, saveSession, type Plan, type SessionRecord } from "@/lib/sessions";
 import { flush, hydrate, queueAttempt, queueSession } from "@/lib/sync";
 import Keypad from "./Keypad";
 import Onboarding from "./Onboarding";
@@ -29,6 +29,8 @@ export default function Trainer() {
   const [plan, setPlan] = useState<Plan>(MIXED);
   const planRef = useRef<Plan>(MIXED);
   const [remaining, setRemaining] = useState(MIXED.durationMs);
+  const [timerMenu, setTimerMenu] = useState(false);
+  const [askDefault, setAskDefault] = useState<number | null>(null); // minutes just chosen, pending "make default?"
   const [session, setSession] = useState<SessionRecord | null>(null);
 
   const startRef = useRef(0);          // item start
@@ -63,6 +65,8 @@ export default function Trainer() {
 
   useEffect(() => {
     let alive = true;
+    const initial = mixedFor(loadDefaultMinutes());
+    planRef.current = initial; setPlan(initial); setRemaining(initial.durationMs);
     hydrate().then((st) => {
       if (!alive) return;
       setState(st);
@@ -102,6 +106,12 @@ export default function Trainer() {
     }, 250);
     return () => clearInterval(id);
   }, [phase, finish]);
+
+  const chooseMinutes = (min: number) => {
+    setTimerMenu(false);
+    pick(mixedFor(min));
+    if (min !== loadDefaultMinutes()) setAskDefault(min);
+  };
 
   const restart = (next: Plan = planRef.current) => {
     if (!state) return;
@@ -164,7 +174,7 @@ export default function Trainer() {
   // Hardware keyboard support (desktop).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (showMap || showUnits || phase === "done" || !profile?.username) return;
+      if (showMap || showUnits || timerMenu || askDefault !== null || phase === "done" || !profile?.username) return;
       if ((e.target as HTMLElement)?.tagName === "INPUT") return;
       if ((e.target as HTMLElement)?.tagName === "INPUT") return;
       if (/^[0-9.e]$/.test(e.key)) { e.preventDefault(); press(e.key); }
@@ -244,9 +254,9 @@ export default function Trainer() {
           <span className="tracking-wide uppercase truncate">{plan.id === "mixed" ? skill.name : `${plan.label} · ${skill.name}`}</span>
           <span className="shrink-0 tabular-nums">{isReviewRef.current ? "↺" : `${Math.round(exp * 100)}%`}</span>
         </button>
-        <div className={`text-center text-base tabular-nums ${started ? "text-gray-900 dark:text-gray-100" : ""}`}>
+        <button onClick={() => setTimerMenu(true)} aria-label="Change session length" className={`text-center text-base tabular-nums ${started ? "text-gray-900 dark:text-gray-100" : ""}`}>
           {mm}:{String(ss).padStart(2, "0")}
-        </div>
+        </button>
         <button onClick={() => setShowMap(true)} aria-label="Skill map" className="text-right tabular-nums hover:text-gray-900 dark:hover:text-gray-100">
           {countRef.current.n} · ▦
         </button>
@@ -286,8 +296,40 @@ export default function Trainer() {
 
       <Keypad onKey={press} onBackspace={backspace} onSubmit={enter} submitDisabled={phase === "answer" && !input} />
 
+      {timerMenu && (
+        <Sheet onClose={() => setTimerMenu(false)} title="Session length">
+          <div className="grid grid-cols-4 gap-2">
+            {[2, 4, 8, 12].map((min) => (
+              <button key={min} onClick={() => chooseMinutes(min)} className={`h-14 rounded-2xl text-lg tabular-nums border ${plan.durationMs === min * 60000 ? "border-gray-900 dark:border-gray-100" : "border-gray-200 dark:border-gray-800 text-gray-500"}`}>
+                {min}m
+              </button>
+            ))}
+          </div>
+          {started && countRef.current.n > 0 && <p className="text-xs text-gray-400 mt-3">Choosing a length ends the current session and starts a new mixed one.</p>}
+        </Sheet>
+      )}
+      {askDefault !== null && (
+        <Sheet onClose={() => setAskDefault(null)} title={`Make ${askDefault} min your default?`}>
+          <p className="text-sm text-gray-500 mb-4">The app will open into a {askDefault}-minute mixed session from now on.</p>
+          <div className="flex gap-2">
+            <button onClick={() => { saveDefaultMinutes(askDefault); setAskDefault(null); }} className="flex-1 h-12 rounded-2xl bg-gray-900 text-white dark:bg-gray-100 dark:text-black">Yes</button>
+            <button onClick={() => setAskDefault(null)} className="flex-1 h-12 rounded-2xl border border-gray-200 dark:border-gray-800 text-gray-500">No, just this once</button>
+          </div>
+        </Sheet>
+      )}
       {showUnits && <Units state={state} onPick={pick} onClose={() => setShowUnits(false)} />}
       {showMap && <SkillMap state={state} profile={profile} onProfile={setProfile} onClose={() => setShowMap(false)} />}
+    </div>
+  );
+}
+
+function Sheet({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-30 flex items-end sm:items-center justify-center bg-black/40" onClick={onClose}>
+      <div className="w-full max-w-sm bg-white dark:bg-black text-gray-900 dark:text-gray-100 rounded-t-3xl sm:rounded-3xl p-5 pb-[max(env(safe-area-inset-bottom),20px)]" onClick={(e) => e.stopPropagation()}>
+        <div className="text-base mb-4">{title}</div>
+        {children}
+      </div>
     </div>
   );
 }
