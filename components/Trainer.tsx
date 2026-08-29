@@ -10,8 +10,7 @@ import Keypad from "./Keypad";
 import Onboarding from "./Onboarding";
 import { getProfile } from "@/lib/account";
 import type { Profile } from "@/lib/user";
-import Units from "./Units";
-import Stats from "./Stats";
+import Stats, { type View } from "./Stats";
 
 type Phase = "answer" | "correct" | "wrong" | "done";
 
@@ -23,8 +22,11 @@ export default function Trainer() {
   const [item, setItem] = useState<Item | null>(null);
   const [input, setInput] = useState("");
   const [phase, setPhase] = useState<Phase>("answer");
-  const [showMap, setShowMap] = useState(false);
-  const [showUnits, setShowUnits] = useState(false);
+  const [overlay, setOverlay] = useState<View | null>(null);
+  const showMap = overlay !== null;
+  const showUnits = false; // folded into the single overlay
+  const setShowMap = (v: boolean) => setOverlay(v ? { kind: "history" } : null);
+  const setShowUnits = (v: boolean) => setOverlay(v ? { kind: "practice" } : null);
   const [profile, setProfile] = useState<Profile | null>(null);   // null = not loaded yet
   const [plan, setPlan] = useState<Plan>(MIXED);
   const planRef = useRef<Plan>(MIXED);
@@ -125,7 +127,7 @@ export default function Trainer() {
     reviewRef.current = [];
     setRemaining(next.durationMs);
     setSession(null);
-    setShowUnits(false);
+    setOverlay(null);
     advance(state);
   };
 
@@ -233,8 +235,7 @@ export default function Trainer() {
             <button onClick={() => setShowMap(true)} className="h-12">history</button>
           </div>
         </div>
-        {showUnits && <Units state={state} onPick={pick} onClose={() => setShowUnits(false)} />}
-        {showMap && <Stats state={state} profile={profile} onProfile={setProfile} onClose={() => setShowMap(false)} />}
+        {overlay && <Stats state={state} profile={profile} onProfile={setProfile} onClose={() => setOverlay(null)} onPick={pick} initial={overlay ?? undefined} mixedMinutes={loadDefaultMinutes()} />}
       </div>
     );
   }
@@ -313,8 +314,7 @@ export default function Trainer() {
           </div>
         </Sheet>
       )}
-      {showUnits && <Units state={state} onPick={pick} onClose={() => setShowUnits(false)} />}
-      {showMap && <Stats state={state} profile={profile} onProfile={setProfile} onClose={() => setShowMap(false)} />}
+      {overlay && <Stats state={state} profile={profile} onProfile={setProfile} onClose={() => setOverlay(null)} onPick={pick} initial={overlay ?? undefined} mixedMinutes={loadDefaultMinutes()} />}
     </div>
   );
 }
