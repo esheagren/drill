@@ -1,7 +1,7 @@
 {
-  "name": "Magnitude",
-  "short_name": "Magnitude",
-  "description": "Adult mental arithmetic trainer",
+  "name": "Drill",
+  "short_name": "Drill",
+  "description": "Mental arithmetic drills: scientific notation, magnitude, fractions, percents",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

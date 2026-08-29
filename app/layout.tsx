@@ -3,7 +3,7 @@ import { PWAInstaller } from "@/components/PWAInstaller";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Magnitude",
+  title: "Drill",
   description: "Adult mental arithmetic trainer",
   manifest: "/manifest.json",
   icons: {
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Magnitude",
+    title: "Drill",
   },
 };
 
