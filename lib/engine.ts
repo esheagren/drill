@@ -20,6 +20,7 @@
  */
 import { generateItem, typedLength, type Item, type Level } from "./items";
 import { LEGACY_SKILL, SKILLS, SKILL_BY_ID, type Family, type SkillId } from "./skills";
+import { evidenceOf, frontier, pickProbe, priorBelief, propagate, PROBES_EARLY, PROBE_SHARE_EARLY, PROBE_SHARE_LATE } from "./belief";
 import { scopedKey } from "./user";
 
 export interface SkillState {
@@ -34,10 +35,13 @@ export interface Rating { theta: number; n: number }
 export interface ItemMemory { delta: number; n: number; streak: number; lastRt: number; lastSeen: number }
 
 export interface EngineState {
-  v: 3;
+  v: 4;
   skills: Record<SkillId, SkillState>;
   ratings: Partial<Record<Family, Rating>>;
   items: Record<string, ItemMemory>;
+  /** p(known) per skill — only nodes touched by evidence are stored; others fall back to the prior. */
+  beliefs: Record<string, number>;
+  probes: number;
 }
 
 export interface AttemptLog {
@@ -79,7 +83,7 @@ const freshSkill = (): SkillState => ({ attempts: 0, correct: 0, acc: 0.5, speed
 const logistic = (x: number) => 1 / (1 + Math.exp(-x));
 
 export function emptyState(): EngineState {
-  return { v: 3, skills: Object.fromEntries(SKILLS.map((s) => [s.id, freshSkill()])) as Record<SkillId, SkillState>, ratings: {}, items: {} };
+  return { v: 4, skills: Object.fromEntries(SKILLS.map((s) => [s.id, freshSkill()])) as Record<SkillId, SkillState>, ratings: {}, items: {}, beliefs: {}, probes: 0 };
 }
 
 /** Accept v1 (flat per-skill map) or v2 snapshots. */
@@ -96,14 +100,14 @@ export function normalize(raw: unknown): EngineState {
   const base = emptyState();
   if (!raw || typeof raw !== "object") return base;
   const r = raw as Record<string, unknown>;
-  if (r.v === 3 && r.skills) {
+  if ((r.v === 4 || r.v === 3) && r.skills) {
     const st = r as unknown as EngineState;
-    return { v: 3, skills: { ...base.skills, ...migrateSkills(st.skills as Record<string, SkillState>) } as Record<SkillId, SkillState>, ratings: st.ratings ?? {}, items: st.items ?? {} };
+    return { v: 4, skills: { ...base.skills, ...migrateSkills(st.skills as Record<string, SkillState>) } as Record<SkillId, SkillState>, ratings: st.ratings ?? {}, items: st.items ?? {}, beliefs: st.beliefs ?? {}, probes: st.probes ?? 0 };
   }
   if (r.v === 2 && r.skills) {
     // v2 ratings were deflated by miscalibrated time budgets — keep skill EMAs, restart ratings.
     const st = r as unknown as EngineState;
-    return { v: 3, skills: { ...base.skills, ...migrateSkills(st.skills as Record<string, SkillState>) } as Record<SkillId, SkillState>, ratings: {}, items: {} };
+    return { v: 4, skills: { ...base.skills, ...migrateSkills(st.skills as Record<string, SkillState>) } as Record<SkillId, SkillState>, ratings: {}, items: {}, beliefs: {}, probes: 0 };
   }
   // v1: keys are skill ids (possibly legacy ones)
   const v1 = migrateSkills(r as Record<string, SkillState>);
@@ -142,6 +146,16 @@ export function mastery(id: SkillId, s: SkillState): number {
   return Math.max(0, Math.min(1, s.acc * (0.6 + 0.4 * speedFactor)));
 }
 
+// ── Belief layer ───────────────────────────────────────────────────────────
+const obsOf = (state: EngineState) => (id: SkillId) => ({ attempts: state.skills[id].attempts, mastery: mastery(id, state.skills[id]) });
+export const frontierOf = (state: EngineState) => frontier(obsOf(state));
+/** p(known): stored value if evidence has touched this node, else the prior from the observed frontier. */
+export function beliefOf(state: EngineState, id: SkillId): number {
+  const b = state.beliefs?.[id];
+  return b !== undefined ? b : priorBelief(id, obsOf(state), frontierOf(state));
+}
+export const isInferred = (state: EngineState, id: SkillId) => state.skills[id].attempts === 0 && beliefOf(state, id) >= 0.5;
+
 export function isUnlocked(id: SkillId, state: EngineState): boolean {
   return SKILL_BY_ID[id].prereqs.every((p) => {
     const ps = state.skills[p];
@@ -149,22 +163,45 @@ export function isUnlocked(id: SkillId, state: EngineState): boolean {
   });
 }
 
-/** Pick the next skill: interleaved weighted-random over the pool, never `lastId` twice. */
-export function nextSkill(state: EngineState, lastId: SkillId | null, pool?: SkillId[]): SkillId {
+export interface Pick { id: SkillId; probe: boolean }
+
+/**
+ * Pick the next skill. Focused plans draw from the pool. Mixed practice:
+ *  - sometimes a silent probe at the belief fringe (15% until 60 probes, then 5%)
+ *  - otherwise an interleaved weighted draw over skills that are unlocked or
+ *    believed known, weighted toward the 0.4–0.8 belief zone; on-ramp skills
+ *    only appear when believed shaky.
+ */
+export function nextSkill(state: EngineState, lastId: SkillId | null, pool?: SkillId[]): Pick {
   const now = Date.now();
-  const unlocked = pool ? SKILLS.filter((s) => pool.includes(s.id)) : SKILLS.filter((s) => isUnlocked(s.id, state));
-  const candidates = unlocked.length > 1 ? unlocked.filter((s) => s.id !== lastId) : unlocked;
+  const get = (id: SkillId) => beliefOf(state, id);
+  if (!pool) {
+    const share = (state.probes ?? 0) < PROBES_EARLY ? PROBE_SHARE_EARLY : PROBE_SHARE_LATE;
+    if (Math.random() < share) { const p = pickProbe(get, lastId); if (p) return { id: p, probe: true }; }
+  }
+  const eligible = pool
+    ? SKILLS.filter((s) => pool.includes(s.id))
+    : SKILLS.filter((s) => {
+        const b = get(s.id);
+        if (s.tier === "onramp") return b < 0.6;                         // only when shaky
+        if (b < 0.2 && s.prereqs.some((p) => get(p) < 0.5)) return false; // wait for prerequisites
+        return isUnlocked(s.id, state) || b >= 0.5;
+      });
+  const candidates = eligible.length > 1 ? eligible.filter((s) => s.id !== lastId) : eligible;
   const weighted = candidates.map((s) => {
     const st = state.skills[s.id];
     const m = mastery(s.id, st);
     const novelty = st.attempts === 0 ? 0.6 : 0;
     const staleness = st.lastSeen === 0 ? 0 : Math.min(1, (now - st.lastSeen) / (6 * 3600e3));
-    return { id: s.id, w: 0.15 + 1.6 * (1 - m) + novelty + 0.5 * staleness };
+    const b = get(s.id);
+    const zone = pool ? 1 : b >= 0.4 && b <= 0.8 ? 1.5 : b > 0.95 ? 0.5 : 1;
+    return { id: s.id, w: (0.15 + 1.6 * (1 - m) + novelty + 0.5 * staleness) * zone };
   });
+  if (!weighted.length) return { id: SKILLS[0].id, probe: false };
   const total = weighted.reduce((a, b) => a + b.w, 0);
   let r = Math.random() * total;
-  for (const { id, w } of weighted) { r -= w; if (r <= 0) return id; }
-  return weighted[weighted.length - 1].id;
+  for (const { id, w } of weighted) { r -= w; if (r <= 0) return { id, probe: false }; }
+  return { id: weighted[weighted.length - 1].id, probe: false };
 }
 
 // ── Rating layer ───────────────────────────────────────────────────────────
@@ -225,7 +262,7 @@ export function pickItem(state: EngineState, skillId: SkillId): Item {
 
 export interface RecordResult { state: EngineState; score: number; expected: number; theta: number; beta: number; ignored: boolean }
 
-export function record(state: EngineState, item: Item, correct: boolean, latencyMs: number): RecordResult {
+export function record(state: EngineState, item: Item, correct: boolean, latencyMs: number, probe = false): RecordResult {
   const id = item.skillId;
   const fam = SKILL_BY_ID[id].family;
 
@@ -263,8 +300,11 @@ export function record(state: EngineState, item: Item, correct: boolean, latency
   const keys = Object.keys(items);
   if (keys.length > ITEM_CAP) for (const k of keys.sort((a, b) => items[a].lastSeen - items[b].lastSeen).slice(0, keys.length - ITEM_CAP)) delete items[k];
 
+  // Belief propagation over the prerequisite graph.
+  const beliefs = propagate(state.beliefs ?? {}, (n) => beliefOf(state, n), id, evidenceOf(correct, score));
+
   return {
-    state: { ...state, skills: { ...state.skills, [id]: s }, ratings: { ...state.ratings, [fam]: { theta, n: rating.n + 1 } }, items },
+    state: { ...state, skills: { ...state.skills, [id]: s }, ratings: { ...state.ratings, [fam]: { theta, n: rating.n + 1 } }, items, beliefs, probes: (state.probes ?? 0) + (probe ? 1 : 0) },
     score, expected, theta: rating.theta, beta, ignored: false,
   };
 }

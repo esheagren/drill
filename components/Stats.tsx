@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { isUnlocked, mastery, ratingOf, type EngineState } from "@/lib/engine";
+import { beliefOf, frontierOf, isInferred, isUnlocked, mastery, ratingOf, type EngineState } from "@/lib/engine";
 import { FAMILIES, FAMILY_BLURB, FAMILY_LABEL, groupsIn, skillsIn, type Family, type Skill, type SkillId } from "@/lib/skills";
 import { dayKey, loadDays, groupPlan, skillPlan, unitPlan, type Plan, type SessionRecord } from "@/lib/sessions";
 import type { Profile } from "@/lib/user";
@@ -92,13 +92,19 @@ function masteryColor(m: number, attempts: number): string {
   if (m < 0.85) return "#38bdf8";       // sky-400 — developing
   return "#10b981";                     // emerald-500 — fluent
 }
-function Dot({ m, attempts, size = 10 }: { m: number; attempts: number; size?: number }) {
-  return <span className="inline-block rounded-full shrink-0" style={{ width: size, height: size, background: masteryColor(m, attempts) }} title={attempts ? `${Math.round(m * 100)}% fluent · ${attempts} answers` : "not started"} />;
+function Dot({ m, attempts, size = 10, belief }: { m: number; attempts: number; size?: number; belief?: number }) {
+  // Hollow ring = inferred from related skills, not yet observed.
+  if (!attempts && belief !== undefined && belief >= 0.5) {
+    const c = belief >= 0.8 ? "#10b981" : "#38bdf8";
+    return <span className="inline-block rounded-full shrink-0" style={{ width: size, height: size, border: `2px solid ${c}`, boxSizing: "border-box" }} title={`probably known (${Math.round(belief * 100)}%) — inferred from related skills`} />;
+  }
+  return <span className="inline-block rounded-full shrink-0" style={{ width: size, height: size, background: masteryColor(m, attempts) }} title={attempts ? `${Math.round(m * 100)}% fluent · ${attempts} answers` : belief !== undefined ? `unknown (${Math.round(belief * 100)}%)` : "not started"} />;
 }
 function groupMastery(skills: Skill[], state: EngineState) {
   const attempts = skills.reduce((a, s) => a + state.skills[s.id].attempts, 0);
   const m = attempts ? skills.reduce((a, s) => a + mastery(s.id, state.skills[s.id]) * state.skills[s.id].attempts, 0) / attempts : 0;
-  return { m, attempts };
+  const belief = skills.reduce((a, s) => a + beliefOf(state, s.id), 0) / skills.length;
+  return { m, attempts, belief };
 }
 function tally(days: Record<string, SessionRecord[]>, k: string, ids: SkillId[]) {
   return (days[k] ?? []).reduce((acc, sess) => { for (const id of ids) { const b = sess.bySkill[id]; if (b) { acc.n += b.n; acc.c += b.c; } } return acc; }, { n: 0, c: 0 });
@@ -116,11 +122,12 @@ function UnitHierarchy({ unit, state, onPick }: { unit: Family; state: EngineSta
       {/* Left: the structure */}
       <div className="lg:w-80 shrink-0">
         <div className="flex items-center gap-3">
-          <Dot m={um.m} attempts={um.attempts} size={12} />
+          <Dot m={um.m} attempts={um.attempts} size={12} belief={um.belief} />
           <h1 className="text-lg font-light flex-1">{FAMILY_LABEL[unit]}</h1>
           <button onClick={() => onPick(unitPlan(unit))} className={`${play} bg-gray-900 text-white dark:bg-gray-100 dark:text-black`}>2 min ▸</button>
         </div>
-        <p className="text-xs text-gray-500 mt-1 mb-5">{FAMILY_BLURB[unit]}</p>
+        <p className="text-xs text-gray-500 mt-1">{FAMILY_BLURB[unit]}</p>
+        <p className="text-[11px] text-gray-400 mb-5">frontier L{frontierOf(state)} · {skillsIn(unit).filter((s) => isInferred(state, s.id)).length} skills inferred, {skillsIn(unit).filter((s) => state.skills[s.id].attempts > 0).length} observed</p>
 
         <ul className="space-y-1">
           {groups.map(({ group, skills }) => {
@@ -129,7 +136,7 @@ function UnitHierarchy({ unit, state, onPick }: { unit: Family; state: EngineSta
             return (
               <li key={group} className={`rounded-xl ${active ? "bg-gray-50 dark:bg-gray-950" : ""}`}>
                 <div className="flex items-center gap-3 px-3 py-2">
-                  <Dot m={gm.m} attempts={gm.attempts} />
+                  <Dot m={gm.m} attempts={gm.attempts} belief={gm.belief} />
                   <button onClick={() => setSel(group)} className={`flex-1 text-left text-sm ${active ? "text-gray-900 dark:text-gray-100" : "text-gray-600 dark:text-gray-300"}`}>{group}</button>
                   <button onClick={() => onPick(groupPlan(unit, group))} className={`${play} border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300`}>2 min ▸</button>
                 </div>
@@ -139,7 +146,7 @@ function UnitHierarchy({ unit, state, onPick }: { unit: Family; state: EngineSta
                     const unlocked = isUnlocked(s.id, state);
                     return (
                       <li key={s.id} className="flex items-center gap-3 pr-3 py-1">
-                        <Dot m={mastery(s.id, st)} attempts={st.attempts} size={8} />
+                        <Dot m={mastery(s.id, st)} attempts={st.attempts} size={8} belief={beliefOf(state, s.id)} />
                         <span className={`flex-1 text-xs ${unlocked ? "text-gray-600 dark:text-gray-300" : "text-gray-400"}`}>{s.name}</span>
                         <button onClick={() => onPick(skillPlan(s.id))} className="text-xs text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 px-1" aria-label={`Drill ${group} ${s.name}`}>▸</button>
                       </li>
@@ -154,6 +161,7 @@ function UnitHierarchy({ unit, state, onPick }: { unit: Family; state: EngineSta
           {[["#9ca3af", "not started"], ["#f59e0b", "weak"], ["#38bdf8", "developing"], ["#10b981", "fluent"]].map(([c, l]) => (
             <span key={l} className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full" style={{ background: c }} />{l}</span>
           ))}
+          <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full" style={{ border: "1.5px solid #38bdf8" }} />inferred</span>
         </div>
       </div>
 
@@ -171,7 +179,7 @@ function UnitHierarchy({ unit, state, onPick }: { unit: Family; state: EngineSta
               const st = state.skills[s.id]; const m = mastery(s.id, st);
               return (
                 <tr key={s.id} className="border-t border-gray-100 dark:border-gray-900">
-                  <td className="py-1.5 flex items-center gap-2"><Dot m={m} attempts={st.attempts} size={8} />{s.name}</td>
+                  <td className="py-1.5 flex items-center gap-2"><Dot m={m} attempts={st.attempts} size={8} belief={beliefOf(state, s.id)} />{s.name}</td>
                   <td className="text-right">{st.attempts || "—"}</td>
                   <td className="text-right">{st.attempts ? `${Math.round((100 * st.correct) / st.attempts)}%` : "—"}</td>
                   <td className="text-right">{st.speed ? `${(st.speed / 1000).toFixed(1)}s` : "—"}</td>

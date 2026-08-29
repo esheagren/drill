@@ -28,6 +28,7 @@ ALTER TABLE attempts ADD COLUMN IF NOT EXISTS expected real;
 ALTER TABLE attempts ADD COLUMN IF NOT EXISTS theta real;
 ALTER TABLE attempts ADD COLUMN IF NOT EXISTS beta real;
 ALTER TABLE attempts ADD COLUMN IF NOT EXISTS ignored boolean NOT NULL DEFAULT false;
+ALTER TABLE attempts ADD COLUMN IF NOT EXISTS probe boolean NOT NULL DEFAULT false;
 CREATE INDEX IF NOT EXISTS attempts_user_ts ON attempts (user_token, ts);
 CREATE INDEX IF NOT EXISTS attempts_skill   ON attempts (user_token, skill_id);
 

@@ -43,6 +43,7 @@ export default function Trainer() {
   // Spaced review inside the session: a missed item returns after REVIEW_GAP others.
   const reviewRef = useRef<{ item: Item; due: number }[]>([]);
   const isReviewRef = useRef(false);
+  const isProbeRef = useRef(false);
 
   const advance = useCallback((st: EngineState) => {
     const due = reviewRef.current.find((r) => r.due <= countRef.current.n);
@@ -57,7 +58,8 @@ export default function Trainer() {
       return;
     }
     isReviewRef.current = false;
-    const id = nextSkill(st, lastSkillRef.current, planRef.current.pool);
+    const { id, probe } = nextSkill(st, lastSkillRef.current, planRef.current.pool);
+    isProbeRef.current = probe;
     lastSkillRef.current = id;
     setItem(pickItem(st, id));
     setInput("");
@@ -142,10 +144,10 @@ export default function Trainer() {
     if (!item || !state || phase !== "answer" || !value.trim()) return;
     const latency = Math.round(performance.now() - startRef.current);
     const ok = item.check(value);
-    const res = record(state, item, ok, latency);
+    const res = record(state, item, ok, latency, isProbeRef.current);
     const next = res.state;
     saveState(next);
-    const entry = { skillId: item.skillId, itemKey: item.key, prompt: item.prompt, answer: value, correct: ok, latencyMs: latency, ts: Date.now(), review: isReviewRef.current, ignored: res.ignored, score: res.score, expected: res.expected, theta: res.theta, beta: res.beta };
+    const entry = { skillId: item.skillId, itemKey: item.key, prompt: item.prompt, answer: value, correct: ok, latencyMs: latency, ts: Date.now(), review: isReviewRef.current, probe: isProbeRef.current, ignored: res.ignored, score: res.score, expected: res.expected, theta: res.theta, beta: res.beta };
     if (!ok) reviewRef.current.push({ item, due: countRef.current.n + 1 + REVIEW_GAP }); // comes back after REVIEW_GAP others
     appendLog(entry);
     queueAttempt(entry);
