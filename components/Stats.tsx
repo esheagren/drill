@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { isUnlocked, mastery, ratingOf, type EngineState } from "@/lib/engine";
 import { FAMILIES, FAMILY_BLURB, FAMILY_LABEL, SKILL_BY_ID, groupsIn, skillsIn, type Family, type Skill, type SkillId } from "@/lib/skills";
 import { dayKey, loadDays, groupPlan, skillPlan, unitPlan, type Plan, type SessionRecord } from "@/lib/sessions";
 import type { Profile } from "@/lib/user";
 import Account from "./Account";
+import { fetchItemStats, itemFluency, type ItemStat } from "@/lib/itemstats";
 
 export type View = { kind: "history" } | { kind: "skills"; unit: Family } | { kind: "profile" };
 
@@ -108,7 +109,6 @@ function UnitHierarchy({ unit, state, days, onPick }: { unit: Family; state: Eng
   const groups = groupsIn(unit);
   const [sel, setSel] = useState<string>(groups[0].group);
   const g = groups.find((x) => x.group === sel) ?? groups[0];
-  const keys = useMemo(() => Array.from({ length: 14 }, (_, i) => dayKey(Date.now() - (13 - i) * 86400e3)), []);
   const play = "shrink-0 h-8 px-3 rounded-lg text-xs tabular-nums active:scale-95 transition";
   const um = groupMastery(skillsIn(unit), state);
 
@@ -158,16 +158,11 @@ function UnitHierarchy({ unit, state, days, onPick }: { unit: Family; state: Eng
         </div>
       </div>
 
-      {/* Right: detail for the selected subsection */}
+      {/* Right: where you're strong and weak, problem by problem */}
       <div className="flex-1 min-w-0 lg:border-l lg:border-gray-100 lg:dark:border-gray-900 lg:pl-8">
         <h2 className="text-base font-light">{g.group}</h2>
-        <p className="text-xs text-gray-400 mb-4">last 14 days, stacked by band</p>
-        {(() => {
-          const cols = keys.map((k) => ({ label: k.slice(5), segments: g.skills.map((s) => { const t = tally(days, k, [s.id]); return { value: t.n, tip: `${k} · ${g.group} ${s.name} · ${t.n} answered · ${t.c} correct` }; }) }));
-          return cols.some((c) => c.segments.some((x) => x.value))
-            ? <StackedBars columns={cols} yLabel="questions" legend={g.skills.map((s) => s.name)} />
-            : <p className="text-sm text-gray-400 mb-6">No practice in the last 14 days.</p>;
-        })()}
+        <p className="text-xs text-gray-400 mb-4">each problem, colored by fluency — accuracy discounted while slower than budget. Hover for detail.</p>
+        <ItemMap group={g.group} skills={g.skills} />
         <table className="w-full text-sm mt-6">
           <thead className="text-[10px] uppercase tracking-wide text-gray-400">
             <tr><th className="text-left font-normal pb-1">band</th><th className="text-right font-normal pb-1">answered</th><th className="text-right font-normal pb-1">correct</th><th className="text-right font-normal pb-1">speed</th><th className="text-right font-normal pb-1">fluency</th></tr>
@@ -259,6 +254,106 @@ function SkillRow({ id, state, onPick }: { id: SkillId; state: EngineState; onPi
         {s.ccss.join(" · ")}{s.prereqs.length ? ` · after ${s.prereqs.map((p) => SKILL_BY_ID[p].name).join(", ")}` : ""}
       </div>
     </li>
+  );
+}
+
+// ── Item map: per-problem fluency for a subsection ─────────────────────────
+
+const MAP_SPEC: Record<string, { prefix: string; kind: "grid" | "strip"; lo: number; hi: number; label: (a: number, b?: number) => string; key: (a: number, b?: number) => string; band: (a: number, b?: number) => number }> = {
+  "Times tables": { prefix: "mul:", kind: "grid", lo: 2, hi: 25, label: (a, b) => `${a} × ${b}`, key: (a, b) => `mul:${a}x${b}`, band: (a, b) => (Math.max(a, b!) <= 12 ? 0 : Math.max(a, b!) <= 20 ? 1 : 2) },
+  Squares: { prefix: "sq:", kind: "strip", lo: 2, hi: 25, label: (a) => `${a}²`, key: (a) => `sq:${a}`, band: (a) => (a <= 12 ? 0 : 1) },
+  Cubes: { prefix: "cube:", kind: "strip", lo: 2, hi: 15, label: (a) => `${a}³`, key: (a) => `cube:${a}`, band: (a) => (a <= 10 ? 0 : 1) },
+};
+
+function fluencyColor(f: number | null): string {
+  if (f === null) return "transparent";
+  if (f < 0.5) return "#f59e0b";
+  if (f < 0.85) return "#38bdf8";
+  return "#10b981";
+}
+
+function ItemMap({ group, skills }: { group: string; skills: Skill[] }) {
+  const spec = MAP_SPEC[group];
+  const [stats, setStats] = useState<Record<string, ItemStat> | null>(null);
+  const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
+  useEffect(() => { let alive = true; if (spec) fetchItemStats(spec.prefix).then((s) => { if (alive) setStats(s); }); return () => { alive = false; }; }, [spec]);
+  if (!spec) return null;
+  if (stats === null) return <p className="text-sm text-gray-400">loading…</p>;
+
+  const budgetFor = (bandIdx: number, answer: number) => (skills[Math.min(bandIdx, skills.length - 1)]?.targetMs ?? 4000) + 350 * String(answer).length;
+  const cell = (a: number, b?: number) => {
+    const st = stats[spec.key(a, b)];
+    const answer = spec.kind === "grid" ? a * b! : group === "Squares" ? a * a : a ** 3;
+    const f = st ? itemFluency(st, budgetFor(spec.band(a, b), answer)) : null;
+    const text = st ? `${spec.label(a, b)} = ${answer} · ${st.n} answer${st.n > 1 ? "s" : ""} · ${Math.round((100 * st.correct) / st.n)}% · ${(st.p50 / 1000).toFixed(1)}s` : `${spec.label(a, b)} = ${answer} · not seen yet`;
+    return (
+      <div
+        key={spec.key(a, b)}
+        className="rounded-[3px] border border-gray-200 dark:border-gray-800"
+        style={{ background: fluencyColor(f), opacity: f === null ? 0.5 : 0.5 + 0.5 * Math.min(1, (st?.n ?? 0) / 4) }}
+        onMouseEnter={(e) => setTip({ x: e.clientX, y: e.clientY, text })}
+        onMouseMove={(e) => setTip({ x: e.clientX, y: e.clientY, text })}
+        onMouseLeave={() => setTip(null)}
+        onClick={(e) => setTip({ x: e.clientX, y: e.clientY, text })}
+        aria-label={text}
+      />
+    );
+  };
+
+  // Weakest / slowest lists
+  const seen = Object.values(stats).filter((s) => s.n >= 2);
+  const scored = seen.map((s) => { const m = s.key.match(/^mul:(\d+)x(\d+)$|^sq:(\d+)$|^cube:(\d+)$/); const a = Number(m?.[1] ?? m?.[3] ?? m?.[4]); const b = m?.[2] ? Number(m[2]) : undefined; const answer = b ? a * b : group === "Squares" ? a * a : a ** 3; return { s, label: spec.label(a, b), f: itemFluency(s, budgetFor(spec.band(a, b), answer)) }; });
+  const weakest = [...scored].sort((x, y) => x.f - y.f).slice(0, 5);
+  const slowest = [...scored].sort((x, y) => y.s.p50 - x.s.p50).slice(0, 5);
+
+  const n = spec.hi - spec.lo + 1;
+  return (
+    <div>
+      {spec.kind === "grid" ? (
+        <div className="overflow-x-auto">
+          <div className="grid gap-[2px]" style={{ gridTemplateColumns: `28px repeat(${n}, 20px)`, gridAutoRows: "20px", width: 28 + n * 22 }}>
+            <div />
+            {Array.from({ length: n }, (_, j) => <div key={`h${j}`} className="text-[9px] text-gray-400 text-center leading-5 tabular-nums">{spec.lo + j}</div>)}
+            {Array.from({ length: n }, (_, i) => {
+              const a = spec.lo + i;
+              return [
+                <div key={`r${a}`} className="text-[9px] text-gray-400 text-right pr-1 leading-5 tabular-nums">{a}</div>,
+                ...Array.from({ length: n }, (_, j) => { const b = spec.lo + j; return b < a ? <div key={`${a}-${b}`} /> : cell(a, b); }),
+              ];
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-[2px]" style={{ gridTemplateColumns: `repeat(${n}, 28px)`, gridAutoRows: "28px" }}>
+          {Array.from({ length: n }, (_, i) => <div key={`l${i}`} className="text-[9px] text-gray-400 text-center leading-7 tabular-nums">{spec.lo + i}</div>)}
+          {Array.from({ length: n }, (_, i) => cell(spec.lo + i))}
+        </div>
+      )}
+      <div className="flex gap-3 mt-3 text-[10px] text-gray-400">
+        <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm border border-gray-300 dark:border-gray-700" />not seen</span>
+        {[["#f59e0b", "weak"], ["#38bdf8", "developing"], ["#10b981", "fluent"]].map(([c, l]) => (
+          <span key={l} className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-sm" style={{ background: c }} />{l}</span>
+        ))}
+        <span className="text-gray-300 dark:text-gray-700">· fainter = fewer answers</span>
+      </div>
+
+      {scored.length > 0 && (
+        <div className="grid grid-cols-2 gap-6 mt-6 text-sm">
+          <div>
+            <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1">weakest</div>
+            <ul className="space-y-0.5 tabular-nums">{weakest.map((w) => <li key={w.s.key} className="flex justify-between"><span>{w.label}</span><span className="text-gray-400">{Math.round((100 * w.s.correct) / w.s.n)}% · {(w.s.p50 / 1000).toFixed(1)}s</span></li>)}</ul>
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1">slowest</div>
+            <ul className="space-y-0.5 tabular-nums">{slowest.map((w) => <li key={w.s.key} className="flex justify-between"><span>{w.label}</span><span className="text-gray-400">{(w.s.p50 / 1000).toFixed(1)}s · {Math.round((100 * w.s.correct) / w.s.n)}%</span></li>)}</ul>
+          </div>
+        </div>
+      )}
+
+      {tip && (
+        <div className="fixed z-40 pointer-events-none px-2 py-1 rounded-lg bg-gray-900 text-white dark:bg-gray-100 dark:text-black text-xs shadow" style={{ left: tip.x + 12, top: tip.y + 12 }}>{tip.text}</div>
+      )}
+    </div>
   );
 }
 
