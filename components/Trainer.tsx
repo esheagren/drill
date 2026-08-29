@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Item } from "@/lib/items";
-import { appendLog, expectedScore, mastery, nextSkill, pickItem, record, saveState, type EngineState } from "@/lib/engine";
+import { appendLog, nextSkill, pickItem, record, saveState, type EngineState } from "@/lib/engine";
 import { SKILL_BY_ID, type SkillId } from "@/lib/skills";
 import { MIXED, loadDefaultMinutes, mixedFor, saveDefaultMinutes, saveSession, type Plan, type SessionRecord } from "@/lib/sessions";
 import { flush, hydrate, queueAttempt, queueSession } from "@/lib/sync";
@@ -241,18 +241,14 @@ export default function Trainer() {
 
   // ── Practice ─────────────────────────────────────────────────────────────
   const skill = SKILL_BY_ID[item.skillId];
-  const m = mastery(item.skillId, state.skills[item.skillId]);
-  const exp = expectedScore(state, item);
   const mm = Math.floor(remaining / 60000), ss = Math.floor((remaining % 60000) / 1000);
   const started = sessionStartRef.current !== 0;
 
   return (
     <div className="h-dvh flex flex-col bg-white dark:bg-black text-gray-900 dark:text-gray-100 select-none overflow-hidden">
       <header className="grid grid-cols-3 items-center px-5 pt-[max(env(safe-area-inset-top),16px)] pb-2 text-xs text-gray-400 dark:text-gray-500">
-        <button onClick={() => setShowUnits(true)} className="flex items-center gap-2 min-w-0 text-left" aria-label="Choose practice">
-          <MasteryDots value={m} />
-          <span className="tracking-wide uppercase truncate">{plan.id === "mixed" ? skill.name : `${plan.label} · ${skill.name}`}</span>
-          <span className="shrink-0 tabular-nums">{isReviewRef.current ? "↺" : `${Math.round(exp * 100)}%`}</span>
+        <button onClick={() => setShowUnits(true)} className="text-left text-base leading-none" aria-label="Choose practice">
+          ≡{plan.id !== "mixed" && <span className="ml-2 text-xs uppercase tracking-wide">{plan.label}</span>}{isReviewRef.current && <span className="ml-2">↺</span>}
         </button>
         <button onClick={() => setTimerMenu(true)} aria-label="Change session length" className={`text-center text-base tabular-nums ${started ? "text-gray-900 dark:text-gray-100" : ""}`}>
           {mm}:{String(ss).padStart(2, "0")}
@@ -334,13 +330,3 @@ function Sheet({ title, children, onClose }: { title: string; children: React.Re
   );
 }
 
-function MasteryDots({ value }: { value: number }) {
-  const filled = Math.round(value * 5);
-  return (
-    <span className="flex gap-0.5 shrink-0" aria-label={`mastery ${Math.round(value * 100)}%`}>
-      {Array.from({ length: 5 }, (_, i) => (
-        <span key={i} className={`w-1.5 h-1.5 rounded-full ${i < filled ? "bg-gray-900 dark:bg-gray-100" : "bg-gray-200 dark:bg-gray-800"}`} />
-      ))}
-    </span>
-  );
-}
