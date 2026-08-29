@@ -190,9 +190,25 @@ export default function Trainer() {
           </ul>
         </div>
         <div className="px-6 pb-[max(env(safe-area-inset-bottom),24px)] space-y-2 max-w-md mx-auto w-full">
-          <button onClick={() => restart()} className="w-full h-14 rounded-2xl bg-gray-900 text-white dark:bg-gray-100 dark:text-black text-lg active:scale-[0.98] transition">
-            Again
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => restart()} className="flex-1 h-14 rounded-2xl bg-gray-900 text-white dark:bg-gray-100 dark:text-black text-lg active:scale-[0.98] transition">
+              Again
+            </button>
+            {[2, 4, 8, 12].map((min) => (
+              <button
+                key={min}
+                onClick={() => restart({ ...MIXED, durationMs: min * 60_000 })}
+                aria-label={`Mixed practice, ${min} minutes`}
+                className={`w-12 h-14 rounded-2xl text-sm tabular-nums border transition active:scale-95 ${
+                  plan.id === "mixed" && plan.durationMs === min * 60_000
+                    ? "border-gray-900 dark:border-gray-100 text-gray-900 dark:text-gray-100"
+                    : "border-gray-200 dark:border-gray-800 text-gray-500"
+                }`}
+              >
+                {min}m
+              </button>
+            ))}
+          </div>
           <div className="flex justify-between text-sm text-gray-500 px-1">
             <button onClick={() => setShowUnits(true)} className="h-12">practice a unit</button>
             {plan.id !== "mixed" && <button onClick={() => restart(MIXED)} className="h-12">back to mixed</button>}
