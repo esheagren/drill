@@ -19,7 +19,7 @@
  *  is skipped except for maintenance sampling.
  */
 import { generateItem, typedLength, type Item, type Level } from "./items";
-import { SKILLS, SKILL_BY_ID, type Family, type SkillId } from "./skills";
+import { LEGACY_SKILL, SKILLS, SKILL_BY_ID, type Family, type SkillId } from "./skills";
 import { scopedKey } from "./user";
 
 export interface SkillState {
@@ -83,13 +83,22 @@ export function emptyState(): EngineState {
 }
 
 /** Accept v1 (flat per-skill map) or v2 snapshots. */
+function migrateSkills(sk: Record<string, SkillState>): Record<string, SkillState> {
+  const out: Record<string, SkillState> = { ...sk };
+  for (const [oldId, newId] of Object.entries(LEGACY_SKILL)) {
+    if (out[oldId] && !(out[newId]?.attempts)) out[newId] = out[oldId];
+    delete out[oldId];
+  }
+  return out;
+}
+
 export function normalize(raw: unknown): EngineState {
   const base = emptyState();
   if (!raw || typeof raw !== "object") return base;
   const r = raw as Record<string, unknown>;
   if (r.v === 3 && r.skills) {
     const st = r as unknown as EngineState;
-    return { v: 3, skills: { ...base.skills, ...st.skills }, ratings: st.ratings ?? {}, items: st.items ?? {} };
+    return { v: 3, skills: { ...base.skills, ...migrateSkills(st.skills as Record<string, SkillState>) } as Record<SkillId, SkillState>, ratings: st.ratings ?? {}, items: st.items ?? {} };
   }
   if (r.v === 2 && r.skills) {
     // v2 ratings were deflated by miscalibrated time budgets — keep skill EMAs, restart ratings.

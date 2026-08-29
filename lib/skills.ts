@@ -9,9 +9,13 @@
  * skill counts as automatic.
  */
 export type SkillId =
+  | "ar.mul12"
   | "ar.mul20"
-  | "ar.sq"
-  | "ar.cube"
+  | "ar.mul25"
+  | "ar.sq12"
+  | "ar.sq25"
+  | "ar.cube10"
+  | "ar.cube15"
   | "fr.unit"
   | "fr.common"
   | "pv.zeros"
@@ -34,6 +38,8 @@ export type Family = "arithmetic" | "place-value" | "exponents" | "scientific" |
 export interface Skill {
   id: SkillId;
   family: Family;
+  /** Subsection within the unit (e.g. "Times tables"); skills in the same group are bands of one thing. */
+  group?: string;
   name: string;
   /**
    * Think-time budget in ms, before typing. The full per-item budget adds
@@ -49,31 +55,32 @@ export interface Skill {
 export const SKILLS: Skill[] = [
   // ── Arithmetic fluency ────────────────────────────────────────────────
   {
-    id: "ar.mul20",
-    family: "arithmetic",
-    name: "Times tables to 20",
-    ask: "product",
-    prereqs: [],
-    ccss: ["3.OA.C.7+"],
-    targetMs: 5000,
+    id: "ar.mul12", family: "arithmetic", group: "Times tables", name: "0–12",
+    ask: "product", prereqs: [], ccss: ["3.OA.C.7"], targetMs: 3000,
   },
   {
-    id: "ar.sq",
-    family: "arithmetic",
-    name: "Squares to 25",
-    ask: "value",
-    prereqs: [],
-    ccss: ["8.EE.A.2"],
-    targetMs: 4000,
+    id: "ar.mul20", family: "arithmetic", group: "Times tables", name: "13–20",
+    ask: "product", prereqs: ["ar.mul12"], ccss: ["3.OA.C.7+"], targetMs: 5000,
   },
   {
-    id: "ar.cube",
-    family: "arithmetic",
-    name: "Cubes to 15",
-    ask: "value",
-    prereqs: ["ar.sq"],
-    ccss: ["8.EE.A.2"],
-    targetMs: 5500,
+    id: "ar.mul25", family: "arithmetic", group: "Times tables", name: "21–25",
+    ask: "product", prereqs: ["ar.mul20"], ccss: ["3.OA.C.7+"], targetMs: 6000,
+  },
+  {
+    id: "ar.sq12", family: "arithmetic", group: "Squares", name: "0–12",
+    ask: "value", prereqs: [], ccss: ["8.EE.A.2"], targetMs: 3000,
+  },
+  {
+    id: "ar.sq25", family: "arithmetic", group: "Squares", name: "13–25",
+    ask: "value", prereqs: ["ar.sq12"], ccss: ["8.EE.A.2"], targetMs: 4500,
+  },
+  {
+    id: "ar.cube10", family: "arithmetic", group: "Cubes", name: "0–10",
+    ask: "value", prereqs: ["ar.sq12"], ccss: ["8.EE.A.2"], targetMs: 4000,
+  },
+  {
+    id: "ar.cube15", family: "arithmetic", group: "Cubes", name: "11–15",
+    ask: "value", prereqs: ["ar.cube10", "ar.sq25"], ccss: ["8.EE.A.2"], targetMs: 6000,
   },
 
   // ── Fractions → percents ──────────────────────────────────────────────
@@ -238,7 +245,7 @@ export const SKILL_BY_ID: Record<SkillId, Skill> = Object.fromEntries(
 ) as Record<SkillId, Skill>;
 
 export const FAMILY_LABEL: Record<Family, string> = {
-  arithmetic: "Arithmetic",
+  arithmetic: "Multiplicative arithmetic",
   "place-value": "Powers of ten",
   exponents: "Exponent arithmetic",
   scientific: "Scientific notation",
@@ -250,7 +257,7 @@ export const FAMILY_LABEL: Record<Family, string> = {
 
 /** One line per unit: the capability it builds. */
 export const FAMILY_BLURB: Record<Family, string> = {
-  arithmetic: "tables to 20×20, squares, cubes — the raw facts everything else leans on",
+  arithmetic: "times tables, squares, cubes — the raw facts everything else leans on",
   "place-value": "10ⁿ and its name, both directions, instantly",
   exponents: "the two moves inside every product: add exponents, multiply leading digits",
   scientific: "see any number as a × 10ⁿ",
@@ -262,3 +269,15 @@ export const FAMILY_BLURB: Record<Family, string> = {
 
 export const FAMILIES: Family[] = ["arithmetic", "fractions", "place-value", "exponents", "scientific", "operations", "magnitude", "percents"];
 export const skillsIn = (f: Family) => SKILLS.filter((s) => s.family === f);
+/** Subsections of a unit, in order, each with its band skills. */
+export const groupsIn = (f: Family): { group: string; skills: Skill[] }[] => {
+  const out: { group: string; skills: Skill[] }[] = [];
+  for (const s of skillsIn(f)) {
+    const g = s.group ?? s.name;
+    const e = out.find((x) => x.group === g);
+    if (e) e.skills.push(s); else out.push({ group: g, skills: [s] });
+  }
+  return out;
+};
+/** Old skill ids → new (state migration). */
+export const LEGACY_SKILL: Record<string, SkillId> = { "ar.sq": "ar.sq12", "ar.cube": "ar.cube10" };

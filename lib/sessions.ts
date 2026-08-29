@@ -1,6 +1,6 @@
 /** Timed-session log, grouped by local calendar day. */
 import { scopedKey } from "./user";
-import { FAMILY_LABEL, SKILL_BY_ID, skillsIn, type Family, type SkillId } from "./skills";
+import { FAMILY_LABEL, SKILL_BY_ID, groupsIn, skillsIn, type Family, type SkillId } from "./skills";
 
 export const SESSION_MS = 8 * 60 * 1000;
 export const FOCUS_MS = 2 * 60 * 1000;
@@ -25,7 +25,11 @@ export function saveDefaultMinutes(min: number): void {
 }
 export const mixedFor = (min: number): Plan => ({ ...MIXED, durationMs: min * 60000 });
 export const unitPlan = (f: Family): Plan => ({ id: `unit:${f}`, label: FAMILY_LABEL[f], durationMs: FOCUS_MS, pool: skillsIn(f).map((s) => s.id) });
-export const skillPlan = (id: SkillId): Plan => ({ id: `skill:${id}`, label: SKILL_BY_ID[id].name, durationMs: FOCUS_MS, pool: [id] });
+export const groupPlan = (f: Family, group: string): Plan => {
+  const g = groupsIn(f).find((x) => x.group === group);
+  return { id: `group:${f}:${group}`, label: group, durationMs: FOCUS_MS, pool: (g?.skills ?? []).map((s) => s.id) };
+};
+export const skillPlan = (id: SkillId): Plan => { const s = SKILL_BY_ID[id]; return { id: `skill:${id}`, label: s.group ? `${s.group} ${s.name}` : s.name, durationMs: FOCUS_MS, pool: [id] }; };
 
 export interface SessionRecord {
   plan?: string;       // Plan.id; absent = mixed (older records)

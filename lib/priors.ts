@@ -22,6 +22,7 @@ export function mulPrior(a: number, b: number): number {
     if (HARD_FACTS.has(`${x}x${y}`)) p += 0.6;
     return p;
   }
+  if (x <= 10 && y >= 21) return 0.6 + 0.1 * (y - 21) + 0.1 * x - (x === 2 || x === 5 ? 0.6 : 0);
   if (x <= 10) {
     // one factor 11–19, other ≤ 10
     let p = -0.6 + 0.15 * (y - 11) + 0.08 * x;

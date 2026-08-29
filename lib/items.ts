@@ -64,10 +64,19 @@ type Gen = (level: Level) => Omit<Item, "level">;
 
 const GENERATORS: Record<SkillId, Gen> = {
   // ── Arithmetic ─────────────────────────────────────────────────────────
-  // 13 × 17 → 221
+  // 7 × 8 → 56   (both factors ≤ 12; never ×1 / ×10)
+  "ar.mul12": (L) => {
+    let x: number, y: number;
+    do { x = by(L, ri(2, 6), ri(2, 9), ri(3, 12)); y = by(L, ri(2, 9), ri(2, 12), ri(6, 12)); } while (x === 10 || y === 10);
+    return {
+      skillId: "ar.mul12", key: `mul:${Math.min(x, y)}x${Math.max(x, y)}`, prior: P.mulPrior(x, y), prompt: `${x} × ${y}`, answerText: String(x * y),
+      why: `${x} × ${y} = ${x * y}`, inputMode: "numeric", placeholder: "product", check: (s) => intEq(s, x * y),
+    };
+  },
+  // 13 × 17 → 221   (at least one factor 13–20)
   "ar.mul20": (L) => {
     let a: number, b: number;
-    do { a = by(L, ri(11, 15), ri(11, 19), ri(11, 19)); b = by(L, ri(2, 9), ri(2, 12), ri(11, 19)); } while (b === 10 || a === 10);
+    do { a = by(L, ri(13, 15), ri(13, 20), ri(13, 20)); b = by(L, ri(2, 9), ri(2, 12), ri(13, 20)); } while (b === 10 || a === 20 && b === 10);
     const [x, y] = Math.random() < 0.5 ? [a, b] : [b, a];
     return {
       skillId: "ar.mul20", key: `mul:${Math.min(x, y)}x${Math.max(x, y)}`, prior: P.mulPrior(x, y), prompt: `${x} × ${y}`, answerText: String(x * y),
@@ -75,22 +84,48 @@ const GENERATORS: Record<SkillId, Gen> = {
       inputMode: "numeric", placeholder: "product", check: (s) => intEq(s, x * y),
     };
   },
-  // 17² → 289
-  "ar.sq": (L) => {
-    const n = by(L, ri(2, 12), ri(11, 20), ri(13, 25));
+  // 23 × 7 → 161   (at least one factor 21–25)
+  "ar.mul25": (L) => {
+    let a: number, b: number;
+    do { a = ri(21, 25); b = by(L, ri(2, 9), ri(2, 15), ri(11, 25)); } while (b === 10 || b === 20);
+    const [x, y] = Math.random() < 0.5 ? [a, b] : [b, a];
+    const big = Math.max(x, y), small = Math.min(x, y);
     return {
-      skillId: "ar.sq", key: `sq:${n}`, prior: P.squarePrior(n), prompt: `${n}²`, answerText: String(n * n),
-      why: n > 10 ? `(${n - 10}+10)² = ${(n - 10) ** 2} + ${20 * (n - 10)} + 100` : `${n} × ${n}`,
-      inputMode: "numeric", placeholder: "value", check: (s) => intEq(s, n * n),
+      skillId: "ar.mul25", key: `mul:${small}x${big}`, prior: P.mulPrior(x, y) + 0.4, prompt: `${x} × ${y}`, answerText: String(x * y),
+      why: `${big}×${small} = 20×${small} + ${big - 20}×${small} = ${20 * small} + ${(big - 20) * small}`,
+      inputMode: "numeric", placeholder: "product", check: (s) => intEq(s, x * y),
+    };
+  },
+  // 9² → 81
+  "ar.sq12": (L) => {
+    const n = by(L, ri(2, 6), ri(2, 9), ri(6, 12));
+    return {
+      skillId: "ar.sq12", key: `sq:${n}`, prior: P.squarePrior(n), prompt: `${n}²`, answerText: String(n * n),
+      why: `${n} × ${n}`, inputMode: "numeric", placeholder: "value", check: (s) => intEq(s, n * n),
+    };
+  },
+  // 17² → 289
+  "ar.sq25": (L) => {
+    const n = by(L, ri(13, 16), ri(13, 20), ri(16, 25));
+    return {
+      skillId: "ar.sq25", key: `sq:${n}`, prior: P.squarePrior(n), prompt: `${n}²`, answerText: String(n * n),
+      why: `(${n - 10}+10)² = ${(n - 10) ** 2} + ${20 * (n - 10)} + 100`, inputMode: "numeric", placeholder: "value", check: (s) => intEq(s, n * n),
     };
   },
   // 7³ → 343
-  "ar.cube": (L) => {
-    const n = by(L, ri(2, 6), ri(2, 10), ri(7, 15));
+  "ar.cube10": (L) => {
+    const n = by(L, ri(2, 5), ri(2, 8), ri(5, 10));
     return {
-      skillId: "ar.cube", key: `cube:${n}`, prior: P.cubePrior(n), prompt: `${n}³`, answerText: String(n ** 3),
-      why: `${n}² = ${n * n}, × ${n} = ${n ** 3}`,
-      inputMode: "numeric", placeholder: "value", check: (s) => intEq(s, n ** 3),
+      skillId: "ar.cube10", key: `cube:${n}`, prior: P.cubePrior(n), prompt: `${n}³`, answerText: String(n ** 3),
+      why: `${n}² = ${n * n}, × ${n} = ${n ** 3}`, inputMode: "numeric", placeholder: "value", check: (s) => intEq(s, n ** 3),
+    };
+  },
+  // 13³ → 2197
+  "ar.cube15": (L) => {
+    const n = by(L, ri(11, 12), ri(11, 14), ri(12, 15));
+    return {
+      skillId: "ar.cube15", key: `cube:${n}`, prior: P.cubePrior(n), prompt: `${n}³`, answerText: String(n ** 3),
+      why: `${n}² = ${n * n}, × ${n} = ${n ** 3}`, inputMode: "numeric", placeholder: "value", check: (s) => intEq(s, n ** 3),
     };
   },
 
