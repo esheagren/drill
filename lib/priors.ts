@@ -101,3 +101,15 @@ export const near100Prior = (a: number, b: number) => -0.2 + 0.3 * Math.abs(a - 
 export const divFactsPrior = (q: number, d: number) => -2.2 + 0.12 * (q + d) + (d === 2 || d === 5 || d === 10 ? -0.6 : 0) + (q === d ? -0.4 : 0);
 export const div1Prior = (q: number, d: number) => -0.4 + 0.1 * d + 0.02 * q + (q >= 30 ? 0.3 : 0) + (q % 10 >= 6 ? 0.2 : 0);
 export const remPrior = (n: number, d: number) => (d === 2 || d === 5 || d === 10 ? -1.5 : d === 3 || d === 9 ? -0.2 : d === 4 ? 0 : 0.6) + 0.15 * (String(n).length - 2);
+
+/** Fractions core and decimals. */
+export const simplifyPrior = (g: number, d: number) => -0.8 + 0.25 * (g > 5 ? 3 : g - 2) + 0.05 * d;
+export const comparePrior = (kind: number, close: boolean) => [-1.2, -0.6, -0.4, 0.6][kind] + (close ? 0.6 : 0);   // same-denom, same-num, unit, general
+export const fracOfPrior = (d: number, qty: number) => unitFractionPrior(d) * 0.5 + 0.2 + 0.2 * (String(qty).length - 2);
+export const fracAddPrior = (kind: number, sub: boolean) => [-0.8, 0.2, 0.9][kind] + (sub ? 0.3 : 0);   // like, related, unlike
+export const toDecPrior = (d: number) => ({ 2: -2.2, 4: -1.5, 5: -2, 10: -2.5, 8: -0.5, 3: -0.8, 6: 0, 20: -0.8, 16: 0.6, 25: -0.6, 9: 0.2, 7: 1.2, 12: 0.5, 15: 0.6 } as Record<number, number>)[d] ?? 1;
+export const fromDecPrior = (places: number, repeating: boolean) => -1.2 + 0.5 * places + (repeating ? 1.0 : 0);
+export const scalePrior = (n: number, div: boolean, decimal: boolean) => -1.8 + 0.3 * n + (div ? 0.3 : 0) + (decimal ? 0.4 : 0);
+export const decPctPrior = (toPct: boolean, places: number) => -1.5 + 0.4 * places + (toPct ? 0 : 0.2);
+export const roundPrior = (kind: number, size: number) => -1.5 + 0.3 * kind + 0.1 * size;   // kind: 10,100,1000,1dp,2dp
+export const decOpsPrior = (op: number, places: number) => [-0.8, -0.4, 0.2][op] + 0.4 * places;

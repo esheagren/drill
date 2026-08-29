@@ -118,3 +118,14 @@ export function parseSci(raw: string): { c: number; e: number } | null {
   if (v === null || v <= 0) return null;
   return toSci(v);
 }
+
+const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : Math.abs(a));
+/** Parse "a/b" (or a plain number as a/1). Returns reduced [n, d] or null. */
+export function parseFrac(raw: string): [number, number] | null {
+  const s = raw.trim().replace(/\s+/g, "");
+  const m = s.match(/^(-?\d+)\/(\d+)$/);
+  if (m) { const n = +m[1], d = +m[2]; if (!d) return null; const g = gcd(n, d) || 1; return [n / g, d / g]; }
+  const v = parseValue(s); if (v === null || !Number.isInteger(v)) return null; return [v, 1];
+}
+export const reduce = (n: number, d: number): [number, number] => { const g = gcd(n, d) || 1; return [n / g, d / g]; };
+export const fmtFrac = (n: number, d: number) => (d === 1 ? String(n) : `${n}/${d}`);

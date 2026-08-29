@@ -16,6 +16,7 @@ const ROWS = [
   ["4", "5", "6"],
   ["7", "8", "9"],
   [".", "0", "e"],
+  ["/"],
 ];
 
 export default function Keypad({ onKey, onBackspace, onSubmit, submitDisabled }: Props) {
@@ -27,7 +28,7 @@ export default function Keypad({ onKey, onBackspace, onSubmit, submitDisabled }:
       {ROWS.map((row, i) => (
         <div key={i} className="contents">
           {row.map((k) => (
-            <button key={k} type="button" className={key} onPointerDown={(e) => { e.preventDefault(); onKey(k); }}>
+            <button key={k} type="button" className={`${key} ${row.length === 1 ? "col-span-3" : ""}`} onPointerDown={(e) => { e.preventDefault(); onKey(k); }}>
               {k}
             </button>
           ))}
@@ -41,7 +42,7 @@ export default function Keypad({ onKey, onBackspace, onSubmit, submitDisabled }:
               type="button"
               aria-label="submit"
               disabled={submitDisabled}
-              className={`${base} row-span-3 bg-gray-900 text-white dark:bg-gray-100 dark:text-black disabled:opacity-20 h-auto`}
+              className={`${base} row-span-4 bg-gray-900 text-white dark:bg-gray-100 dark:text-black disabled:opacity-20 h-auto`}
               onPointerDown={(e) => { e.preventDefault(); onSubmit(); }}
             >
               ↵
