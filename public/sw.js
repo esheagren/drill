@@ -1,5 +1,5 @@
 // Network-first for pages, cache-first for immutable hashed assets.
-const CACHE_NAME = "magnitude-v2";
+const CACHE_NAME = "magnitude-v3";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(["/manifest.json"])));

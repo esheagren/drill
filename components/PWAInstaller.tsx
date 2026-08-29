@@ -9,6 +9,26 @@ import { useEffect } from "react";
  *    is running, otherwise deferred until the session ends (see Trainer).
  */
 export function PWAInstaller() {
+  // Deploy skew: HTML from a new build can briefly reference a chunk the edge hasn't
+  // served yet (or the SW cached a stale one). Clear caches and reload once.
+  useEffect(() => {
+    const KEY = "drill:chunk-retry";
+    const heal = async (msg: string) => {
+      if (!/ChunkLoadError|Loading chunk|Failed to fetch dynamically imported module/.test(msg)) return;
+      try { if (sessionStorage.getItem(KEY)) return; sessionStorage.setItem(KEY, String(Date.now())); } catch { /* ignore */ }
+      try { if ("caches" in window) for (const k of await caches.keys()) await caches.delete(k); } catch { /* ignore */ }
+      window.location.reload();
+    };
+    const onError = (e: ErrorEvent) => void heal(String(e.message || e.error?.message || ""));
+    const onRejection = (e: PromiseRejectionEvent) => void heal(String(e.reason?.message || e.reason || ""));
+    window.addEventListener("error", onError);
+    window.addEventListener("unhandledrejection", onRejection);
+    // A successful load clears the guard so a *later* skew can heal again.
+    const clear = () => { try { sessionStorage.removeItem(KEY); } catch { /* ignore */ } };
+    const t = setTimeout(clear, 15000);
+    return () => { window.removeEventListener("error", onError); window.removeEventListener("unhandledrejection", onRejection); clearTimeout(t); };
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
