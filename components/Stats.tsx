@@ -246,7 +246,7 @@ function ItemMap({ group, skills }: { group: string; skills: Skill[] }) {
             {spec.rows.map((_, i) => cell(i, 0, size))}
           </div>
         ) : (
-          <div className="grid gap-[2px]" style={{ gridTemplateColumns: `${labelW}px repeat(${cols.length}, ${dense ? size : "minmax(" + size + "px, max-content)"})` }}>
+          <div className="grid gap-[2px]" style={{ gridTemplateColumns: `${labelW}px repeat(${cols.length}, ${dense ? `${size}px` : `minmax(${size}px, max-content)`})` }}>
             <div className="text-[9px] text-gray-400 self-end">{spec.rowTitle ?? ""}</div>
             {cols.map((l, j) => <div key={`h${j}`} className="text-[9px] text-gray-400 text-center tabular-nums self-end px-1" style={{ minHeight: size }}>{l}</div>)}
             {spec.rows.map((rl, r) => [
