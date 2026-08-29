@@ -25,8 +25,8 @@ export default function Trainer() {
   const [overlay, setOverlay] = useState<View | null>(null);
   const showMap = overlay !== null;
   const showUnits = false; // folded into the single overlay
-  const setShowMap = (v: boolean) => setOverlay(v ? { kind: "practice" } : null);
-  const setShowUnits = (v: boolean) => setOverlay(v ? { kind: "practice" } : null);
+  const setShowMap = (v: boolean) => setOverlay(v ? { kind: "history" } : null);
+  const setShowUnits = (v: boolean) => setOverlay(v ? { kind: "skills", unit: "arithmetic" } : null);
   const [profile, setProfile] = useState<Profile | null>(null);   // null = not loaded yet
   const [plan, setPlan] = useState<Plan>(MIXED);
   const planRef = useRef<Plan>(MIXED);
@@ -230,12 +230,12 @@ export default function Trainer() {
             ))}
           </div>
           <div className="flex justify-between text-sm text-gray-500 px-1">
-            <button onClick={() => setShowUnits(true)} className="h-12">practice a unit</button>
+            <button onClick={() => setShowUnits(true)} className="h-12">skills</button>
             {plan.id !== "mixed" && <button onClick={() => restart(MIXED)} className="h-12">back to mixed</button>}
             <button onClick={() => setShowMap(true)} className="h-12">history</button>
           </div>
         </div>
-        {overlay && <Stats state={state} profile={profile} onProfile={setProfile} onClose={() => setOverlay(null)} onPick={pick} initial={overlay ?? undefined} mixedMinutes={loadDefaultMinutes()} />}
+        {overlay && <Stats state={state} profile={profile} onProfile={setProfile} onClose={() => setOverlay(null)} onPick={pick} initial={overlay ?? undefined} />}
       </div>
     );
   }
@@ -314,7 +314,7 @@ export default function Trainer() {
           </div>
         </Sheet>
       )}
-      {overlay && <Stats state={state} profile={profile} onProfile={setProfile} onClose={() => setOverlay(null)} onPick={pick} initial={overlay ?? undefined} mixedMinutes={loadDefaultMinutes()} />}
+      {overlay && <Stats state={state} profile={profile} onProfile={setProfile} onClose={() => setOverlay(null)} onPick={pick} initial={overlay ?? undefined} />}
     </div>
   );
 }
