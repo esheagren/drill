@@ -329,6 +329,76 @@ const GENERATORS: Record<SkillId, Gen> = {
       inputMode: "decimal", placeholder: "value", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) / ans < 0.005; },
     };
   },
+  // ── Percents: change, reverse, chains ──────────────────────────────────
+  // 250,000 up 40% → 350,000
+  "pct.apply": (L) => {
+    const p = pick(by(L, [10, 20, 25, 50], [5, 10, 15, 20, 25, 30, 40, 50, 75], [5, 12, 15, 18, 30, 35, 40, 60, 70, 80, 90]));
+    const base = pick(by(L, [ri(2, 9) * 100, ri(2, 9) * 1000], [ri(11, 99) * 100, ri(2, 9) * 10000, ri(12, 99) * 1000], [ri(11, 99) * 10000, ri(12, 98) * 100000, ri(2, 9) * 1000000]));
+    const down = Math.random() < 0.45;
+    const ans = base * (1 + (down ? -p : p) / 100);
+    return {
+      skillId: "pct.apply", key: `pctap:${down ? "down" : "up"}${p}%${base}`, prior: P.pctApplyPrior(p, base),
+      prompt: `${fmtDigits(base)} ${down ? "down" : "up"} ${p}%`, sub: "new amount · within ½%",
+      answerText: fmtDigits(ans), why: `${p}% of ${fmtDigits(base)} = ${fmtDigits((p / 100) * base)}; ${down ? "subtract" : "add"}`,
+      inputMode: "text", placeholder: "3.5e5 or 350000", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) / ans <= 0.005; },
+    };
+  },
+  // 80 → 100: up what %? → 25
+  "pct.find": (L) => {
+    const p = pick(by(L, [10, 20, 25, 50, 100], [5, 10, 15, 20, 25, 30, 40, 50, 75, 100], [5, 12, 15, 30, 35, 40, 60, 80, 90, 150, 200]));
+    const down = Math.random() < 0.45 && p < 100;
+    const base = pick(by(L, [20, 40, 50, 80, 100, 200, 400, 500], [60, 80, 120, 150, 200, 250, 300, 400, 800, 1200], [120, 160, 240, 250, 350, 640, 750, 1500, 2400, 3500]));
+    const next = Math.round(base * (1 + (down ? -p : p) / 100) * 100) / 100;
+    return {
+      skillId: "pct.find", key: `pctf:${down ? "down" : "up"}${p}%${base}`, prior: P.pctFindPrior(p, down),
+      prompt: `${fmtDigits(base)} → ${fmtDigits(next)}`, sub: `${down ? "down" : "up"} what percent? · within ½ point`,
+      answerText: `${p}%`, why: `change ${fmtDigits(Math.abs(next - base))} ÷ original ${fmtDigits(base)}`,
+      inputMode: "decimal", placeholder: "%", check: (s) => { const v = parseValue(s.replace(/%/g, "")); return v !== null && Math.abs(v - p) <= 0.5; },
+    };
+  },
+  // 30 of 50 → 60%
+  "pct.what": (L) => {
+    const whole = pick(by(L, [20, 25, 40, 50, 100, 200], [25, 40, 50, 80, 200, 250, 400, 500], [60, 75, 120, 150, 250, 300, 400, 600, 750, 1200, 2500]));
+    let p: number;
+    do { p = pick(by(L, [10, 20, 25, 50, 75], [4, 5, 8, 10, 15, 20, 25, 30, 40, 60, 75, 80], [2, 4, 6, 8, 12, 15, 18, 30, 35, 45, 55, 65, 85, 95])); } while ((whole * p) % 100 !== 0);
+    const part = (whole * p) / 100;
+    return {
+      skillId: "pct.what", key: `pctw:${part}of${whole}`, prior: P.pctWhatPrior(p, whole),
+      prompt: `${fmtDigits(part)} of ${fmtDigits(whole)}`, sub: "as a percent · within ½ point",
+      answerText: `${p}%`, why: `${fmtDigits(part)} ÷ ${fmtDigits(whole)}; 1% of ${fmtDigits(whole)} is ${whole / 100}`,
+      inputMode: "decimal", placeholder: "%", check: (s) => { const v = parseValue(s.replace(/%/g, "")); return v !== null && Math.abs(v - p) <= 0.5; },
+    };
+  },
+  // After 20% off, 160. Original? → 200   ·   30 is 15% of what? → 200
+  "pct.reverse": (L) => {
+    const off = Math.random() < 0.5;
+    const p = pick(by(L, [10, 20, 25, 50], [5, 10, 15, 20, 25, 30, 40, 50, 75], [5, 12, 15, 30, 35, 40, 60, 70, 80, 90]));
+    const whole = pick(by(L, [20, 40, 50, 80, 100, 200, 400, 500], [60, 80, 120, 150, 200, 250, 300, 400, 800, 1200, 2000], [160, 240, 250, 350, 640, 750, 1500, 2400, 3500, 12000]));
+    const given = off ? whole * (1 - p / 100) : (whole * p) / 100;
+    return {
+      skillId: "pct.reverse", key: `pctr:${off ? "off" : "is"}${p}%${whole}`, prior: P.pctReversePrior(p, off),
+      prompt: off ? `after ${p}% off: ${fmtDigits(given)}` : `${fmtDigits(given)} is ${p}% of…`, sub: off ? "original price · within ½%" : "the whole · within ½%",
+      answerText: fmtDigits(whole), why: off ? `${fmtDigits(given)} is ${100 - p}% → ÷ ${(100 - p) / 100}` : `${fmtDigits(given)} ÷ ${p / 100}`,
+      inputMode: "text", placeholder: "value", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - whole) / whole <= 0.005; },
+    };
+  },
+  // 250 up 40%, then down 25% → 262.5   ·   40% off, then 8% tax on 250 → 162
+  "pct.chain": (L) => {
+    const base = pick(by(L, [100, 200, 400, 500, 1000], [80, 120, 150, 200, 250, 300, 400, 600, 800], [240, 350, 450, 640, 750, 1200, 1500, 2500, 12000]));
+    const ps = by(L, [10, 20, 25, 50], [5, 10, 15, 20, 25, 30, 40, 50], [5, 8, 12, 15, 20, 30, 35, 40, 60]);
+    const tax = Math.random() < 0.35;
+    const p1 = pick(ps), p2 = tax ? pick([5, 8, 10]) : pick(ps);
+    const d1 = tax ? true : Math.random() < 0.5, d2 = tax ? false : Math.random() < 0.5;
+    const ans = base * (1 + (d1 ? -p1 : p1) / 100) * (1 + (d2 ? -p2 : p2) / 100);
+    const step = (d: boolean, p: number) => (tax && !d ? `${p}% tax` : `${d ? "down" : "up"} ${p}%`);
+    const prompt = tax ? `${fmtDigits(base)}: ${p1}% off, then ${p2}% tax` : `${fmtDigits(base)} ${step(d1, p1)}, then ${step(d2, p2)}`;
+    return {
+      skillId: "pct.chain", key: `pctch:${d1 ? "down" : "up"}${p1},${d2 ? "down" : "up"}${p2}%${base}`, prior: P.pctChainPrior(p1, p2, base),
+      prompt, sub: "final amount · within ½%",
+      answerText: (Math.round(ans * 100) / 100).toLocaleString("en-US", { maximumFractionDigits: 2 }), why: `× ${(1 + (d1 ? -p1 : p1) / 100).toFixed(2)} × ${(1 + (d2 ? -p2 : p2) / 100).toFixed(2)} = × ${((1 + (d1 ? -p1 : p1) / 100) * (1 + (d2 ? -p2 : p2) / 100)).toFixed(3)}`,
+      inputMode: "text", placeholder: "value", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) / ans <= 0.005; },
+    };
+  },
 };
 
 /** Characters the learner has to type for the canonical answer (drives the typing-time budget). */

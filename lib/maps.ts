@@ -36,7 +36,37 @@ const SCALE_WORDS = SCALES.map((s) => s.word);
 const scalePairs = (() => { const out: string[] = []; for (const a of SCALE_WORDS) for (const b of SCALE_WORDS) out.push(`${a} × ${b}`); return out; })();
 const scaleDivPairs = (() => { const out: string[] = []; for (const a of SCALE_WORDS) for (const b of SCALE_WORDS) if (SCALES.find(s=>s.word===a)!.exp > SCALES.find(s=>s.word===b)!.exp) out.push(`${a} ÷ ${b}`); return out; })();
 
+const PCT_CLASSES = ["10 / 50 %", "20 / 25 / 75 %", "other …5 %", "odd %"];
+const pctClass = (p: number) => (p === 10 || p === 50 ? 0 : p === 20 || p === 25 || p === 75 ? 1 : p % 5 === 0 ? 2 : 3);
+const sizeCol = (n: string, lo = 2, hi = 7) => Math.min(hi - lo, Math.max(0, n.length - lo));
+const SIZE_COLS = ["2-digit", "3-digit", "4-digit", "5-digit", "6-digit", "7-digit"];
+
 export const MAPS: Record<string, MapSpec> = {
+  "Apply a change": {
+    prefix: "pctap:", rows: PCT_CLASSES, cols: SIZE_COLS, typed: 6, rowTitle: "percent", colTitle: "base size",
+    parse: (k) => { const m = k.match(/^pctap:(up|down)(\d+)%(\d+)$/); if (!m) return null; return [pctClass(+m[2]), sizeCol(m[3])]; },
+    label: (r, c) => `${PCT_CLASSES[r]} change on a ${SIZE_COLS[c]} base`,
+  },
+  "Find the change": {
+    prefix: "pctf:", rows: PCT_CLASSES, cols: ["up", "down"], typed: 2, rowTitle: "percent",
+    parse: (k) => { const m = k.match(/^pctf:(up|down)(\d+)%/); if (!m) return null; return [pctClass(+m[2]), m[1] === "down" ? 1 : 0]; },
+    label: (r, c) => `${PCT_CLASSES[r]}, ${c ? "decrease" : "increase"}`,
+  },
+  "What percent": {
+    prefix: "pctw:", rows: PCT_CLASSES, cols: SIZE_COLS.slice(0, 3), typed: 2, rowTitle: "percent", colTitle: "whole size",
+    parse: (k) => { const m = k.match(/^pctw:([\d.]+)of(\d+)$/); if (!m) return null; const p = Math.round((100 * +m[1]) / +m[2]); return [pctClass(p), Math.min(2, sizeCol(m[2]))]; },
+    label: (r, c) => `${PCT_CLASSES[r]} of a ${SIZE_COLS[c]} whole`,
+  },
+  "Reverse percent": {
+    prefix: "pctr:", rows: PCT_CLASSES, cols: ["x is p% of what", "after p% off"], typed: 4, rowTitle: "percent",
+    parse: (k) => { const m = k.match(/^pctr:(off|is)(\d+)%/); if (!m) return null; return [pctClass(+m[2]), m[1] === "off" ? 1 : 0]; },
+    label: (r, c) => `${PCT_CLASSES[r]}, ${c ? "after p% off" : "x is p% of what"}`,
+  },
+  "Chained changes": {
+    prefix: "pctch:", rows: PCT_CLASSES, cols: PCT_CLASSES, typed: 5, rowTitle: "first change", colTitle: "second change",
+    parse: (k) => { const m = k.match(/^pctch:(?:up|down)(\d+),(?:up|down)(\d+)%/); if (!m) return null; return [pctClass(+m[1]), pctClass(+m[2])]; },
+    label: (r, c) => `${PCT_CLASSES[r]} then ${PCT_CLASSES[c]}`,
+  },
   // ── Multiplicative arithmetic ──
   "Times tables": {
     prefix: "mul:", rows: range(2, 25), cols: range(2, 25), typed: 3,
