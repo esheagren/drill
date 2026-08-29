@@ -120,3 +120,27 @@ Prerequisite edges (the ones the inference uses; others are obvious within a lev
 - Hong Kong EDB, *Supplement to Mathematics Education KLA Curriculum Guide: Learning Content of Primary Mathematics* (2017): https://www.edb.gov.hk/attachment/en/curriculum-development/kla/ma/curr/pmc2017_e.pdf
 - Common Core State Standards for Mathematics: https://www.thecorestandards.org/Math/
 - Doignon & Falmagne, *Knowledge Spaces* (1999); ALEKS assessment method.
+
+## 5. Scope revision — an app for adults (2026-08-29)
+
+Drill is for adults. The eight-level ladder stays as the *map* the placement reasons over, but the product concentrates on the upper half; the lower half is an **on-ramp** that exists to be checked, not drilled.
+
+**On-ramp** (L0–L3 compressed to ~6 check skills): ± within 100 with compensation · tables 0–12 · division facts · ×÷ by 10ⁿ · rounding · reading numbers to trillions. Never in the default mix; it is where silent probes go first. Cleared in ~10 probes over the first two sessions for most adults, after which it fades and only resurfaces if a later miss implicates it (a slow 13×17 that looks like a 7×3 problem). A genuine gap gets a short refresh loop, then fades again.
+
+**Core** (the adult working set):
+- *Multiplicative arithmetic*: tables to 25, squares, cubes, 2-digit × 1-digit, ×5 / ×25 / ×11, doubling–halving, near-100 products, division with remainder
+- *Fractions*: unit fractions ↔ %, n/d ↔ %, equivalence and simplest form, compare, fraction of a quantity, fraction × whole
+- *Percents*: anchors, compose, percent change, reverse percent, "what % is", percent points, discount / tax / interest
+- *Decimals & scaling*: ×÷ by 10ⁿ on any number, decimal ↔ fraction ↔ %, rounding to sensible precision
+- *Scientific notation*, *Operating in sci* (as built)
+- *Magnitude*: as built, plus log₁₀ as order of magnitude, rule of 72 / doubling times, compound growth ≈
+
+**Combinations** — the top unit and the point of the app. Multi-step items that chain two or three core skills the way numbers arrive in real life, each tagged with the skills it uses so a miss updates the components:
+- 15% of 2.4 million (anchor → scale) · 3/8 of 640 000 (fraction of quantity → magnitude)
+- 250k up 40% then down 25% (successive change) · 6.8×10⁷ people ÷ 3.4×10⁵ doctors (sci division → words)
+- which is bigger, 3.2 billion or 4.5×10⁸ (sci ↔ words) · 1/12 of 3 billion in sci (fraction → sci)
+- 7% growth — years to double (rule of 72) · 40% off then 8% tax (chained percents)
+
+**Placement under this scope**: ~35 nodes instead of ~60; on-ramp resolved by inference in a session or two; probes then spend their budget on the core / combination fringe.
+
+**Build order**: (1) encode the revised structure · (2) Percents — the biggest adult gap and the shortest path to combinations · (3) multi-digit strategies + division · (4) fractions core + decimals/scaling · (5) Combinations · (6) belief engine · on-ramp generators last (probe targets only).
