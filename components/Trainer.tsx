@@ -255,7 +255,7 @@ export default function Trainer() {
           {mm}:{String(ss).padStart(2, "0")}
         </button>
         <button onClick={() => setShowMap(true)} aria-label="Menu" className="justify-self-end -mr-3 px-3 py-2 tabular-nums hover:text-gray-900 dark:hover:text-gray-100">
-          {countRef.current.n} · ▦
+          ▦
         </button>
       </header>
 
