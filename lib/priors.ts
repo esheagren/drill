@@ -113,3 +113,13 @@ export const scalePrior = (n: number, div: boolean, decimal: boolean) => -1.8 + 
 export const decPctPrior = (toPct: boolean, places: number) => -1.5 + 0.4 * places + (toPct ? 0 : 0.2);
 export const roundPrior = (kind: number, size: number) => -1.5 + 0.3 * kind + 0.1 * size;   // kind: 10,100,1000,1dp,2dp
 export const decOpsPrior = (op: number, places: number) => [-0.8, -0.4, 0.2][op] + 0.4 * places;
+
+/** Combinations. */
+export const pctBigPrior = (p: number, scaleIdx: number, decimalHead: boolean) => PCT_CLASS_PRIOR[pctClass(p)] + 0.9 + 0.15 * scaleIdx + (decimalHead ? 0.4 : 0);
+export const fracSciPrior = (d: number, needsNormalize: boolean) => unitFractionPrior(d) * 0.5 + 1.0 + (needsNormalize ? 0.6 : 0);
+export const chainBigPrior = (p1: number, p2: number) => PCT_CLASS_PRIOR[pctClass(p1)] * 0.5 + PCT_CLASS_PRIOR[pctClass(p2)] * 0.5 + 1.6;
+export const perCapPrior = (q: number, e: number) => 0.8 + (q >= 10 ? 0.4 : 0) + (Number.isInteger(q) ? 0 : 0.5) + 0.05 * e;
+export const comparePairPrior = (closeness: number, mixedForm: boolean) => 0.2 + 1.2 * closeness + (mixedForm ? 0.4 : 0);   // closeness 0..1 (ratio near 1 = hard)
+export const doublingTimePrior = (r: number) => (r === 6 || r === 8 || r === 9 || r === 12 ? -0.4 : r === 7 || r === 10 ? 0 : 0.5);
+export const growthPrior = (r: number, years: number) => 0.6 + 0.3 * (years - 2) + (r % 10 === 0 ? 0 : 0.4);
+export const unitPricePrior = (clean: boolean, decimalQty: boolean) => -0.2 + (clean ? 0 : 0.8) + (decimalQty ? 0.5 : 0);
