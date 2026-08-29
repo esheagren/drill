@@ -30,6 +30,11 @@ export function getUserToken(): string {
   }
 }
 
+/** Adopt another identity (pairing). Caller reloads so all state re-hydrates from the server. */
+export function setUserToken(token: string): void {
+  try { localStorage.setItem(TOKEN_KEY, token); } catch { /* ignore */ }
+}
+
 export function scopedKey(suffix: string): string {
   return `magnitude:${getUserToken()}:${suffix}`;
 }

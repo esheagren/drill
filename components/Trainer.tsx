@@ -160,6 +160,7 @@ export default function Trainer() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (showMap || showUnits || phase === "done") return;
+      if ((e.target as HTMLElement)?.tagName === "INPUT") return;
       if (/^[0-9.e]$/.test(e.key)) { e.preventDefault(); press(e.key); }
       else if (e.key === "Backspace") { e.preventDefault(); backspace(); }
       else if (e.key === "Enter") { e.preventDefault(); enter(); }

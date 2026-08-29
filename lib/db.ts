@@ -43,6 +43,12 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE INDEX IF NOT EXISTS sessions_user_ts ON sessions (user_token, started_at);
 
+CREATE TABLE IF NOT EXISTS pair_codes (
+  code        text PRIMARY KEY,
+  user_token  text        NOT NULL,
+  expires_at  timestamptz NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS user_state (
   user_token  text PRIMARY KEY,
   engine      jsonb       NOT NULL,
