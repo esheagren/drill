@@ -133,7 +133,7 @@ export default function Trainer() {
     const res = record(state, item, ok, latency);
     const next = res.state;
     saveState(next);
-    const entry = { skillId: item.skillId, itemKey: item.key, prompt: item.prompt, answer: value, correct: ok, latencyMs: latency, ts: Date.now(), review: isReviewRef.current, score: res.score, expected: res.expected, theta: res.theta, beta: res.beta };
+    const entry = { skillId: item.skillId, itemKey: item.key, prompt: item.prompt, answer: value, correct: ok, latencyMs: latency, ts: Date.now(), review: isReviewRef.current, ignored: res.ignored, score: res.score, expected: res.expected, theta: res.theta, beta: res.beta };
     if (!ok) reviewRef.current.push({ item, due: countRef.current.n + 1 + REVIEW_GAP }); // comes back after REVIEW_GAP others
     appendLog(entry);
     queueAttempt(entry);

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 
-interface In { skillId: string; prompt: string; answer: string; correct: boolean; latencyMs: number; ts: number; clientId: string; level?: number; review?: boolean; itemKey?: string; score?: number; expected?: number; theta?: number; beta?: number }
+interface In { skillId: string; prompt: string; answer: string; correct: boolean; latencyMs: number; ts: number; clientId: string; level?: number; review?: boolean; itemKey?: string; score?: number; expected?: number; theta?: number; beta?: number; ignored?: boolean }
 
 /** POST { user: string, attempts: In[] } — idempotent on (user, clientId). */
 export async function POST(req: Request) {
@@ -12,8 +12,8 @@ export async function POST(req: Request) {
 
   const q = sql();
   await q.query(
-    `INSERT INTO attempts (user_token, skill_id, prompt, answer, correct, latency_ms, ts, client_id, level, review, item_key, score, expected, theta, beta)
-     SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::text[], $5::bool[], $6::int[], $7::timestamptz[], $8::text[], $9::smallint[], $10::bool[], $11::text[], $12::real[], $13::real[], $14::real[], $15::real[])
+    `INSERT INTO attempts (user_token, skill_id, prompt, answer, correct, latency_ms, ts, client_id, level, review, item_key, score, expected, theta, beta, ignored)
+     SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::text[], $5::bool[], $6::int[], $7::timestamptz[], $8::text[], $9::smallint[], $10::bool[], $11::text[], $12::real[], $13::real[], $14::real[], $15::real[], $16::bool[])
      ON CONFLICT (user_token, client_id) DO NOTHING`,
     [
       rows.map(() => user),
@@ -31,6 +31,7 @@ export async function POST(req: Request) {
       rows.map((r) => (typeof r.expected === "number" ? r.expected : null)),
       rows.map((r) => (typeof r.theta === "number" ? r.theta : null)),
       rows.map((r) => (typeof r.beta === "number" ? r.beta : null)),
+      rows.map((r) => !!r.ignored),
     ],
   );
   return NextResponse.json({ ok: true, n: rows.length });

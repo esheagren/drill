@@ -66,8 +66,8 @@ const GENERATORS: Record<SkillId, Gen> = {
   // ── Arithmetic ─────────────────────────────────────────────────────────
   // 13 × 17 → 221
   "ar.mul20": (L) => {
-    const a = by(L, ri(11, 15), ri(11, 20), ri(11, 20));
-    const b = by(L, ri(2, 9), ri(2, 12), ri(11, 20));
+    let a: number, b: number;
+    do { a = by(L, ri(11, 15), ri(11, 19), ri(11, 19)); b = by(L, ri(2, 9), ri(2, 12), ri(11, 19)); } while (b === 10 || a === 10);
     const [x, y] = Math.random() < 0.5 ? [a, b] : [b, a];
     return {
       skillId: "ar.mul20", key: `mul:${Math.min(x, y)}x${Math.max(x, y)}`, prior: P.mulPrior(x, y), prompt: `${x} × ${y}`, answerText: String(x * y),
@@ -107,8 +107,8 @@ const GENERATORS: Record<SkillId, Gen> = {
   },
   // 5/12 → 41.7
   "fr.common": (L) => {
-    const d = pick(by(L, [2, 4, 5, 10], [3, 4, 5, 6, 8, 10, 12], [7, 8, 9, 12, 15, 16, 20]));
-    const n = ri(2, d - 1);
+    const d = pick(by(L, [4, 5, 8, 10], [3, 4, 5, 6, 8, 10, 12], [7, 8, 9, 12, 15, 16, 20]));
+    const n = ri(2, d - 1); // d ≥ 3 guarantees 2 ≤ n < d
     const p = (100 * n) / d;
     return {
       skillId: "fr.common", key: `fr:${n}/${d}`, prior: P.fractionPrior(n, d), prompt: `${n}/${d}`, sub: `as a percent · within ${PCT_TOL}`,
@@ -149,7 +149,7 @@ const GENERATORS: Record<SkillId, Gen> = {
   },
   "exp.sub": (L) => {
     const b = by(L, ri(1, 4), ri(1, 9), ri(3, 9));
-    const a = b + by(L, ri(0, 4), ri(0, 6), ri(1, 9));
+    const a = b + by(L, ri(1, 4), ri(1, 6), ri(1, 9));
     return {
       skillId: "exp.sub", key: `esub:${a}-${b}`, prior: P.expSubPrior(a, b), prompt: `10^${a} ÷ 10^${b}`, sub: "= 10 ^ ?", answerText: `10^${a - b}`,
       why: `${a} − ${b} = ${a - b}`, inputMode: "numeric", placeholder: "exponent", check: (s) => intEq(s, a - b),
@@ -295,6 +295,12 @@ const GENERATORS: Record<SkillId, Gen> = {
     };
   },
 };
+
+/** Characters the learner has to type for the canonical answer (drives the typing-time budget). */
+export function typedLength(item: Item): number {
+  const primary = item.answerText.replace(/^≈\s*/, "").split("  (")[0].trim();
+  return primary.replace(/\s*×\s*10\^/g, "e").replace(/^10\^/, "").replace(/[%,\s]/g, "").length;
+}
 
 export function generateItem(skillId: SkillId, level: Level = 1): Item {
   return { ...GENERATORS[skillId](level), level };

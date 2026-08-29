@@ -35,7 +35,11 @@ export interface Skill {
   id: SkillId;
   family: Family;
   name: string;
-  /** One line shown under the prompt so the learner knows what is being asked. */
+  /**
+   * Think-time budget in ms, before typing. The full per-item budget adds
+   * typing time for the answer's length (see engine.budgetFor). Bases were
+   * re-derived 2026-08-29 from observed response times (~2× the originals).
+   */
   ask: string;
   prereqs: SkillId[];
   ccss: string[];
@@ -51,7 +55,7 @@ export const SKILLS: Skill[] = [
     ask: "product",
     prereqs: [],
     ccss: ["3.OA.C.7+"],
-    targetMs: 3000,
+    targetMs: 5000,
   },
   {
     id: "ar.sq",
@@ -60,7 +64,7 @@ export const SKILLS: Skill[] = [
     ask: "value",
     prereqs: [],
     ccss: ["8.EE.A.2"],
-    targetMs: 2500,
+    targetMs: 4000,
   },
   {
     id: "ar.cube",
@@ -69,7 +73,7 @@ export const SKILLS: Skill[] = [
     ask: "value",
     prereqs: ["ar.sq"],
     ccss: ["8.EE.A.2"],
-    targetMs: 3500,
+    targetMs: 5500,
   },
 
   // ── Fractions → percents ──────────────────────────────────────────────
@@ -80,7 +84,7 @@ export const SKILLS: Skill[] = [
     ask: "as a percent",
     prereqs: [],
     ccss: ["7.NS.A.2d", "6.RP.A.3c"],
-    targetMs: 3000,
+    targetMs: 5000,
   },
   {
     id: "fr.common",
@@ -89,7 +93,7 @@ export const SKILLS: Skill[] = [
     ask: "as a percent",
     prereqs: ["fr.unit"],
     ccss: ["7.NS.A.2d", "6.RP.A.3c"],
-    targetMs: 5000,
+    targetMs: 8000,
   },
 
   // ── Place value & powers of ten ────────────────────────────────────────
@@ -100,7 +104,7 @@ export const SKILLS: Skill[] = [
     ask: "power of ten",
     prereqs: [],
     ccss: ["5.NBT.A.2"],
-    targetMs: 2500,
+    targetMs: 4000,
   },
   {
     id: "pv.word-exp",
@@ -109,7 +113,7 @@ export const SKILLS: Skill[] = [
     ask: "exponent",
     prereqs: [],
     ccss: ["4.NBT.A.2", "5.NBT.A.2"],
-    targetMs: 2000,
+    targetMs: 3500,
   },
 
   // ── Integer exponents ──────────────────────────────────────────────────
@@ -120,7 +124,7 @@ export const SKILLS: Skill[] = [
     ask: "exponent of the product",
     prereqs: [],
     ccss: ["8.EE.A.1"],
-    targetMs: 2500,
+    targetMs: 4000,
   },
   {
     id: "exp.sub",
@@ -129,7 +133,7 @@ export const SKILLS: Skill[] = [
     ask: "exponent of the quotient",
     prereqs: [],
     ccss: ["8.EE.A.1"],
-    targetMs: 2500,
+    targetMs: 4000,
   },
   {
     id: "coef.mul",
@@ -138,7 +142,7 @@ export const SKILLS: Skill[] = [
     ask: "product",
     prereqs: [],
     ccss: ["3.OA.C.7"],
-    targetMs: 2000,
+    targetMs: 3000,
   },
 
   // ── Scientific notation ───────────────────────────────────────────────
@@ -149,7 +153,7 @@ export const SKILLS: Skill[] = [
     ask: "as a × 10^b",
     prereqs: ["pv.zeros"],
     ccss: ["8.EE.A.3"],
-    targetMs: 4000,
+    targetMs: 6000,
   },
   {
     id: "sn.words",
@@ -158,7 +162,7 @@ export const SKILLS: Skill[] = [
     ask: "as a × 10^b",
     prereqs: ["pv.word-exp", "sn.digits"],
     ccss: ["8.EE.A.3"],
-    targetMs: 4000,
+    targetMs: 6000,
   },
   {
     id: "sn.norm",
@@ -167,7 +171,7 @@ export const SKILLS: Skill[] = [
     ask: "as a × 10^b with 1 ≤ a < 10",
     prereqs: ["sn.digits", "exp.add"],
     ccss: ["8.EE.A.4"],
-    targetMs: 4000,
+    targetMs: 7000,
   },
   {
     id: "sn.mul",
@@ -176,7 +180,7 @@ export const SKILLS: Skill[] = [
     ask: "as a × 10^b",
     prereqs: ["coef.mul", "exp.add", "sn.norm"],
     ccss: ["8.EE.A.4"],
-    targetMs: 6000,
+    targetMs: 10000,
   },
   {
     id: "sn.div",
@@ -185,7 +189,7 @@ export const SKILLS: Skill[] = [
     ask: "as a × 10^b",
     prereqs: ["exp.sub", "sn.norm"],
     ccss: ["8.EE.A.4"],
-    targetMs: 6000,
+    targetMs: 10000,
   },
 
   // ── Magnitude estimation (the payoff) ─────────────────────────────────
@@ -196,7 +200,7 @@ export const SKILLS: Skill[] = [
     ask: "roughly, e-notation",
     prereqs: ["sn.words", "sn.mul"],
     ccss: ["8.EE.A.3", "8.EE.A.4"],
-    targetMs: 8000,
+    targetMs: 14000,
   },
   {
     id: "mag.div",
@@ -205,7 +209,7 @@ export const SKILLS: Skill[] = [
     ask: "roughly, e-notation",
     prereqs: ["sn.div"],
     ccss: ["8.EE.A.3", "8.EE.A.4"],
-    targetMs: 8000,
+    targetMs: 14000,
   },
 
   // ── Percents ──────────────────────────────────────────────────────────
@@ -216,7 +220,7 @@ export const SKILLS: Skill[] = [
     ask: "value",
     prereqs: [],
     ccss: ["6.RP.A.3c"],
-    targetMs: 3000,
+    targetMs: 6000,
   },
   {
     id: "pct.compose",
@@ -225,7 +229,7 @@ export const SKILLS: Skill[] = [
     ask: "value",
     prereqs: ["pct.anchor"],
     ccss: ["6.RP.A.3c", "7.EE.B.3"],
-    targetMs: 5000,
+    targetMs: 10000,
   },
 ];
 
