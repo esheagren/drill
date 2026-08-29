@@ -18,7 +18,7 @@
  *  per-item record (streak, last RT), so a fact that is demonstrably automatic
  *  is skipped except for maintenance sampling.
  */
-import { generateItem, type Item, type Level } from "./items";
+import { generateItem, typedLength, type Item, type Level } from "./items";
 import { SKILLS, SKILL_BY_ID, type Family, type SkillId } from "./skills";
 import { scopedKey } from "./user";
 
@@ -34,7 +34,7 @@ export interface Rating { theta: number; n: number }
 export interface ItemMemory { delta: number; n: number; streak: number; lastRt: number; lastSeen: number }
 
 export interface EngineState {
-  v: 2;
+  v: 3;
   skills: Record<SkillId, SkillState>;
   ratings: Partial<Record<Family, Rating>>;
   items: Record<string, ItemMemory>;
@@ -56,6 +56,9 @@ export interface AttemptLog {
 }
 
 export const TARGET = 0.85;
+const CEILING = 0.95;              // items above this expected score carry no information — don't serve
+const TYPING_MS_PER_CHAR = 350;
+const OUTLIER_FACTOR = 3;          // correct but slower than 3× budget (and > budget + 8 s) = distracted, not evidence
 const PROBE_TARGET = 0.6;          // provisional phase aims harder to locate the learner fast
 const PROVISIONAL_N = 10;
 const logit = (p: number) => Math.log(p / (1 - p));
@@ -76,7 +79,7 @@ const freshSkill = (): SkillState => ({ attempts: 0, correct: 0, acc: 0.5, speed
 const logistic = (x: number) => 1 / (1 + Math.exp(-x));
 
 export function emptyState(): EngineState {
-  return { v: 2, skills: Object.fromEntries(SKILLS.map((s) => [s.id, freshSkill()])) as Record<SkillId, SkillState>, ratings: {}, items: {} };
+  return { v: 3, skills: Object.fromEntries(SKILLS.map((s) => [s.id, freshSkill()])) as Record<SkillId, SkillState>, ratings: {}, items: {} };
 }
 
 /** Accept v1 (flat per-skill map) or v2 snapshots. */
@@ -84,9 +87,14 @@ export function normalize(raw: unknown): EngineState {
   const base = emptyState();
   if (!raw || typeof raw !== "object") return base;
   const r = raw as Record<string, unknown>;
-  if (r.v === 2 && r.skills) {
+  if (r.v === 3 && r.skills) {
     const st = r as unknown as EngineState;
-    return { v: 2, skills: { ...base.skills, ...st.skills }, ratings: st.ratings ?? {}, items: st.items ?? {} };
+    return { v: 3, skills: { ...base.skills, ...st.skills }, ratings: st.ratings ?? {}, items: st.items ?? {} };
+  }
+  if (r.v === 2 && r.skills) {
+    // v2 ratings were deflated by miscalibrated time budgets — keep skill EMAs, restart ratings.
+    const st = r as unknown as EngineState;
+    return { v: 3, skills: { ...base.skills, ...st.skills }, ratings: {}, items: {} };
   }
   // v1: keys are skill ids
   for (const s of SKILLS) if (r[s.id] && typeof r[s.id] === "object") base.skills[s.id] = { ...freshSkill(), ...(r[s.id] as SkillState) };
@@ -158,13 +166,24 @@ export const expectedScore = (state: EngineState, item: Item) => logistic(rating
 function isAutomatic(state: EngineState, item: Item): boolean {
   const m = state.items[item.key];
   if (!m) return false;
-  return m.streak >= AUTOMATIC_STREAK && m.lastRt > 0 && m.lastRt <= 0.5 * SKILL_BY_ID[item.skillId].targetMs;
+  return m.streak >= AUTOMATIC_STREAK && m.lastRt > 0 && m.lastRt <= 0.6 * budgetFor(item);
+}
+
+/** Full time budget for an item: skill think-time + typing time for the answer. */
+export function budgetFor(item: Item): number {
+  return SKILL_BY_ID[item.skillId].targetMs + TYPING_MS_PER_CHAR * typedLength(item);
+}
+
+/** A correct answer so slow it can't be a measure of fluency (interruption, distraction). */
+export function isOutlier(item: Item, correct: boolean, latencyMs: number): boolean {
+  const b = budgetFor(item);
+  return correct && latencyMs > Math.max(OUTLIER_FACTOR * b, b + 8000);
 }
 
 /** Speed-weighted outcome: wrong → 0; right → 1 − ½·RT/budget (floored at 0). */
-export function scoreOf(skillId: SkillId, correct: boolean, latencyMs: number): number {
+export function scoreOf(item: Item, correct: boolean, latencyMs: number): number {
   if (!correct) return 0;
-  return Math.max(0, Math.min(1, 1 - 0.5 * (latencyMs / SKILL_BY_ID[skillId].targetMs)));
+  return Math.max(0, Math.min(1, 1 - 0.5 * (latencyMs / budgetFor(item))));
 }
 
 /**
@@ -179,8 +198,9 @@ export function pickItem(state: EngineState, skillId: SkillId): Item {
   const all: Item[] = [];
   for (const L of [1, 2, 3] as Level[]) for (let i = 0; i < CANDIDATES_PER_LEVEL; i++) all.push(generateItem(skillId, L));
   const maintenance = Math.random() < MAINTENANCE;
-  let cands = maintenance ? all : all.filter((it) => !isAutomatic(state, it));
-  if (cands.length === 0) cands = all;
+  const informative = all.filter((it) => expectedScore(state, it) < CEILING);
+  let cands = (informative.length ? informative : all).filter((it) => maintenance || !isAutomatic(state, it));
+  if (cands.length === 0) cands = informative.length ? informative : all;
   if (maintenance) {
     const easier = cands.filter((it) => betaOf(state, it) < target);
     if (easier.length) cands = easier;
@@ -193,11 +213,18 @@ export function pickItem(state: EngineState, skillId: SkillId): Item {
   return cands[cands.length - 1];
 }
 
-export interface RecordResult { state: EngineState; score: number; expected: number; theta: number; beta: number }
+export interface RecordResult { state: EngineState; score: number; expected: number; theta: number; beta: number; ignored: boolean }
 
 export function record(state: EngineState, item: Item, correct: boolean, latencyMs: number): RecordResult {
   const id = item.skillId;
   const fam = SKILL_BY_ID[id].family;
+
+  // Distraction policy: a correct answer far outside the budget is logged but teaches the model nothing.
+  if (isOutlier(item, correct, latencyMs)) {
+    const r = ratingOf(state, fam);
+    const b = betaOf(state, item);
+    return { state, score: 0, expected: logistic(r.theta - b), theta: r.theta, beta: b, ignored: true };
+  }
 
   // Skill EMA
   const s = { ...state.skills[id] };
@@ -212,12 +239,12 @@ export function record(state: EngineState, item: Item, correct: boolean, latency
   const rating = ratingOf(state, fam);
   const beta = betaOf(state, item);
   const expected = logistic(rating.theta - beta);
-  const score = scoreOf(id, correct, latencyMs);
+  const score = scoreOf(item, correct, latencyMs);
   const kUser = rating.n < PROVISIONAL_N ? 0.6 : rating.n < 40 ? 0.25 : 0.12;   // provisional → settle
   const theta = rating.theta + kUser * (score - expected);
 
   const mem = state.items[item.key] ?? { delta: 0, n: 0, streak: 0, lastRt: 0, lastSeen: 0 };
-  const fast = correct && latencyMs <= 0.5 * SKILL_BY_ID[id].targetMs;
+  const fast = correct && latencyMs <= 0.6 * budgetFor(item);
   const items = {
     ...state.items,
     [item.key]: { delta: mem.delta - K_ITEM * (score - expected), n: mem.n + 1, streak: fast ? mem.streak + 1 : 0, lastRt: latencyMs, lastSeen: Date.now() },
@@ -228,6 +255,6 @@ export function record(state: EngineState, item: Item, correct: boolean, latency
 
   return {
     state: { ...state, skills: { ...state.skills, [id]: s }, ratings: { ...state.ratings, [fam]: { theta, n: rating.n + 1 } }, items },
-    score, expected, theta: rating.theta, beta,
+    score, expected, theta: rating.theta, beta, ignored: false,
   };
 }
