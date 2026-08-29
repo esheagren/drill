@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { isUnlocked, mastery, ratingOf, type EngineState } from "@/lib/engine";
-import { FAMILIES, FAMILY_BLURB, FAMILY_LABEL, SKILL_BY_ID, skillsIn, type Family, type SkillId } from "@/lib/skills";
-import { dayKey, loadDays, skillPlan, unitPlan, type Plan, type SessionRecord } from "@/lib/sessions";
+import { FAMILIES, FAMILY_BLURB, FAMILY_LABEL, SKILL_BY_ID, groupsIn, skillsIn, type Family, type Skill, type SkillId } from "@/lib/skills";
+import { dayKey, loadDays, groupPlan, skillPlan, unitPlan, type Plan, type SessionRecord } from "@/lib/sessions";
 import type { Profile } from "@/lib/user";
 import Account from "./Account";
 
@@ -37,7 +37,9 @@ export default function Stats({ state, profile, onProfile, onClose, onPick, init
 
       <main className="flex-1 overflow-y-auto px-5 sm:px-8 py-6 pb-[max(env(safe-area-inset-bottom),24px)]">
         {view.kind === "history" && <History days={days} />}
-        {view.kind === "skills" && <UnitDetail unit={view.unit} state={state} days={days} onPick={onPick} />}
+        {view.kind === "skills" && (groupsIn(view.unit).some((g) => g.skills.length > 1)
+          ? <UnitHierarchy unit={view.unit} state={state} days={days} onPick={onPick} />
+          : <UnitDetail unit={view.unit} state={state} days={days} onPick={onPick} />)}
         {view.kind === "profile" && (
           <div className="max-w-md">
             <h1 className="text-lg font-light mb-2">{profile.username ?? "Profile"}</h1>
@@ -77,6 +79,116 @@ function History({ days }: { days: Record<string, SessionRecord[]> }) {
         yLabel="questions"
       />
       <p className="text-xs text-gray-400 mt-3">Each bar is a day; segments are sessions. Hover a segment for detail.</p>
+    </div>
+  );
+}
+
+// ── Hierarchical unit: subsections → bands, compact rows, detail panel on the right ──
+
+/** Mastery as a color: none / weak / developing / fluent. Always paired with a title for the value. */
+function masteryColor(m: number, attempts: number): string {
+  if (!attempts) return "#9ca3af";      // gray-400 — not started
+  if (m < 0.5) return "#f59e0b";        // amber-500 — weak
+  if (m < 0.85) return "#38bdf8";       // sky-400 — developing
+  return "#10b981";                     // emerald-500 — fluent
+}
+function Dot({ m, attempts, size = 10 }: { m: number; attempts: number; size?: number }) {
+  return <span className="inline-block rounded-full shrink-0" style={{ width: size, height: size, background: masteryColor(m, attempts) }} title={attempts ? `${Math.round(m * 100)}% fluent · ${attempts} answers` : "not started"} />;
+}
+function groupMastery(skills: Skill[], state: EngineState) {
+  const attempts = skills.reduce((a, s) => a + state.skills[s.id].attempts, 0);
+  const m = attempts ? skills.reduce((a, s) => a + mastery(s.id, state.skills[s.id]) * state.skills[s.id].attempts, 0) / attempts : 0;
+  return { m, attempts };
+}
+function tally(days: Record<string, SessionRecord[]>, k: string, ids: SkillId[]) {
+  return (days[k] ?? []).reduce((acc, sess) => { for (const id of ids) { const b = sess.bySkill[id]; if (b) { acc.n += b.n; acc.c += b.c; } } return acc; }, { n: 0, c: 0 });
+}
+
+function UnitHierarchy({ unit, state, days, onPick }: { unit: Family; state: EngineState; days: Record<string, SessionRecord[]>; onPick: (p: Plan) => void }) {
+  const groups = groupsIn(unit);
+  const [sel, setSel] = useState<string>(groups[0].group);
+  const g = groups.find((x) => x.group === sel) ?? groups[0];
+  const keys = useMemo(() => Array.from({ length: 14 }, (_, i) => dayKey(Date.now() - (13 - i) * 86400e3)), []);
+  const play = "shrink-0 h-8 px-3 rounded-lg text-xs tabular-nums active:scale-95 transition";
+  const um = groupMastery(skillsIn(unit), state);
+
+  return (
+    <div className="flex flex-col lg:flex-row gap-8 max-w-5xl">
+      {/* Left: the structure */}
+      <div className="lg:w-80 shrink-0">
+        <div className="flex items-center gap-3">
+          <Dot m={um.m} attempts={um.attempts} size={12} />
+          <h1 className="text-lg font-light flex-1">{FAMILY_LABEL[unit]}</h1>
+          <button onClick={() => onPick(unitPlan(unit))} className={`${play} bg-gray-900 text-white dark:bg-gray-100 dark:text-black`}>2 min ▸</button>
+        </div>
+        <p className="text-xs text-gray-500 mt-1 mb-5">{FAMILY_BLURB[unit]}</p>
+
+        <ul className="space-y-1">
+          {groups.map(({ group, skills }) => {
+            const gm = groupMastery(skills, state);
+            const active = group === sel;
+            return (
+              <li key={group} className={`rounded-xl ${active ? "bg-gray-50 dark:bg-gray-950" : ""}`}>
+                <div className="flex items-center gap-3 px-3 py-2">
+                  <Dot m={gm.m} attempts={gm.attempts} />
+                  <button onClick={() => setSel(group)} className={`flex-1 text-left text-sm ${active ? "text-gray-900 dark:text-gray-100" : "text-gray-600 dark:text-gray-300"}`}>{group}</button>
+                  <button onClick={() => onPick(groupPlan(unit, group))} className={`${play} border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300`}>2 min ▸</button>
+                </div>
+                <ul className="pl-9 pb-2 space-y-0.5">
+                  {skills.map((s) => {
+                    const st = state.skills[s.id];
+                    const unlocked = isUnlocked(s.id, state);
+                    return (
+                      <li key={s.id} className="flex items-center gap-3 pr-3 py-1">
+                        <Dot m={mastery(s.id, st)} attempts={st.attempts} size={8} />
+                        <span className={`flex-1 text-xs ${unlocked ? "text-gray-600 dark:text-gray-300" : "text-gray-400"}`}>{s.name}</span>
+                        <button onClick={() => onPick(skillPlan(s.id))} className="text-xs text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 px-1" aria-label={`Drill ${group} ${s.name}`}>▸</button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="flex gap-3 mt-4 text-[10px] text-gray-400">
+          {[["#9ca3af", "not started"], ["#f59e0b", "weak"], ["#38bdf8", "developing"], ["#10b981", "fluent"]].map(([c, l]) => (
+            <span key={l} className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full" style={{ background: c }} />{l}</span>
+          ))}
+        </div>
+      </div>
+
+      {/* Right: detail for the selected subsection */}
+      <div className="flex-1 min-w-0 lg:border-l lg:border-gray-100 lg:dark:border-gray-900 lg:pl-8">
+        <h2 className="text-base font-light">{g.group}</h2>
+        <p className="text-xs text-gray-400 mb-4">last 14 days, stacked by band</p>
+        {(() => {
+          const cols = keys.map((k) => ({ label: k.slice(5), segments: g.skills.map((s) => { const t = tally(days, k, [s.id]); return { value: t.n, tip: `${k} · ${g.group} ${s.name} · ${t.n} answered · ${t.c} correct` }; }) }));
+          return cols.some((c) => c.segments.some((x) => x.value))
+            ? <StackedBars columns={cols} yLabel="questions" legend={g.skills.map((s) => s.name)} />
+            : <p className="text-sm text-gray-400 mb-6">No practice in the last 14 days.</p>;
+        })()}
+        <table className="w-full text-sm mt-6">
+          <thead className="text-[10px] uppercase tracking-wide text-gray-400">
+            <tr><th className="text-left font-normal pb-1">band</th><th className="text-right font-normal pb-1">answered</th><th className="text-right font-normal pb-1">correct</th><th className="text-right font-normal pb-1">speed</th><th className="text-right font-normal pb-1">fluency</th></tr>
+          </thead>
+          <tbody className="tabular-nums">
+            {g.skills.map((s) => {
+              const st = state.skills[s.id]; const m = mastery(s.id, st);
+              return (
+                <tr key={s.id} className="border-t border-gray-100 dark:border-gray-900">
+                  <td className="py-1.5 flex items-center gap-2"><Dot m={m} attempts={st.attempts} size={8} />{s.name}</td>
+                  <td className="text-right">{st.attempts || "—"}</td>
+                  <td className="text-right">{st.attempts ? `${Math.round((100 * st.correct) / st.attempts)}%` : "—"}</td>
+                  <td className="text-right">{st.speed ? `${(st.speed / 1000).toFixed(1)}s` : "—"}</td>
+                  <td className="text-right">{st.attempts ? `${Math.round(m * 100)}%` : "—"}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <p className="text-[10px] text-gray-400 mt-3">{g.skills[0].ccss.join(" · ")}</p>
+      </div>
     </div>
   );
 }
