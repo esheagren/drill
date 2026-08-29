@@ -11,7 +11,7 @@ import Onboarding from "./Onboarding";
 import { getProfile } from "@/lib/account";
 import type { Profile } from "@/lib/user";
 import Units from "./Units";
-import SkillMap from "./SkillMap";
+import Stats from "./Stats";
 
 type Phase = "answer" | "correct" | "wrong" | "done";
 
@@ -230,11 +230,11 @@ export default function Trainer() {
           <div className="flex justify-between text-sm text-gray-500 px-1">
             <button onClick={() => setShowUnits(true)} className="h-12">practice a unit</button>
             {plan.id !== "mixed" && <button onClick={() => restart(MIXED)} className="h-12">back to mixed</button>}
-            <button onClick={() => setShowMap(true)} className="h-12">days</button>
+            <button onClick={() => setShowMap(true)} className="h-12">history</button>
           </div>
         </div>
         {showUnits && <Units state={state} onPick={pick} onClose={() => setShowUnits(false)} />}
-        {showMap && <SkillMap state={state} profile={profile} onProfile={setProfile} onClose={() => setShowMap(false)} />}
+        {showMap && <Stats state={state} profile={profile} onProfile={setProfile} onClose={() => setShowMap(false)} />}
       </div>
     );
   }
@@ -318,7 +318,7 @@ export default function Trainer() {
         </Sheet>
       )}
       {showUnits && <Units state={state} onPick={pick} onClose={() => setShowUnits(false)} />}
-      {showMap && <SkillMap state={state} profile={profile} onProfile={setProfile} onClose={() => setShowMap(false)} />}
+      {showMap && <Stats state={state} profile={profile} onProfile={setProfile} onClose={() => setShowMap(false)} />}
     </div>
   );
 }
