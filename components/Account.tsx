@@ -66,7 +66,7 @@ export default function Account({ profile, onChange }: { profile: Profile; onCha
           {mode === "connect" && (
             <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="confirm password" autoComplete="new-password" className={`${field} w-full ${confirm && confirm !== password ? "border-rose-400" : ""}`} />
           )}
-          {mode === "connect" && confirm && confirm !== password && <p className="text-xs text-rose-500">passwords don't match</p>}
+          {mode === "connect" && confirm && confirm !== password && <p className="text-xs text-rose-500">passwords do not match</p>}
           <button
             onClick={mode === "connect" ? doConnect : doSignIn}
             disabled={busy || !email || (mode === "connect" ? password.length < 8 || confirm !== password : password.length < 1)}
