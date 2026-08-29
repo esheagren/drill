@@ -103,10 +103,11 @@ export function normalize(raw: unknown): EngineState {
   if (r.v === 2 && r.skills) {
     // v2 ratings were deflated by miscalibrated time budgets — keep skill EMAs, restart ratings.
     const st = r as unknown as EngineState;
-    return { v: 3, skills: { ...base.skills, ...st.skills }, ratings: {}, items: {} };
+    return { v: 3, skills: { ...base.skills, ...migrateSkills(st.skills as Record<string, SkillState>) } as Record<SkillId, SkillState>, ratings: {}, items: {} };
   }
-  // v1: keys are skill ids
-  for (const s of SKILLS) if (r[s.id] && typeof r[s.id] === "object") base.skills[s.id] = { ...freshSkill(), ...(r[s.id] as SkillState) };
+  // v1: keys are skill ids (possibly legacy ones)
+  const v1 = migrateSkills(r as Record<string, SkillState>);
+  for (const s of SKILLS) if (v1[s.id] && typeof v1[s.id] === "object") base.skills[s.id] = { ...freshSkill(), ...v1[s.id] };
   return base;
 }
 
