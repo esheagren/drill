@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Item } from "@/lib/items";
-import { appendLog, nextSkill, pickItem, record, saveState, type EngineState } from "@/lib/engine";
+import { appendLog, budgetFor, nextSkill, pickItem, record, saveState, type EngineState } from "@/lib/engine";
+import { markSeen, tipFor, type Tip } from "@/lib/tips";
 import { SKILL_BY_ID, type SkillId } from "@/lib/skills";
 import { MIXED, loadDefaultMinutes, mixedFor, saveDefaultMinutes, saveSession, type Plan, type SessionRecord } from "@/lib/sessions";
 import { flush, hydrate, queueAttempt, queueSession } from "@/lib/sync";
@@ -12,7 +13,7 @@ import { getProfile } from "@/lib/account";
 import type { Profile } from "@/lib/user";
 import Stats, { type View } from "./Stats";
 
-type Phase = "answer" | "correct" | "wrong" | "done";
+type Phase = "answer" | "correct" | "slow" | "wrong" | "done";
 
 const ADVANCE_MS = 450;
 const REVIEW_GAP = 2;
@@ -22,6 +23,7 @@ export default function Trainer() {
   const [item, setItem] = useState<Item | null>(null);
   const [input, setInput] = useState("");
   const [phase, setPhase] = useState<Phase>("answer");
+  const [tip, setTip] = useState<Tip | null>(null);
   const [overlay, setOverlay] = useState<View | null>(null);
   const showMap = overlay !== null;
   const showUnits = false; // folded into the single overlay
@@ -64,6 +66,7 @@ export default function Trainer() {
     setItem(pickItem(st, id));
     setInput("");
     setPhase("answer");
+    setTip(null);
     startRef.current = performance.now();
   }, []);
 
@@ -159,12 +162,17 @@ export default function Trainer() {
     const t = (tallyRef.current[item.skillId] ||= { n: 0, c: 0 });
     t.n += 1; if (ok) t.c += 1;
 
-    if (ok) { setPhase("correct"); setTimeout(() => advance(next), ADVANCE_MS); }
+    const slow = ok && latency > budgetFor(item) && !res.ignored;
+    const chosen = !ok || slow ? tipFor(item) : null;
+    setTip(chosen);
+    if (chosen) markSeen(chosen.id);
+    if (ok && !slow) { setPhase("correct"); setTimeout(() => advance(next), ADVANCE_MS); }
+    else if (ok) setPhase("slow");   // correct but over budget: pause with the technique; any key continues
     else setPhase("wrong");
   };
 
   const press = (k: string) => {
-    if (phase === "wrong") { if (state) advance(state); return; }
+    if (phase === "wrong" || phase === "slow") { if (state) advance(state); return; }
     if (phase !== "answer" || !item) return;
     if (!sessionStartRef.current) { sessionStartRef.current = Date.now(); document.body.dataset.inSession = "1"; } // timer starts on first key
     setInput(input + k);
@@ -172,7 +180,7 @@ export default function Trainer() {
   const backspace = () => { if (phase === "answer") setInput((s) => s.slice(0, -1)); };
   const enter = () => {
     if (phase === "answer") submit();
-    else if (phase === "wrong" && state) advance(state);
+    else if ((phase === "wrong" || phase === "slow") && state) advance(state);
   };
 
   // Hardware keyboard support (desktop).
@@ -184,6 +192,7 @@ export default function Trainer() {
       if (/^[0-9.e/]$/.test(e.key)) { e.preventDefault(); press(e.key); }
       else if (e.key === "Backspace") { e.preventDefault(); backspace(); }
       else if (e.key === "Enter") { e.preventDefault(); enter(); }
+      else if (phase === "slow" || phase === "wrong") { e.preventDefault(); if (state) advance(state); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -273,7 +282,7 @@ export default function Trainer() {
           <div
             className={[
               "w-full text-center text-3xl font-light py-3 border-b-2 min-h-[3.5rem] tabular-nums transition-colors",
-              phase === "correct" ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
+              phase === "correct" || phase === "slow" ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
               : phase === "wrong" ? "border-rose-400 text-rose-500 line-through decoration-2"
               : "border-gray-200 dark:border-gray-800",
             ].join(" ")}
@@ -282,11 +291,24 @@ export default function Trainer() {
           </div>
 
           <div className="min-h-20 mt-4 text-center">
-            {phase === "wrong" && (
-              <button onClick={() => advance(state)} className="w-full space-y-1 active:opacity-70">
-                <div className="text-2xl font-light">{item.answerText}</div>
-                <div className="text-sm text-gray-500">{item.why}</div>
-                <div className="text-xs text-gray-400 dark:text-gray-600 pt-1">any key to continue</div>
+            {(phase === "wrong" || phase === "slow") && (
+              <button onClick={() => advance(state)} className="w-full space-y-1 active:opacity-70 text-left sm:text-center">
+                {phase === "wrong" ? (
+                  <>
+                    <div className="text-2xl font-light text-center">{item.answerText}</div>
+                    <div className="text-sm text-gray-500 text-center">{item.why}</div>
+                  </>
+                ) : (
+                  <div className="text-sm text-emerald-600 dark:text-emerald-400 text-center">right — a faster way:</div>
+                )}
+                {tip && (
+                  <div className="mt-3 mx-auto max-w-sm rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-3 text-left">
+                    <div className="text-xs uppercase tracking-wide text-gray-400 mb-1">{tip.title}</div>
+                    <div className="text-sm text-gray-800 dark:text-gray-200">{tip.rule}</div>
+                    <div className="text-xs text-gray-500 mt-1 tabular-nums">{tip.example}</div>
+                  </div>
+                )}
+                <div className="text-xs text-gray-400 dark:text-gray-600 pt-2 text-center">any key to continue</div>
               </button>
             )}
           </div>
