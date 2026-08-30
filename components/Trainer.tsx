@@ -287,7 +287,7 @@ export default function Trainer() {
               : "border-gray-200 dark:border-gray-800",
             ].join(" ")}
           >
-            {input || <span className="text-gray-300 dark:text-gray-700 text-xl">{item.placeholder}</span>}
+            {input || <span className="opacity-0">0</span>}
           </div>
 
           <div className="min-h-20 mt-4 text-center">
