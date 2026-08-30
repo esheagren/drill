@@ -18,6 +18,8 @@ export interface Tip {
   tags: string[];
   /** Restrict to these skills (optional). */
   skills?: SkillId[];
+  /** Parameter-level relevance: given the item key (e.g. "frof:4/5x400"), is this trick actually the tool for these numbers? Required to pass when present. */
+  applies?: (key: string) => boolean;
 }
 
 const SEEN_KEY = () => scopedKey("tips:seen");
@@ -38,8 +40,12 @@ export function tipFor(item: Item): Tip | null {
   const scored = TIPS.map((t) => {
     const pinned = t.skills?.includes(item.skillId) ? 3 : 0;
     const overlap = t.tags.filter((g) => skill.kc.includes(g)).length;
+    // Parameter check: a specific trick must fit these numbers; when it does, it beats generic advice.
+    let fit = 0;
+    if (t.applies) { if (!t.applies(item.key)) return { t, score: 0, rel: 0 }; fit = 4; }
     const recency = s[t.id] ? Math.min(1, (Date.now() - s[t.id]) / (24 * 3600e3)) : 1; // 0 = just seen … 1 = ≥ a day ago
-    return { t, score: (pinned + overlap) * (0.5 + 0.5 * recency), rel: pinned + overlap };
+    const rel = t.skills ? pinned : overlap;   // a pinned tip is only for its skills; unpinned tips match by tags
+    return { t, score: (rel + fit) * (0.5 + 0.5 * recency), rel };
   }).filter((x) => x.rel > 0);
   if (!scored.length) return null;
   scored.sort((a, b) => b.score - a.score);
