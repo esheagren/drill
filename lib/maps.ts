@@ -66,7 +66,7 @@ export const MAPS: Record<string, MapSpec> = {
     parse: (k) => { const m = k.match(/^ccb:(?:up|down)(\d+),(?:up|down)(\d+)%/); if (!m) return null; return [pctClass(+m[1]), pctClass(+m[2])]; },
     label: (r, c) => `${PCT_CLASSES[r]} then ${PCT_CLASSES[c]}`,
   },
-  "Per capita": {
+  "Divide big numbers": {
     prefix: "cpc:", rows: ["exponent gap 1–2", "gap 3–4", "gap 5+"], cols: ["clean quotient", "decimal coefficient"], typed: 3, rowTitle: "exponent gap",
     parse: (k) => { const m = k.match(/^cpc:([\d.]+)e(\d+)\/([\d.]+)e(\d+)$/); if (!m) return null; const gap = +m[2] - +m[4]; return [gap <= 2 ? 0 : gap <= 4 ? 1 : 2, m[3].includes(".") ? 1 : 0]; },
     label: (r, c) => `${["gap 1–2", "gap 3–4", "gap 5+"][r]}, ${c ? "decimal divisor" : "whole divisor"}`,

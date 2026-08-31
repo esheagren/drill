@@ -293,16 +293,14 @@ export default function Trainer() {
           <div className="min-h-20 mt-4 text-center">
             {(phase === "wrong" || phase === "slow") && (
               <button onClick={() => advance(state)} className="w-full space-y-1 active:opacity-70 text-left sm:text-center">
-                {phase === "wrong" ? (
+                {phase === "wrong" && (
                   <>
                     <div className="text-2xl font-light text-center">{item.answerText}</div>
                     <div className="text-sm text-gray-500 text-center">{item.why}</div>
                   </>
-                ) : (
-                  <div className="text-sm text-emerald-600 dark:text-emerald-400 text-center">right — a faster way:</div>
                 )}
                 {tip && (
-                  <div className="mt-3 mx-auto max-w-sm rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-3 text-left">
+                  <div className={`mt-3 mx-auto max-w-sm rounded-xl border px-4 py-3 text-left ${phase === "slow" ? "border-emerald-500" : "border-gray-200 dark:border-gray-800"}`}>
                     <div className="text-xs uppercase tracking-wide text-gray-400 mb-1">{tip.title}</div>
                     <div className="text-sm text-gray-800 dark:text-gray-200">{tip.rule}</div>
                     <div className="text-xs text-gray-500 mt-1 tabular-nums">{tip.example}</div>

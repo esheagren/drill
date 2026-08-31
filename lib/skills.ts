@@ -292,7 +292,7 @@ export const SKILLS: Skill[] = withMeta([
     ask: "final amount · within ½%", prereqs: ["pct.chain", "sn.words"], ccss: ["7.RP.A.3"], targetMs: 14000,
   },
   {
-    id: "co.percap", family: "combo", group: "Per capita", name: "Per capita",
+    id: "co.percap", family: "combo", group: "Divide big numbers", name: "Divide big numbers",
     ask: "roughly · within ½ an order", prereqs: ["sn.div", "mag.div"], ccss: ["8.EE.A.4"], targetMs: 12000,
   },
   {

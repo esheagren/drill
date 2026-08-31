@@ -358,15 +358,15 @@ const GENERATORS: Record<SkillId, Gen> = {
     return { skillId: "co.chainbig", key: `ccb:${d1 ? "down" : "up"}${p1},${d2 ? "down" : "up"}${p2}%${head}e${sc.exp}`, prior: P.chainBigPrior(p1, p2), prompt: `${shortWords(head, sc.exp)} ${d1 ? "down" : "up"} ${p1}%, then ${d2 ? "down" : "up"} ${p2}%`, sub: "final amount · within ½%",
       answerText: `${fmtDigits(Math.round(ans))}  (${toScaleWords(ans)})`, why: `× ${(1 + (d1 ? -p1 : p1) / 100).toFixed(2)} × ${(1 + (d2 ? -p2 : p2) / 100).toFixed(2)} = × ${((1 + (d1 ? -p1 : p1) / 100) * (1 + (d2 ? -p2 : p2) / 100)).toFixed(3)}`, inputMode: "text", placeholder: "2.6e5", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) / ans <= 0.005; } };
   },
-  // 6.8 × 10^7 people, 3.4 × 10^5 doctors → 200 people per doctor
+  // 1.4 × 10^7 ÷ 4.2 × 10^5 → ≈ 33
   "co.percap": (L) => {
-    const [unit1, unit2] = pick([["people", "doctors"], ["dollars", "people"], ["kilometres", "cars"], ["tonnes", "farms"], ["users", "servers"], ["litres", "households"]]);
     const b = pick(by(L, [ri(1, 9)], [ri(1, 9), ri(11, 99) / 10], [ri(11, 99) / 10, ri(11, 99)]));
     const q = pick(by(L, [ri(2, 9), ri(1, 9) * 10], [ri(2, 9), ri(11, 99), ri(2, 9) * 100], [ri(11, 99), ri(12, 98) / 10 * 10, ri(101, 999)]));
     const eb = by(L, ri(2, 5), ri(3, 7), ri(3, 8)); const a = b * q; const ta = toSci(a * 10 ** eb); const ans = q;
-    return { skillId: "co.percap", key: `cpc:${Math.round(ta.c * 100) / 100}e${ta.e}/${b}e${eb}`, prior: P.perCapPrior(q, eb), prompt: `${fmtSci(Math.round(ta.c * 100) / 100, ta.e)} ${unit1}, ${fmtSci(b, eb)} ${unit2}`, sub: `${unit1} per ${unit2.replace(/s$/, "")} · roughly`,
-      answerText: `≈ ${fmtDigits(ans)}`, why: `${Math.round(ta.c * 100) / 100} ÷ ${b} ≈ ${(ta.c / b).toFixed(2)}; 10^${ta.e} ÷ 10^${eb} = 10^${ta.e - eb}`, inputMode: "text", placeholder: "200 or 2e2", check: (s) => magEq(s, ans, 0.3) };
+    return { skillId: "co.percap", key: `cpc:${Math.round(ta.c * 100) / 100}e${ta.e}/${b}e${eb}`, prior: P.perCapPrior(q, eb), prompt: `${fmtSci(Math.round(ta.c * 100) / 100, ta.e)} ÷ ${fmtSci(b, eb)}`, sub: "roughly",
+      answerText: `≈ ${fmtDigits(ans)}`, why: `${Math.round(ta.c * 100) / 100} ÷ ${b} ≈ ${(ta.c / b).toFixed(2)}; 10^${ta.e} ÷ 10^${eb} = 10^${ta.e - eb}`, inputMode: "text", placeholder: "", check: (s) => magEq(s, ans, 0.3) };
   },
+
   // 3.2 billion or 4.5 × 10^8 → 3.2e9
   "co.compare": (L) => {
     const sc1 = pick(SCALES), h1 = pick([ri(2, 9), ri(11, 99) / 10, ri(11, 99)]); const v1 = h1 * 10 ** sc1.exp;
