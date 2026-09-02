@@ -8,6 +8,8 @@ import { SKILL_BY_ID, type SkillId } from "@/lib/skills";
 import { MIXED, loadDefaultMinutes, mixedFor, saveDefaultMinutes, saveSession, type Plan, type SessionRecord } from "@/lib/sessions";
 import { flush, hydrate, queueAttempt, queueSession } from "@/lib/sync";
 import Keypad from "./Keypad";
+import { AreaModel, LogLine, MultiplierChain } from "./widgets";
+import { widgetSeedFor } from "@/lib/widgetSeed";
 import Onboarding from "./Onboarding";
 import { getProfile } from "@/lib/account";
 import type { Profile } from "@/lib/user";
@@ -275,7 +277,7 @@ export default function Trainer() {
         </button>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-6 min-h-0">
+      <main className="flex-1 flex flex-col items-center justify-center px-6 min-h-0 overflow-y-auto">
         <div className="text-center space-y-2">
           <div className="text-4xl sm:text-5xl font-light tracking-tight leading-tight" style={{ overflowWrap: "anywhere" }}>
             {item.prompt}
@@ -304,6 +306,18 @@ export default function Trainer() {
                     <div className="text-sm text-gray-500 text-center">{item.why}</div>
                   </>
                 )}
+                {phase === "wrong" && (() => {
+                  const seed = widgetSeedFor(item.key);
+                  if (!seed) return null;
+                  return (
+                    <div className="mt-3 mx-auto max-w-sm rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-3 text-left" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+                      <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">play with it</div>
+                      {seed.kind === "area" && <AreaModel initialA={seed.a} initialB={seed.b} compact />}
+                      {seed.kind === "chain" && <MultiplierChain initialBase={seed.base} initialChanges={seed.changes} compact />}
+                      {seed.kind === "log" && <LogLine initialX={seed.x} initialY={seed.y} compact />}
+                    </div>
+                  );
+                })()}
                 {tip && (
                   <div className={`mt-3 mx-auto max-w-sm rounded-xl border px-4 py-3 text-left ${phase === "slow" ? "border-emerald-500" : "border-gray-200 dark:border-gray-800"}`}>
                     <div className="text-xs uppercase tracking-wide text-gray-400 mb-1">{tip.title}</div>
