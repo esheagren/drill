@@ -39,6 +39,7 @@ export default function Trainer() {
 
   const startRef = useRef(0);          // item start
   const sessionStartRef = useRef(0);   // 0 = not started (waits for first key)
+  const pauseStartRef = useRef(0);     // timer freezes from submit until the next item
   const lastSkillRef = useRef<SkillId | null>(null);
   const tallyRef = useRef<SessionRecord["bySkill"]>({});
   const countRef = useRef({ n: 0, c: 0 });
@@ -48,6 +49,8 @@ export default function Trainer() {
   const isProbeRef = useRef(false);
 
   const advance = useCallback((st: EngineState) => {
+    if (pauseStartRef.current && sessionStartRef.current) sessionStartRef.current += Date.now() - pauseStartRef.current;
+    pauseStartRef.current = 0;
     const due = reviewRef.current.find((r) => r.due <= countRef.current.n);
     if (due) {
       reviewRef.current = reviewRef.current.filter((r) => r !== due);
@@ -107,7 +110,7 @@ export default function Trainer() {
   useEffect(() => {
     if (phase === "done") return;
     const id = setInterval(() => {
-      if (!sessionStartRef.current) return;
+      if (!sessionStartRef.current || pauseStartRef.current) return;   // frozen while feedback is on screen
       const left = planRef.current.durationMs - (Date.now() - sessionStartRef.current);
       if (left <= 0) { setRemaining(0); finish(); } else setRemaining(left);
     }, 250);
@@ -126,6 +129,7 @@ export default function Trainer() {
     planRef.current = next;
     setPlan(next);
     sessionStartRef.current = 0;
+    pauseStartRef.current = 0;
     delete document.body.dataset.inSession;
     countRef.current = { n: 0, c: 0 };
     tallyRef.current = {};
@@ -162,6 +166,7 @@ export default function Trainer() {
     const t = (tallyRef.current[item.skillId] ||= { n: 0, c: 0 });
     t.n += 1; if (ok) t.c += 1;
 
+    pauseStartRef.current = Date.now();   // clock stops the moment an answer is in
     const slow = ok && latency > budgetFor(item) && !res.ignored;
     const chosen = !ok || slow ? tipFor(item) : null;
     setTip(chosen);
