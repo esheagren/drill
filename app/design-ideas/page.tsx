@@ -43,12 +43,17 @@ export default function DesignIdeas() {
                 </div>
                 <div className="mt-5 space-y-2.5 text-[11px] leading-snug">
                   <Step n={1}>11 × 11 = <b>121</b> — a square you know</Step>
-                  <Step n={2}>121 × 11: add the neighbors — <b>1210 + 121</b></Step>
-                  <Step n={3}>= <b>1331</b></Step>
+                  <Step n={2}>121 × 11 is 121 × 10 plus 121 once more:</Step>
                 </div>
-                <div className="mt-5 rounded-lg bg-gray-100 dark:bg-gray-900 p-2.5">
+                <div className="mt-2 ml-5 font-mono text-[12px] leading-relaxed tabular-nums">
+                  <div className="text-emerald-400">&nbsp;&nbsp;1&nbsp;2&nbsp;1&nbsp;0&nbsp;&nbsp;<span className="text-[8px] text-gray-500 font-sans">×10 — slide left</span></div>
+                  <div className="text-sky-400">+&nbsp;&nbsp;&nbsp;1&nbsp;2&nbsp;1&nbsp;&nbsp;<span className="text-[8px] text-gray-500 font-sans">×1 — itself</span></div>
+                  <div className="border-t border-gray-700 w-20 my-0.5"></div>
+                  <div>&nbsp;&nbsp;1&nbsp;3&nbsp;3&nbsp;1</div>
+                </div>
+                <div className="mt-4 rounded-lg bg-gray-100 dark:bg-gray-900 p-2.5">
                   <div className="text-[8px] uppercase tracking-wide text-gray-400">the move</div>
-                  <div className="text-[10px] mt-0.5">×11 is &ldquo;shift and add yourself once&rdquo;: 121 × 11 = 1210 + 121. It works every time, for any number.</div>
+                  <div className="text-[10px] mt-0.5 tabular-nums">×11 = ×10 + ×1 &nbsp;·&nbsp; slide the number one place left, add it to itself.</div>
                 </div>
                 <div className="text-[8px] text-gray-400 text-center mt-6">tap anywhere for the next one</div>
               </div>
@@ -85,7 +90,7 @@ export default function DesignIdeas() {
         <Entry date="02 Sep 2026" title="A widget, when a picture is faster than a sentence">
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
             With the whole lower screen available, some techniques deserve ten seconds of play instead of prose.
-            Two working sketches — drag them:
+            Two early sketches below; the vetted, polished versions live in <a href="/widgetlibrary" className="underline">/widgetlibrary</a>.
           </p>
           <div className="grid sm:grid-cols-2 gap-6">
             <AreaModel />
