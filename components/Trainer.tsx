@@ -325,7 +325,16 @@ export default function Trainer() {
                     <div className="text-xs text-gray-500 mt-1 tabular-nums">{tip.example}</div>
                   </div>
                 )}
-                <div className="text-xs text-gray-400 dark:text-gray-600 pt-2 text-center">any key to continue</div>
+                <div className="pt-3 flex justify-center" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={() => advance(state)}
+                    aria-label="Next question"
+                    className="h-12 w-24 rounded-2xl bg-gray-900 text-white dark:bg-gray-100 dark:text-black text-xl active:scale-95 transition"
+                  >
+                    →
+                  </button>
+                </div>
               </button>
             )}
           </div>
