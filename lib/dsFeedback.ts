@@ -2,14 +2,16 @@
 export interface NoteRow { page: string; text: string; updated_at?: string }
 
 export function formatFeedback(rows: NoteRow[], scope: string): string {
-  const reacts = rows.filter((r) => r.page.startsWith("↕ ") && r.text.trim());
+  const outs = rows.filter((r) => r.page.startsWith("↕ ") && r.text.trim() === "no");
   const starred = rows.filter((r) => r.page.startsWith("★ ") && r.text.trim());
   const status = rows.filter((r) => r.page.startsWith("status ") && r.text.trim());
-  const live = rows.filter((r) => r.text.trim() && !/^(↕ |★ |status |order )/.test(r.page));
+  const picks = rows.filter((r) => r.page.startsWith("pick ") && r.text.trim());
+  const live = rows.filter((r) => r.text.trim() && !/^(↕ |★ |status |order |pick )/.test(r.page));
   const extras = [
     status.length ? `## decisions\n${["decided", "later"].map((v) => { const ids = status.filter((r) => r.text === v).map((r) => r.page.slice(7)); return ids.length ? `${v}: ${ids.join(", ")}` : null; }).filter(Boolean).join("\n")}` : null,
-    reacts.length ? `## reactions\n${["yes", "maybe", "no"].map((v) => { const ids = reacts.filter((r) => r.text === v).map((r) => r.page.slice(2)); return ids.length ? `${v}: ${ids.join(", ")}` : null; }).filter(Boolean).join("\n")}` : null,
     starred.length ? `## starred\n${starred.map((r) => r.page.slice(2)).join(", ")}` : null,
+    picks.length ? `## picks (when several are starred)\n${picks.map((r) => `${r.page.slice(5)} = ${r.text.trim()}`).join("\n")}` : null,
+    outs.length ? `## ruled out\n${outs.map((r) => r.page.slice(2)).join(", ")}` : null,
   ].filter(Boolean).join("\n\n");
   const head = `Drill design feedback · ${scope} · ${new Date().toISOString().slice(0, 10)}`;
   if (!live.length) return `${head}\n${extras || "(no notes)"}`;

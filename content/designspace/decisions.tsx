@@ -1,10 +1,12 @@
 /**
  * Decisions — the design, decomposed. Each decision is one or two axes of
- * options; a *version* is one option per axis. Options are layers on a 390×844
- * frame, so any set of choices composes into whole screens: the version at the
- * top of the page, and every thumbnail is that version with one option swapped.
+ * options; a *version* is one option per axis (a "set" decision keeps several).
+ * Options are layers on a 390×844 frame, so any set of choices composes into
+ * whole screens: the version at the top of the page, and every thumbnail is
+ * that version with one option swapped.
  */
 import type { ReactNode } from "react";
+import { AreaModel, LogLine, MultiplierChain } from "@/components/widgets";
 
 export const W = 390, H = 844;
 
@@ -15,17 +17,31 @@ export const STEPS: { id: Step; name: string; what: string; live: string }[] = [
   { id: "Summary", name: "Summary", what: "how a session ends", live: "/?demo=summary" },
 ];
 
+/** One worked miss, in every voice a screen might use — so a widget can be shown inside the real Miss screen. */
+export interface Sample {
+  item: string; wrong: string; answer: string;
+  sum: string; technique: string; tip: string;
+  l1: ReactNode; l2: string; l3: string; one: string; col: [string, string, string];
+  caption: string;
+  /** the picture as a mock, at a size */
+  pic: (h: number, w: number) => ReactNode;
+  /** the real, playable widget — only for the built ones */
+  live?: () => ReactNode;
+}
+
 export interface Option {
   id: string; name: string; note: string; current?: boolean;
   /** positioned content for the step's frame (Answering, Summary) */
   layer?: ReactNode;
-  /** Miss · voice: the words, at a size */
-  lines?: (size: number) => ReactNode;
-  /** Miss · placement: the whole screen composed around a voice */
-  compose?: (voice: Option) => ReactNode;
+  /** Miss · voice: the words, at a size, for a sample */
+  lines?: (size: number, s: Sample) => ReactNode;
+  /** Miss · placement: the whole screen composed around a voice and a sample */
+  compose?: (voice: Option, s: Sample) => ReactNode;
+  /** Widgets: the worked miss this picture explains, and the skills it serves */
+  sample?: Sample; serves?: string;
 }
 export interface Axis { id: string; name: string; options: Option[] }
-export interface Decision { id: string; name: string; step: Step; question: string; requirements: string[]; axes: Axis[] }
+export interface Decision { id: string; name: string; step: Step; question: string; requirements: string[]; axes: Axis[]; kind?: "one" | "set" }
 
 // ── frame + primitives ──────────────────────────────────────────────────────
 export const Frame = ({ children, bg = "bg-black", className = "" }: { children: ReactNode; bg?: string; className?: string }) => <div className={`w-[390px] h-[844px] ${bg} text-gray-100 relative overflow-hidden ${className}`}>{children}</div>;
@@ -35,6 +51,8 @@ const Key = ({ k, span = 1, rows = 1, dark = false, wide = false }: { k: string;
   <div className={`rounded-2xl flex items-center justify-center font-light ${dark ? "bg-gray-100 text-black" : "bg-[#141826] text-gray-100"} ${wide ? "text-[18px]" : "text-[24px]"}`} style={{ gridColumn: `span ${span}`, gridRow: `span ${rows}`, minHeight: 56 }}>{k}</div>
 );
 const Cursor = () => <span className="text-gray-600">|</span>;
+/** the real widgets are styled for the app's light/dark; inside a black frame, force the dark look */
+const Live = ({ children }: { children: ReactNode }) => <div className="text-gray-100 [&_b]:!text-gray-200 [&_.bg-gray-900]:!bg-gray-100 [&_.fill-gray-900]:!fill-gray-100">{children}</div>;
 
 // ── Question: how the item is presented (Answering) ─────────────────────────
 const QUESTION: Option[] = [
@@ -67,27 +85,77 @@ const KEYPAD: Option[] = [
   { id: "two-rows", name: "Two rows, huge keys", note: "digits 0–9 in two rows of five, e · / · . · ⌫ · ↵ on a third — biggest targets", layer: <div className="absolute bottom-[24px] inset-x-4 grid grid-cols-5 gap-2"><Key k="1" /><Key k="2" /><Key k="3" /><Key k="4" /><Key k="5" /><Key k="6" /><Key k="7" /><Key k="8" /><Key k="9" /><Key k="0" /><Key k="e" /><Key k="/" /><Key k="." /><Key k="⌫" wide /><Key k="↵" dark /></div> },
 ];
 
+// ── Samples: one worked miss per widget type ────────────────────────────────
+const U = ({ children }: { children: ReactNode }) => <span className="underline decoration-emerald-500 decoration-2">{children}</span>;
+const Bars = ({ rows, w }: { rows: [string, number, string][]; w: number }) => <div className="space-y-1.5 text-[11px] tabular-nums" style={{ width: w }}>{rows.map(([k, pct, v], i) => <div key={k} className="flex items-center gap-2"><span className="w-12 text-right text-gray-400 shrink-0">{k}</span><div className={`h-3 rounded-sm ${i === rows.length - 1 ? "bg-gray-100" : "bg-emerald-500/60"}`} style={{ width: `${pct}%` }} /><span className="text-gray-500 shrink-0">{v}</span></div>)}</div>;
+
+export const SAMPLE_AREA: Sample = {
+  item: "47 × 6", wrong: "242", answer: "282", sum: "40×6 + 7×6 = 240 + 42", technique: "split by place", tip: "Multiply the tens, multiply the ones, add.",
+  l1: <>40 sixes is <U>240</U>.</>, l2: "7 more sixes is 42.", l3: "282.", one: "Forty sixes, then seven more.", col: ["  240", "+  42", "  282"], caption: "240 + 42 = 282",
+  pic: (h, w) => <div className="flex" style={{ height: h, width: w }}><div className="bg-emerald-500/30 border border-emerald-500" style={{ width: "85%" }} /><div className="bg-sky-500/30 border border-sky-500" style={{ width: "15%" }} /></div>,
+  live: () => <AreaModel initialA={47} initialB={6} compact />,
+};
+const SAMPLE_CHAIN: Sample = {
+  item: "15% of 2.4 million", wrong: "36,000", answer: "360,000", sum: "10% = 240,000 · 5% = 120,000", technique: "ten percent, then half", tip: "Take 10%, then half of that, and add.",
+  l1: <>10% of 2.4 million is <U>240,000</U>.</>, l2: "5% is half of that: 120,000.", l3: "360,000.", one: "Ten percent, then half of it.", col: ["  240,000", "+ 120,000", "  360,000"], caption: "2,400,000 × 0.15 = 360,000",
+  pic: (_h, w) => <Bars w={w} rows={[["start", 100, "2,400,000"], ["×0.10", 10, "240,000"], ["+ half", 15, "360,000"]]} />,
+  live: () => <MultiplierChain initialBase={2400000} initialChanges={[-85]} compact />,
+};
+const SAMPLE_LOG: Sample = {
+  item: "60 million × 3 thousand", wrong: "18 million", answer: "180 billion", sum: "6×3 = 18 · 10⁷ × 10³ = 10¹⁰", technique: "digits, then zeros", tip: "Multiply the leading digits, then add the zeros.",
+  l1: <>6 × 3 is <U>18</U>.</>, l2: "7 zeros and 3 zeros make 10 zeros.", l3: "180 billion.", one: "Eighteen, then ten zeros.", col: ["  6 × 3 = 18", "  10⁷ × 10³ = 10¹⁰", "  1.8 × 10¹¹"], caption: "1.8 × 10¹¹ = 180 billion",
+  pic: (_h, w) => <div style={{ width: w }} className="pt-3"><div className="relative h-[6px] rounded bg-gray-800"><div className="absolute left-0 top-0 h-full rounded-l bg-emerald-500/70" style={{ width: "62%" }} /><div className="absolute top-0 h-full bg-sky-500/70" style={{ left: "62%", width: "26%" }} /><div className="absolute -top-[4px] w-[14px] h-[14px] rounded-full bg-gray-100" style={{ left: "88%" }} /></div><div className="flex justify-between text-[9px] text-gray-500 mt-1.5 tabular-nums"><span>1</span><span>thousand</span><span>million</span><span>billion</span><span>10¹²</span></div></div>,
+  live: () => <LogLine initialX={Math.log10(6e7)} initialY={Math.log10(3e3)} compact />,
+};
+const SAMPLE_STRIP: Sample = {
+  item: "3/8 as a percent", wrong: "30%", answer: "37.5%", sum: "1/8 = 12.5% · ×3", technique: "build from the unit fraction", tip: "Know the eighth; count three of them.",
+  l1: <>One eighth is <U>12.5%</U>.</>, l2: "Three of them: 37.5%.", l3: "37.5%.", one: "An eighth is twelve and a half.", col: ["  12.5", "×    3", "  37.5"], caption: "3 of 8 parts · 0.375 · 37.5%",
+  pic: (h, w) => <div className="grid grid-cols-8 gap-[2px]" style={{ height: h, width: w }}>{Array.from({ length: 8 }, (_, i) => <div key={i} className={`border ${i < 3 ? "bg-emerald-500/40 border-emerald-500" : "border-gray-700"}`} />)}</div>,
+};
+const SAMPLE_POINT: Sample = {
+  item: "0.0034 × 1000", wrong: "0.34", answer: "3.4", sum: "three places right", technique: "move the point", tip: "×1000 is three hops of the point to the right.",
+  l1: <>×1000 moves the point <U>three</U> places right.</>, l2: "0.0034 → 0.034 → 0.34 → 3.4.", l3: "3.4.", one: "Three hops to the right.", col: ["  0.0034", "× 1000", "  3.4"], caption: "0.0034 → 3.4",
+  pic: (_h, w) => <div style={{ width: w }} className="text-[26px] tabular-nums font-light"><div className="flex gap-1 items-end"><span>0</span><span className="text-emerald-400">.</span><span>0</span><span>0</span><span>3</span><span>4</span></div><div className="flex gap-1 items-end text-gray-500 mt-1"><span>0</span><span>0</span><span>0</span><span className="text-gray-100">3</span><span className="text-emerald-400">.</span><span className="text-gray-100">4</span></div><div className="text-[10px] text-emerald-400 mt-1 tracking-[0.3em]">→→→</div></div>,
+};
+const SAMPLE_GROUPS: Sample = {
+  item: "95 ÷ 7", wrong: "13", answer: "13 r 4", sum: "7 × 13 = 91 · 4 left", technique: "nearest multiple", tip: "Find the nearest multiple below, then count what's left.",
+  l1: <>7 × 13 is <U>91</U>.</>, l2: "4 are left over.", l3: "13 remainder 4.", one: "Ninety-one, then four left.", col: ["  91", "+  4", "  95"], caption: "13 groups of 7, and 4 left",
+  pic: (_h, w) => <div style={{ width: w }}><div className="grid gap-[3px]" style={{ gridTemplateColumns: "repeat(14, 1fr)" }}>{Array.from({ length: 98 }, (_, i) => { const col = i % 14; const isLeft = col === 13; const row = Math.floor(i / 14); if (isLeft && row >= 4) return <div key={i} />; return <div key={i} className={`aspect-square rounded-full ${isLeft ? "bg-sky-400" : "bg-emerald-500/70"}`} />; })}</div></div>,
+};
+
 // ── Miss: voice × placement (Feedback) ──────────────────────────────────────
-const AreaPic = ({ h = 60, w = 280 }: { h?: number; w?: number }) => <div className="flex" style={{ height: h, width: w }}><div className="bg-emerald-500/30 border border-emerald-500" style={{ width: "85%" }} /><div className="bg-sky-500/30 border border-sky-500" style={{ width: "15%" }} /></div>;
-const WidgetCard = ({ h = 200 }: { h?: number }) => <div className="rounded-xl border border-gray-700 p-3 w-full" style={{ height: h }}><div className="text-[10px] uppercase tracking-wide text-gray-500">play with it</div><div className="mt-2"><AreaPic h={Math.max(40, h - 90)} w={300} /></div><div className="text-[12px] text-gray-400 mt-2 tabular-nums">240 + 42 = 282</div></div>;
-const Head = () => <div className="px-8 pt-14 text-[13px] text-gray-500">47 × 6</div>;
+const Head = ({ s }: { s: Sample }) => <div className="px-8 pt-14 text-[13px] text-gray-500">{s.item}</div>;
 const NextBar = () => <div className="absolute inset-x-6 bottom-6 h-12 rounded-2xl bg-gray-100 text-black flex items-center justify-center text-2xl">→</div>;
+const Picture = ({ s, h, w, note }: { s: Sample; h: number; w: number; note?: string }) => s.live ? <Live>{s.live()}</Live> : <>{s.pic(h, w)}<div className="text-[12px] text-gray-400 mt-2 tabular-nums">{s.caption}{note ? ` · ${note}` : ""}</div></>;
+const WidgetCard = ({ s, h }: { s: Sample; h: number }) => <div className="rounded-xl border border-gray-700 p-3 w-full overflow-hidden" style={{ height: h }}><div className="text-[10px] uppercase tracking-wide text-gray-500 mb-2">play with it</div><Picture s={s} h={Math.max(40, h - 90)} w={300} /></div>;
 
 export const VOICES: Option[] = [
-  { id: "card", name: "Current card", note: "the answer, the sum, and a technique card — what is live", current: true, lines: () => <div><div className="text-[28px] font-light text-center">282</div><div className="text-[13px] text-gray-500 text-center mt-1">40×6 + 7×6 = 240 + 42</div><div className="mt-4 rounded-xl border border-gray-800 p-3 text-[12px]"><div className="text-[10px] uppercase tracking-wide text-gray-500">split by place</div><div className="mt-1">Multiply the tens, multiply the ones, add.</div></div></div> },
-  { id: "three", name: "Three sentences", note: "split, second part, total — a tutor's three lines", lines: (z) => <div className="space-y-5" style={Serif}><div style={{ fontSize: z }} className="leading-tight">40 sixes is <span className="underline decoration-emerald-500 decoration-2">240</span>.</div><div style={{ fontSize: z }} className="leading-tight text-gray-400">7 more sixes is 42.</div><div style={{ fontSize: z }} className="leading-tight text-gray-600">282.</div></div> },
-  { id: "one", name: "One sentence", note: "just the move; the arithmetic is yours", lines: (z) => <div style={{ ...Serif, fontSize: z }} className="leading-tight">Forty sixes, then seven more.</div> },
-  { id: "your-answer", name: "Your answer, then sentences", note: "what you said, struck, before the sentences — so the miss is named", lines: (z) => <div className="space-y-5" style={Serif}><div className="text-[20px] text-gray-600 line-through">242</div><div style={{ fontSize: z }} className="leading-tight">40 sixes is 240.</div><div style={{ fontSize: z }} className="leading-tight text-gray-400">7 more sixes is 42.</div><div style={{ fontSize: z }} className="leading-tight text-gray-600">282.</div></div> },
-  { id: "column", name: "Sentences + column", note: "the sentences with the digit-aligned sum beneath", lines: (z) => <div style={Serif}><div style={{ fontSize: z * 0.9 }} className="leading-tight">40 sixes is 240.</div><div style={{ fontSize: z * 0.9 }} className="leading-tight text-gray-400 mt-3">7 more sixes is 42.</div><div className="mt-5 text-[22px] leading-relaxed tabular-nums" style={Mono}><div className="text-gray-300">  240</div><div className="text-gray-300">+  42</div><div className="border-t border-gray-700 w-[100px]" /><div>  282</div></div></div> },
+  { id: "card", name: "Current card", note: "the answer, the sum, and a technique card — what is live", current: true, lines: (_z, s) => <div><div className="text-[28px] font-light text-center">{s.answer}</div><div className="text-[13px] text-gray-500 text-center mt-1">{s.sum}</div><div className="mt-4 rounded-xl border border-gray-800 p-3 text-[12px]"><div className="text-[10px] uppercase tracking-wide text-gray-500">{s.technique}</div><div className="mt-1">{s.tip}</div></div></div> },
+  { id: "three", name: "Three sentences", note: "split, second part, total — a tutor's three lines", lines: (z, s) => <div className="space-y-5" style={Serif}><div style={{ fontSize: z }} className="leading-tight">{s.l1}</div><div style={{ fontSize: z }} className="leading-tight text-gray-400">{s.l2}</div><div style={{ fontSize: z }} className="leading-tight text-gray-600">{s.l3}</div></div> },
+  { id: "one", name: "One sentence", note: "just the move; the arithmetic is yours", lines: (z, s) => <div style={{ ...Serif, fontSize: z }} className="leading-tight">{s.one}</div> },
+  { id: "your-answer", name: "Your answer, then sentences", note: "what you said, struck, before the sentences — so the miss is named", lines: (z, s) => <div className="space-y-5" style={Serif}><div className="text-[20px] text-gray-600 line-through">{s.wrong}</div><div style={{ fontSize: z }} className="leading-tight">{s.l1}</div><div style={{ fontSize: z }} className="leading-tight text-gray-400">{s.l2}</div><div style={{ fontSize: z }} className="leading-tight text-gray-600">{s.l3}</div></div> },
+  { id: "column", name: "Sentences + column", note: "the sentences with the digit-aligned sum beneath", lines: (z, s) => <div style={Serif}><div style={{ fontSize: z * 0.9 }} className="leading-tight">{s.l1}</div><div style={{ fontSize: z * 0.9 }} className="leading-tight text-gray-400 mt-3">{s.l2}</div><div className="mt-5 text-[22px] leading-relaxed tabular-nums whitespace-pre" style={Mono}><div className="text-gray-300">{s.col[0]}</div><div className="text-gray-300">{s.col[1]}</div><div className="border-t border-gray-700 w-[150px]" /><div>{s.col[2]}</div></div></div> },
 ];
 
 export const PLACEMENTS: Option[] = [
-  { id: "below", name: "Below the words", note: "words, then the widget card, then → — what is live", current: true, compose: (v) => <Frame><Head /><div className="px-8 mt-6">{v.lines!(28)}</div><div className="absolute inset-x-6 bottom-[110px]"><WidgetCard h={190} /></div><NextBar /></Frame> },
-  { id: "keypad-area", name: "In the keypad's place", note: "the top half stays exactly as it was; the widget takes the keypad's rectangle", compose: (v) => <Frame><Head /><div className="px-8 mt-6">{v.lines!(28)}</div><div className="absolute inset-x-0 bottom-0 h-[320px] border-t border-[#1c1c1c] px-6 pt-4"><AreaPic h={110} w={340} /><div className="text-[13px] text-gray-400 mt-3 tabular-nums">240 + 42 = 282 · drag the cut</div><NextBar /></div></Frame> },
-  { id: "swipe", name: "A swipe away", note: "feedback is text only; swiping left brings the widget in as a full panel", compose: (v) => <Frame><Head /><div className="px-8 mt-6">{v.lines!(32)}</div><div className="absolute right-0 top-[300px] bottom-[300px] w-[14px] rounded-l-xl bg-gray-800" /><div className="absolute bottom-10 inset-x-0 text-center text-[12px] text-gray-600">← the picture · tap to go on</div></Frame> },
-  { id: "inline", name: "Inline, under the step", note: "the area model sits directly beneath '40 sixes is 240', sized to that sentence", compose: (v) => <Frame><Head /><div className="px-8 mt-6"><div style={Serif}><div className="text-[28px] leading-tight">40 sixes is 240.</div><div className="mt-3"><AreaPic h={44} w={280} /></div><div className="text-[28px] leading-tight text-gray-400 mt-5">7 more sixes is 42.</div>{v.id === "one" ? null : <div className="text-[28px] leading-tight text-gray-600 mt-5">282.</div>}</div></div><div className="absolute bottom-10 inset-x-0 text-center text-[12px] text-gray-600">tap to go on</div></Frame> },
-  { id: "hidden", name: "Hidden until asked", note: "a single word — 'show me' — opens the widget; most misses never need it", compose: (v) => <Frame><Head /><div className="px-8 mt-6">{v.lines!(32)}</div><div className="absolute bottom-16 inset-x-0 text-center text-[14px] text-gray-500 underline decoration-gray-700">show me</div></Frame> },
+  { id: "below", name: "Below the words", note: "words, then the widget card, then → — what is live", current: true, compose: (v, s) => <Frame><Head s={s} /><div className="px-8 mt-6">{v.lines!(28, s)}</div><div className="absolute inset-x-6 bottom-[100px]"><WidgetCard s={s} h={236} /></div><NextBar /></Frame> },
+  { id: "keypad-area", name: "In the keypad's place", note: "the top half stays exactly as it was; the widget takes the keypad's rectangle", compose: (v, s) => <Frame><Head s={s} /><div className="px-8 mt-6">{v.lines!(28, s)}</div><div className="absolute inset-x-0 bottom-0 h-[330px] border-t border-[#1c1c1c] px-6 pt-4 overflow-hidden"><Picture s={s} h={110} w={340} note="drag the cut" /><NextBar /></div></Frame> },
+  { id: "swipe", name: "A swipe away", note: "feedback is text only; swiping left brings the widget in as a full panel", compose: (v, s) => <Frame><Head s={s} /><div className="px-8 mt-6">{v.lines!(32, s)}</div><div className="absolute right-0 top-[300px] bottom-[300px] w-[14px] rounded-l-xl bg-gray-800" /><div className="absolute bottom-10 inset-x-0 text-center text-[12px] text-gray-600">← the picture · tap to go on</div></Frame> },
+  { id: "inline", name: "Inline, under the step", note: "the picture sits directly beneath the first sentence, sized to it", compose: (v, s) => <Frame><Head s={s} /><div className="px-8 mt-6"><div style={Serif}><div className="text-[28px] leading-tight">{s.l1}</div><div className="mt-3">{s.pic(44, 280)}</div><div className="text-[28px] leading-tight text-gray-400 mt-5">{s.l2}</div>{v.id === "one" ? null : <div className="text-[28px] leading-tight text-gray-600 mt-5">{s.l3}</div>}</div></div><div className="absolute bottom-10 inset-x-0 text-center text-[12px] text-gray-600">tap to go on</div></Frame> },
+  { id: "hidden", name: "Hidden until asked", note: "a single word — 'show me' — opens the widget; most misses never need it", compose: (v, s) => <Frame><Head s={s} /><div className="px-8 mt-6">{v.lines!(32, s)}</div><div className="absolute bottom-16 inset-x-0 text-center text-[14px] text-gray-500 underline decoration-gray-700">show me</div></Frame> },
 ];
+
+// ── Widgets: the pictures we build with (a set, not a choice) ───────────────
+const WIDGETS: Option[] = [
+  { id: "area", name: "Area model", current: true, note: "a rectangle cut at the tens — drag the cut and the two products re-count. Built.", serves: "times tables past 12 · squares from 12² · split-by-place multiplication (ar.split)", sample: SAMPLE_AREA },
+  { id: "chain", name: "Multiplier chain", current: true, note: "each percent change is a bar and a ×factor; the chain shows the net. Built.", serves: "percent of / up / down (pct.apply, pct.find, pct.reverse, pct.chain) · percent of big numbers (co.pctbig) · chained changes (co.chainbig) · growth (co.growth)", sample: SAMPLE_CHAIN },
+  { id: "log", name: "Log number line", current: true, note: "a log-scale line from 1 to 10¹²; multiplying is laying two lengths end to end. Built.", serves: "magnitude multiplication (mag.mul) only — should also carry sn.* reading and mag.div", sample: SAMPLE_LOG },
+  { id: "strip", name: "Fraction strip", note: "one bar in n parts, k shaded; the same bar read as a fraction, a decimal, a percent. Proposed.", serves: "all of fractions (fr.unit … fr.fromdec) · decimal ↔ percent (dec.pct) · percent anchors (pct.anchor, pct.what)", sample: SAMPLE_STRIP },
+  { id: "point", name: "Place-value slider", note: "the digits stay put; the point hops. ×10 and ÷10 as motion, not rules. Proposed.", serves: "zeros and powers of ten (pv.zeros, exp.add, exp.sub) · decimal scaling (dec.scale, dec.ops) · normalizing sci-notation (sn.norm)", sample: SAMPLE_POINT },
+  { id: "groups", name: "Sharing array", note: "dots in columns of the divisor; what doesn't fill a column is the remainder. Proposed.", serves: "division facts and remainders (ar.divfacts, ar.rem) · per-capita and unit price (co.percap, co.unitprice)", sample: SAMPLE_GROUPS },
+];
+/** skills with no picture today, by family — the reason the proposed widgets exist */
+export const NO_PICTURE = "fractions (fr.*) · decimals (dec.*) · place value & exponents (pv.zeros, exp.*, coef.mul) · scientific notation (sn.*) · division & remainders (ar.divfacts, ar.rem) · doubling (ar.double, co.double) · percent anchors (pct.anchor, pct.compose, pct.what) · mag.div · co.fracsci, co.compare";
 
 // ── Summary: how a session ends ─────────────────────────────────────────────
 const Center = ({ children }: { children: ReactNode }) => <div className="absolute inset-0 flex items-center justify-center">{children}</div>;
@@ -104,6 +172,7 @@ export const DECISIONS: Decision[] = [
   { id: "keypad", name: "Keypad", step: "Answering", question: "How is input organized?", requirements: ["digits 0–9, decimal point, backspace, submit", "an e key (scientific notation) and a fraction line / — both reachable without a mode switch", "one-handed on a phone; no native keyboard"], axes: [{ id: "layout", name: "layout", options: KEYPAD }] },
   { id: "timer", name: "Timer", step: "Answering", question: "Where does time live?", requirements: ["freezes from submit to the next item", "never punishes reading"], axes: [{ id: "place", name: "place", options: TIMER }] },
   { id: "miss", name: "Miss screen", step: "Miss", question: "How does a miss speak, and where does the picture go?", requirements: ["says what was asked, what's right, and the move — in that order", "specific to these numbers, never a canned example", "the picture is seeded with this item's numbers; touching it never advances", "the keypad is gone while feedback is up; → goes on"], axes: [{ id: "voice", name: "voice", options: VOICES }, { id: "placement", name: "placement", options: PLACEMENTS }] },
+  { id: "widgets", name: "Widgets", step: "Miss", kind: "set", question: "Which pictures do we build with, and for which skills?", requirements: ["one picture per miss, seeded with the item's own numbers (lib/widgetSeed.ts maps item → widget)", "the picture is the working, not decoration: dragging it re-counts the numbers", "every skill family has a picture, or we say it doesn't need one"], axes: [{ id: "types", name: "types", options: WIDGETS }] },
   { id: "summary", name: "Summary", step: "Summary", question: "How does a session end?", requirements: ["one number you'd remember", "a way to go again without a menu"], axes: [{ id: "shape", name: "shape", options: SUMMARY }] },
 ];
 
@@ -111,8 +180,8 @@ export const decisionById = (id: string) => DECISIONS.find((d) => d.id === id)!;
 export const firstAxis = (d: Decision) => d.axes[0].id;
 
 /** One option per axis → the whole screen for a step. `pick(decisionId, axisId?)` answers with the chosen option. */
-export function composeStep(step: Step, pick: (decisionId: string, axisId?: string) => Option): ReactNode {
+export function composeStep(step: Step, pick: (decisionId: string, axisId?: string) => Option, sample: Sample = SAMPLE_AREA): ReactNode {
   if (step === "Answering") return <Frame>{pick("timer").layer}{pick("question").layer}{pick("keypad").layer}</Frame>;
-  if (step === "Miss") return pick("miss", "placement").compose!(pick("miss", "voice"));
+  if (step === "Miss") return pick("miss", "placement").compose!(pick("miss", "voice"), sample);
   return <Frame>{pick("summary").layer}</Frame>;
 }
