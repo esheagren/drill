@@ -1,5 +1,6 @@
 /** What shipped, keyed to screens — so the wall reflects terminal work. Newest first. Claude appends on each ship. */
 export const CHANGES: { date: string; screen: string; what: string; pr: number }[] = [
+  { date: "2026-09-02", screen: "designspace", what: "Screens: Phone / Laptop toggle", pr: 59 },
   { date: "2026-09-02", screen: "designspace", what: "Copy feedback: this note · this screen · everything, as one paste-ready block", pr: 58 },
   { date: "2026-09-02", screen: "designspace", what: "Screens wall: sticky component rail, notes pinned to screens and components, click-to-copy handles, Changes feed", pr: 57 },
   { date: "2026-09-02", screen: "designspace", what: "Components as annotated real screens (auto-measured callouts)", pr: 55 },

@@ -36,10 +36,14 @@ const SCREENS: Screen[] = [
   { id: "V11", title: "Overlay · Profile", src: "/?demo=profile", scroll: 200, wait: 1500 },
 ];
 
-const W = 390, H = 844;
+const DEVICES = { phone: { w: 390, h: 844, label: "Phone" }, laptop: { w: 1440, h: 900, label: "Laptop" } } as const;
+type Device = keyof typeof DEVICES;
 
 export default function Screens() {
   const [active, setActive] = useState("V1");
+  const [device, setDevice] = useState<Device>("phone");
+  useEffect(() => { try { const d = localStorage.getItem("ds:device") as Device | null; if (d && DEVICES[d]) setDevice(d); } catch {} }, []);
+  const pick = (d: Device) => { setDevice(d); try { localStorage.setItem("ds:device", d); } catch {} };
   useEffect(() => {
     const io = new IntersectionObserver((es) => { for (const e of es) if (e.isIntersecting) setActive((e.target as HTMLElement).id); }, { rootMargin: "-40% 0px -55% 0px" });
     document.querySelectorAll("section[data-screen]").forEach((el) => io.observe(el));
@@ -48,13 +52,20 @@ export default function Screens() {
   return (
     <div className="grid grid-cols-[120px_1fr] gap-8">
       <nav className="sticky top-16 self-start text-[12px] space-y-0.5 max-h-[80vh] overflow-y-auto">
-        <div className="mb-3"><CopyFeedback prefix="" scope="everything" label="copy all feedback" className="w-full text-left" /></div>
+        <div className="mb-3 space-y-2">
+          <div className="flex rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden text-[11px]">
+            {(Object.keys(DEVICES) as Device[]).map((d) => (
+              <button key={d} onClick={() => pick(d)} className={`flex-1 py-1 ${device === d ? "bg-gray-900 text-white dark:bg-gray-100 dark:text-black" : "text-gray-500"}`}>{DEVICES[d].label}</button>
+            ))}
+          </div>
+          <CopyFeedback prefix="" scope="everything" label="copy all feedback" className="w-full text-left" />
+        </div>
         {SCREENS.map((s) => (
           <a key={s.id} href={`#${s.id}`} className={`block px-2 py-1 rounded-md ${active === s.id ? "bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100" : "text-gray-500"}`}><span className="font-mono">{s.id}</span> <span className="text-gray-400">{s.title}</span></a>
         ))}
       </nav>
       <div className="space-y-20">
-        {SCREENS.map((s) => <ScreenBlock key={s.id} {...s} />)}
+        {SCREENS.map((s) => <ScreenBlock key={`${s.id}-${device}`} {...s} W={DEVICES[device].w} H={DEVICES[device].h} />)}
       </div>
     </div>
   );
@@ -62,7 +73,8 @@ export default function Screens() {
 
 interface Box { name: string; x: number; y: number; w: number; h: number }
 
-function ScreenBlock({ id, title, src, scroll = 0, wait = 900, note }: Screen) {
+function ScreenBlock({ id, title, src, scroll = 0, wait = 900, note, W, H }: Screen & { W: number; H: number }) {
+  const phone = W < 600;
   const wrap = useRef<HTMLDivElement>(null);
   const frame = useRef<HTMLIFrameElement>(null);
   const [k, setK] = useState(0.8);
@@ -73,7 +85,7 @@ function ScreenBlock({ id, title, src, scroll = 0, wait = 900, note }: Screen) {
     const el = wrap.current; if (!el) return;
     const ro = new ResizeObserver(() => setK(el.clientWidth / W)); ro.observe(el); setK(el.clientWidth / W);
     return () => ro.disconnect();
-  }, []);
+  }, [W]);
 
   const measure = () => {
     const f = frame.current; const doc = f?.contentDocument; const win = f?.contentWindow; if (!doc || !win) return;
@@ -100,7 +112,7 @@ function ScreenBlock({ id, title, src, scroll = 0, wait = 900, note }: Screen) {
         <h2 className="text-lg font-light">{title}</h2>
         {note && <span className="text-[12px] text-gray-500">{note}</span>}
       </div>
-      <div className="grid lg:grid-cols-[200px_minmax(240px,340px)_1fr] gap-6 items-start">
+      <div className={`grid gap-6 items-start ${phone ? "lg:grid-cols-[200px_minmax(240px,340px)_1fr]" : "lg:grid-cols-[200px_1fr_260px]"}`}>
         <ol className="lg:sticky lg:top-16 space-y-1 text-[12px]">
           {boxes.length === 0 && <li className="text-gray-400">measuring…</li>}
           {boxes.map((b, i) => (
@@ -113,7 +125,7 @@ function ScreenBlock({ id, title, src, scroll = 0, wait = 900, note }: Screen) {
             </li>
           ))}
         </ol>
-        <div ref={wrap} className="w-full rounded-[22px] border border-gray-300 dark:border-gray-700 overflow-hidden bg-black relative" style={{ height: H * k }}>
+        <div ref={wrap} className={`w-full ${phone ? "rounded-[22px]" : "rounded-lg"} border border-gray-300 dark:border-gray-700 overflow-hidden bg-black relative`} style={{ height: H * k }}>
           <div style={{ width: W, height: H, transform: `scale(${k})`, transformOrigin: "top left" }}>
             <iframe ref={frame} src={src} title={`${id} ${title}`} width={W} height={H} style={{ border: 0, display: "block", background: "black" }} onLoad={() => setTimeout(measure, wait)} />
             <div className="absolute inset-0 pointer-events-none">
