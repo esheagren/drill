@@ -20,7 +20,8 @@ export default function DsRoom() {
         <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1.5 mb-8 font-mono text-[13px]">
           <li>“D-keypad: options for a left-handed layout, and one with e and / as long-press”</li>
           <li>“read my notes on the Screens wall and do the ones marked !”</li>
-          <li>“build the spec” — implement the starred option of every decision</li>
+          <li>“build the version” — implement what the Decisions page shows at the top</li>
+          <li>“D-timer: redesign” with the brief pasted — work on one decision</li>
           <li>“promote I-3 to the app”</li>
           <li>“what changed on V1 since Tuesday?”</li>
         </ul>
@@ -29,7 +30,7 @@ export default function DsRoom() {
         <div className="grid sm:grid-cols-2 gap-3">
           {[
             ["/designspace/screens", "Screens", "The wall. Every view, live, with components called out and notes pinned."],
-            ["/designspace/decisions", "Decisions", "The design decomposed: per decision, requirements, what's live, and options to star or prune. The stars are the spec."],
+            ["/designspace/decisions", "Decisions", "The version at the top, composed from what's starred. Below it the decisions by status: working on, later, decided."],
             ["/designspace/ideas", "Ideas", "Dated mockups of specific interactions, on their way to the app."],
             ["/designspace/principles", "Principles", "What we hold the work to."],
           ].map(([href, t, d]) => (

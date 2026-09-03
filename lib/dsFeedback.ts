@@ -4,8 +4,10 @@ export interface NoteRow { page: string; text: string; updated_at?: string }
 export function formatFeedback(rows: NoteRow[], scope: string): string {
   const reacts = rows.filter((r) => r.page.startsWith("↕ ") && r.text.trim());
   const starred = rows.filter((r) => r.page.startsWith("★ ") && r.text.trim());
-  const live = rows.filter((r) => r.text.trim() && !r.page.startsWith("↕ ") && !r.page.startsWith("★ "));
+  const status = rows.filter((r) => r.page.startsWith("status ") && r.text.trim());
+  const live = rows.filter((r) => r.text.trim() && !/^(↕ |★ |status |order )/.test(r.page));
   const extras = [
+    status.length ? `## decisions\n${["decided", "later"].map((v) => { const ids = status.filter((r) => r.text === v).map((r) => r.page.slice(7)); return ids.length ? `${v}: ${ids.join(", ")}` : null; }).filter(Boolean).join("\n")}` : null,
     reacts.length ? `## reactions\n${["yes", "maybe", "no"].map((v) => { const ids = reacts.filter((r) => r.text === v).map((r) => r.page.slice(2)); return ids.length ? `${v}: ${ids.join(", ")}` : null; }).filter(Boolean).join("\n")}` : null,
     starred.length ? `## starred\n${starred.map((r) => r.page.slice(2)).join(", ")}` : null,
   ].filter(Boolean).join("\n\n");
