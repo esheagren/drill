@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import DsNotes from "@/components/DsNotes";
 import Handle from "@/components/DsHandle";
 import { Star, useStars } from "@/components/DsStar";
+import { React3, useReactions } from "@/components/DsReact";
 import { DIRECTIONS, STEPS, type Direction, type Step, type Variant } from "@/content/designspace/galaxy";
 
 const W = 390, H = 844;
@@ -33,6 +34,8 @@ type Open = { title: string; sub: string; handle: string; cell?: ReactNode; src?
 
 export default function GalaxyBrain() {
   const { stars, toggle } = useStars();
+  const { reactions, set: react } = useReactions();
+  const [showNo, setShowNo] = useState(false);
   const [width, setWidth] = useState(150);
   const [dial, setDial] = useState<string>("quiet");
   const [step, setStep] = useState<Step>("Practice");
@@ -57,7 +60,8 @@ export default function GalaxyBrain() {
       <div className="sticky top-11 z-[5] -mx-5 px-5 py-2 bg-white/90 dark:bg-black/90 backdrop-blur border-b border-gray-100 dark:border-gray-900 flex flex-wrap items-center gap-4 text-[12px]">
         <h1 className="text-lg font-light tracking-tight mr-2">Galaxy Brain</h1>
         <label className="flex items-center gap-2 text-gray-500">size<input type="range" min={100} max={300} step={5} value={width} onChange={(e) => setW(+e.target.value)} className="w-28 accent-gray-500" /></label>
-        <span className="text-gray-400 ml-auto">{DIRECTIONS.length} directions · {stars.size} starred · click for full size · s to star</span>
+        <label className="flex items-center gap-1.5 text-gray-500"><input type="checkbox" checked={showNo} onChange={(e) => setShowNo(e.target.checked)} className="accent-gray-500" />show the no&apos;s</label>
+        <span className="text-gray-400 ml-auto">{DIRECTIONS.length} directions · {stars.size} starred · {Object.values(reactions).filter((v) => v === "no").length} no · click for full size · s to star</span>
       </div>
 
       {/* 1 · Directions, complete across the flow */}
@@ -65,10 +69,19 @@ export default function GalaxyBrain() {
         <div className="flex items-baseline gap-3 mb-3"><h2 className="text-sm">Directions</h2><span className="text-[11px] text-gray-500">whole languages, each across the flow — judged against Current</span></div>
         <div className="grid" style={{ gridTemplateColumns: `220px repeat(5, ${width}px)`, columnGap: 12, rowGap: 20 }}>
           <div />{STEPS.map((s) => <div key={s} className="text-[11px] text-gray-400">{s}</div>)}
-          {DIRECTIONS.map((dd) => (
+          {DIRECTIONS.map((dd) => {
+            const rx = reactions[`G-${dd.id}`];
+            if (rx === "no" && !showNo) return (
+              <div key={dd.id} className="contents">
+                <div className="pr-4 py-1 flex items-center gap-2 text-[12px] text-gray-400 line-through"><Handle id={`G-${dd.id}`} /><span>{dd.name}</span><span className="no-underline"><React3 id={`G-${dd.id}`} reactions={reactions} set={react} size="xs" /></span></div>
+                <div className="col-span-5 self-center border-t border-dashed border-gray-200 dark:border-gray-800" />
+              </div>
+            );
+            return (
             <div key={dd.id} className="contents">
               <div className="pr-4 pt-1">
                 <div className="flex items-center gap-2"><Handle id={`G-${dd.id}`} /><span className="text-sm">{dd.name}</span></div>
+                <div className="mt-1.5"><React3 id={`G-${dd.id}`} reactions={reactions} set={react} /></div>
                 <p className="text-[11px] text-gray-500 mt-1.5 leading-snug">{dd.what}</p>
                 {dd.variants && <button onClick={() => { setDial(dd.id); setStep(stepsWithVariants[0] ?? "Practice"); document.getElementById("dial")?.scrollIntoView({ behavior: "smooth" }); }} className="mt-2 text-[11px] px-2 py-1 rounded-md border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:border-gray-400">dial in ↓</button>}
               </div>
@@ -84,7 +97,8 @@ export default function GalaxyBrain() {
                 );
               })}
             </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -93,7 +107,7 @@ export default function GalaxyBrain() {
         <div className="flex flex-wrap items-baseline gap-3 mb-3">
           <h2 className="text-sm">Dial in</h2>
           <select value={dial} onChange={(e) => setDial(e.target.value)} className="bg-transparent border border-gray-200 dark:border-gray-800 rounded-lg px-2 py-0.5 text-[12px]">
-            {DIRECTIONS.filter((x) => x.variants).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+            {DIRECTIONS.filter((x) => x.variants && reactions[`G-${x.id}`] !== "no").map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
           </select>
           <div className="flex rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden text-[11px]">
             {STEPS.map((s) => <button key={s} disabled={!(d.variants?.[s] ?? []).length} onClick={() => setStep(s)} className={`px-2.5 py-1 disabled:opacity-30 ${step === s ? "bg-gray-900 text-white dark:bg-gray-100 dark:text-black" : "text-gray-500"}`}>{s}</button>)}
@@ -108,6 +122,7 @@ export default function GalaxyBrain() {
                 <div key={v.id} style={{ width }}>
                   <Thumb width={width} active={stars.has(id)} onClick={() => setOpen({ title: `${d.name} · ${v.name}`, sub: `${step} — ${v.note}`, handle: id, cell: v.cell })}>{v.cell}</Thumb>
                   <div className="flex items-start justify-between gap-2 mt-1"><div className="min-w-0"><div className="text-[11px] truncate">{v.name}</div><div className="text-[10px] text-gray-500 leading-snug">{v.note}</div></div><Star id={id} stars={stars} toggle={toggle} size={14} /></div>
+                  <div className="mt-1"><React3 id={id} reactions={reactions} set={react} size="xs" /></div>
                 </div>
               );
             })}
