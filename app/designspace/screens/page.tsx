@@ -73,6 +73,23 @@ export default function Screens() {
 
 interface Box { name: string; x: number; y: number; w: number; h: number }
 
+function ComponentRail({ boxes, id, hover, setHover, vertical = false }: { boxes: Box[]; id: string; hover: string | null; setHover: (v: string | null) => void; vertical?: boolean }) {
+  return (
+    <ol className={vertical ? "lg:sticky lg:top-16 space-y-1 text-[12px]" : "flex flex-wrap gap-x-4 gap-y-1.5 text-[12px] sticky top-11 z-[5] py-2 bg-white/90 dark:bg-black/90 backdrop-blur"}>
+      {boxes.length === 0 && <li className="text-gray-400">measuring…</li>}
+      {boxes.map((b, i) => (
+        <li key={b.name} onMouseEnter={() => setHover(b.name)} onMouseLeave={() => setHover(null)} className={`flex items-start gap-2 rounded-md px-1 py-0.5 -mx-1 ${hover === b.name ? "bg-amber-500/10" : ""}`}>
+          <span className="w-5 h-5 rounded-full bg-amber-500 text-black text-[11px] font-semibold flex items-center justify-center shrink-0">{i + 1}</span>
+          <div className="min-w-0">
+            <Handle id={`${id} › ${b.name}`}>{b.name}</Handle>
+            {vertical && <div className="text-[10px] text-gray-400 font-mono truncate">{FILES[b.name] ?? ""}</div>}
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 function ScreenBlock({ id, title, src, scroll = 0, wait = 900, note, W, H }: Screen & { W: number; H: number }) {
   const phone = W < 600;
   const wrap = useRef<HTMLDivElement>(null);
@@ -83,7 +100,7 @@ function ScreenBlock({ id, title, src, scroll = 0, wait = 900, note, W, H }: Scr
 
   useEffect(() => {
     const el = wrap.current; if (!el) return;
-    const ro = new ResizeObserver(() => setK(el.clientWidth / W)); ro.observe(el); setK(el.clientWidth / W);
+    const ro = new ResizeObserver(() => setK(Math.min(1, el.clientWidth / W))); ro.observe(el); setK(Math.min(1, el.clientWidth / W));
     return () => ro.disconnect();
   }, [W]);
 
@@ -105,6 +122,22 @@ function ScreenBlock({ id, title, src, scroll = 0, wait = 900, note, W, H }: Scr
     }, 150);
   };
 
+  const Frame = () => (
+    <div ref={wrap} className={`w-full ${phone ? "rounded-[22px]" : "rounded-lg"} border border-gray-300 dark:border-gray-700 overflow-hidden bg-black relative`} style={{ height: H * k, maxWidth: W }}>
+      <div style={{ width: W, height: H, transform: `scale(${k})`, transformOrigin: "top left" }}>
+        <iframe ref={frame} src={src} title={`${id} ${title}`} width={W} height={H} style={{ border: 0, display: "block", background: "black" }} onLoad={() => setTimeout(measure, wait)} />
+        <div className="absolute inset-0 pointer-events-none">
+          {boxes.map((b, i) => (
+            <div key={b.name} style={{ opacity: hover && hover !== b.name ? 0.25 : 1 }}>
+              <div className="absolute rounded-md" style={{ left: b.x, top: b.y, width: b.w, height: b.h, outline: `${hover === b.name ? 3 : 2}px solid #f59e0b`, outlineOffset: 2 }} />
+              <div className="absolute w-6 h-6 rounded-full bg-amber-500 text-black text-[13px] font-semibold flex items-center justify-center" style={{ left: b.x + b.w - 12, top: b.y - 12 }}>{i + 1}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <section id={id} data-screen className="scroll-mt-20">
       <div className="flex items-baseline gap-3 mb-3">
@@ -112,37 +145,28 @@ function ScreenBlock({ id, title, src, scroll = 0, wait = 900, note, W, H }: Scr
         <h2 className="text-lg font-light">{title}</h2>
         {note && <span className="text-[12px] text-gray-500">{note}</span>}
       </div>
-      <div className={`grid gap-6 items-start ${phone ? "lg:grid-cols-[200px_minmax(240px,340px)_1fr]" : "lg:grid-cols-[200px_1fr_260px]"}`}>
-        <ol className="lg:sticky lg:top-16 space-y-1 text-[12px]">
-          {boxes.length === 0 && <li className="text-gray-400">measuring…</li>}
-          {boxes.map((b, i) => (
-            <li key={b.name} onMouseEnter={() => setHover(b.name)} onMouseLeave={() => setHover(null)} className={`flex items-start gap-2 rounded-md px-1 py-0.5 -mx-1 ${hover === b.name ? "bg-amber-500/10" : ""}`}>
-              <span className="w-5 h-5 rounded-full bg-amber-500 text-black text-[11px] font-semibold flex items-center justify-center shrink-0">{i + 1}</span>
-              <div className="min-w-0">
-                <Handle id={`${id} › ${b.name}`}>{b.name}</Handle>
-                <div className="text-[10px] text-gray-400 font-mono truncate">{FILES[b.name] ?? ""}</div>
-              </div>
-            </li>
-          ))}
-        </ol>
-        <div ref={wrap} className={`w-full ${phone ? "rounded-[22px]" : "rounded-lg"} border border-gray-300 dark:border-gray-700 overflow-hidden bg-black relative`} style={{ height: H * k }}>
-          <div style={{ width: W, height: H, transform: `scale(${k})`, transformOrigin: "top left" }}>
-            <iframe ref={frame} src={src} title={`${id} ${title}`} width={W} height={H} style={{ border: 0, display: "block", background: "black" }} onLoad={() => setTimeout(measure, wait)} />
-            <div className="absolute inset-0 pointer-events-none">
-              {boxes.map((b, i) => (
-                <div key={b.name} style={{ opacity: hover && hover !== b.name ? 0.25 : 1 }}>
-                  <div className="absolute rounded-md" style={{ left: b.x, top: b.y, width: b.w, height: b.h, outline: `${hover === b.name ? 3 : 2}px solid #f59e0b`, outlineOffset: 2 }} />
-                  <div className="absolute w-6 h-6 rounded-full bg-amber-500 text-black text-[13px] font-semibold flex items-center justify-center" style={{ left: b.x + b.w - 12, top: b.y - 12 }}>{i + 1}</div>
-                </div>
-              ))}
+      {phone ? (
+        <div className="grid gap-6 items-start lg:grid-cols-[200px_minmax(240px,340px)_1fr]">
+          <ComponentRail boxes={boxes} id={id} hover={hover} setHover={setHover} vertical />
+          <Frame />
+          <div className="lg:sticky lg:top-16">
+            <div className="text-[11px] uppercase tracking-wide text-gray-400 mb-2">notes on {id}</div>
+            <PinnedNotes screen={id} components={boxes.map((b) => b.name)} />
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <ComponentRail boxes={boxes} id={id} hover={hover} setHover={setHover} />
+          <Frame />
+          <div className="grid lg:grid-cols-[1fr_minmax(320px,420px)] gap-6 items-start">
+            <div className="text-[12px] text-gray-500">{note}</div>
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-gray-400 mb-2">notes on {id}</div>
+              <PinnedNotes screen={id} components={boxes.map((b) => b.name)} />
             </div>
           </div>
         </div>
-        <div className="lg:sticky lg:top-16">
-          <div className="text-[11px] uppercase tracking-wide text-gray-400 mb-2">notes on {id}</div>
-          <PinnedNotes screen={id} components={boxes.map((b) => b.name)} />
-        </div>
-      </div>
+      )}
     </section>
   );
 }
