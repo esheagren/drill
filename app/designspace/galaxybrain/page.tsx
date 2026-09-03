@@ -1,100 +1,160 @@
 "use client";
 
 /**
- * Galaxy Brain — a board. Columns: the flow. Rows: directions (whole design
- * languages, each from a named seed). Star cells; play a direction end to end;
- * your stars compose a flow at the top. Divergence lives here; convergence
- * (specific changes to the current design) lives in Ideas.
+ * Galaxy Brain — a contact sheet. By step: every direction's take on one step,
+ * side by side, small and honest; click for full size. By direction: one
+ * language read across the flow. Stars narrow the funnel; your stars compose
+ * a flow. Divergence lives here; convergence lives in Ideas.
  */
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import DsNotes from "@/components/DsNotes";
 import Handle from "@/components/DsHandle";
-import PhoneFrame from "@/components/PhoneFrame";
 import { Star, useStars } from "@/components/DsStar";
 import { DIRECTIONS, STEPS, type Direction, type Step } from "@/content/designspace/galaxy";
 
+const W = 390, H = 844;
 const cellId = (d: Direction, s: Step) => `G-${d.id}/${s}`;
+
+/** A phone-size mock scaled to a fixed thumbnail width (no ResizeObserver — hundreds of these). */
+function Thumb({ children, width, onClick, active }: { children: ReactNode; width: number; onClick?: () => void; active?: boolean }) {
+  const k = width / W;
+  return (
+    <div onClick={onClick} className={`overflow-hidden bg-black cursor-zoom-in ${active ? "ring-2 ring-amber-400" : "ring-1 ring-gray-300 dark:ring-gray-800 hover:ring-gray-500"}`} style={{ width, height: H * k, borderRadius: Math.max(6, 22 * k) }}>
+      <div style={{ width: W, height: H, transform: `scale(${k})`, transformOrigin: "top left", pointerEvents: "none" }}>{children}</div>
+    </div>
+  );
+}
+
+const Ghost = ({ width, children }: { width: number; children?: ReactNode }) => (
+  <div className="border border-dashed border-gray-200 dark:border-gray-800 flex items-center justify-center text-[10px] text-gray-400 text-center px-2" style={{ width, height: (H * width) / W, borderRadius: Math.max(6, (22 * width) / W) }}>{children}</div>
+);
 
 export default function GalaxyBrain() {
   const { stars, toggle } = useStars();
-  const [play, setPlay] = useState<{ d: Direction; i: number } | null>(null);
-  const composed = STEPS.map((s) => DIRECTIONS.find((d) => stars.has(cellId(d, s)) && d.cells[s]) ?? null);
-  const anyStars = composed.some(Boolean);
+  const [lens, setLens] = useState<"step" | "direction">("step");
+  const [width, setWidth] = useState(132);
+  const [onlyStars, setOnlyStars] = useState(false);
+  const [open, setOpen] = useState<{ d: Direction; s: Step } | null>(null);
 
+  useEffect(() => { try { const w = +(localStorage.getItem("ds:thumb") ?? ""); if (w) setWidth(w); const l = localStorage.getItem("ds:lens"); if (l === "step" || l === "direction") setLens(l); } catch {} }, []);
+  const setW = (w: number) => { setWidth(w); try { localStorage.setItem("ds:thumb", String(w)); } catch {} };
+  const setL = (l: "step" | "direction") => { setLens(l); try { localStorage.setItem("ds:lens", l); } catch {} };
+
+  const composed = useMemo(() => STEPS.map((s) => DIRECTIONS.find((d) => stars.has(cellId(d, s)) && d.cells[s]) ?? null), [stars]);
+
+  // lightbox navigation: within the same step (by step) or along the flow (by direction)
   useEffect(() => {
-    if (!play) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setPlay(null); if (e.key === "ArrowRight") setPlay((p) => p && { ...p, i: Math.min(STEPS.length - 1, p.i + 1) }); if (e.key === "ArrowLeft") setPlay((p) => p && { ...p, i: Math.max(0, p.i - 1) }); };
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(null);
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        const dir = e.key === "ArrowRight" ? 1 : -1;
+        setOpen((o) => {
+          if (!o) return o;
+          if (lens === "step") { const ds = DIRECTIONS.filter((d) => d.cells[o.s]); const i = ds.findIndex((d) => d.id === o.d.id); return { d: ds[(i + dir + ds.length) % ds.length], s: o.s }; }
+          const i = STEPS.indexOf(o.s); const s = STEPS[Math.min(STEPS.length - 1, Math.max(0, i + dir))]; return { d: o.d, s };
+        });
+      }
+      if (e.key === "s" && open) toggle(cellId(open.d, open.s));
+    };
     window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey);
-  }, [play]);
+  }, [open, lens, toggle]);
+
+  const visible = (d: Direction, s: Step) => !onlyStars || stars.has(cellId(d, s));
 
   return (
     <div>
-      <h1 className="text-2xl font-light tracking-tight">Galaxy Brain</h1>
-      <p className="text-sm text-gray-500 mt-1 mb-2 max-w-prose">Across: the flow. Down: directions — whole languages, not screens, each grown from a named seed. Star what has something in it. Play a row to walk its flow. Your stars compose a flow at the top.</p>
-      <p className="text-[12px] text-gray-400 mb-8 max-w-prose">Screens = what exists · Galaxy Brain = whole languages · Ideas = specific changes to the current design. A direction moves to Ideas when it&apos;s worth dialing in.</p>
+      {/* toolbar */}
+      <div className="sticky top-11 z-[5] -mx-5 px-5 py-2 bg-white/90 dark:bg-black/90 backdrop-blur border-b border-gray-100 dark:border-gray-900 flex flex-wrap items-center gap-4 text-[12px]">
+        <h1 className="text-lg font-light tracking-tight mr-2">Galaxy Brain</h1>
+        <div className="flex rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+          {(["step", "direction"] as const).map((l) => <button key={l} onClick={() => setL(l)} className={`px-3 py-1 ${lens === l ? "bg-gray-900 text-white dark:bg-gray-100 dark:text-black" : "text-gray-500"}`}>by {l}</button>)}
+        </div>
+        <label className="flex items-center gap-2 text-gray-500">size<input type="range" min={84} max={260} step={4} value={width} onChange={(e) => setW(+e.target.value)} className="w-28 accent-gray-500" /></label>
+        <label className="flex items-center gap-1.5 text-gray-500"><input type="checkbox" checked={onlyStars} onChange={(e) => setOnlyStars(e.target.checked)} className="accent-amber-500" />starred only</label>
+        <span className="text-gray-400 ml-auto">{DIRECTIONS.length} directions · {stars.size} starred · click a thumbnail for full size · ← → · s to star</span>
+      </div>
 
-      {/* composed flow from stars */}
-      <section className="mb-10">
-        <div className="flex items-baseline gap-3 mb-2"><h2 className="text-base">Your flow</h2><span className="text-[12px] text-gray-500">{anyStars ? "composed from your stars — one cell per step" : "star cells below and they appear here, in order"}</span></div>
-        <div className="grid grid-cols-5 gap-3">
+      {/* composed flow */}
+      <section className="mt-6 mb-8">
+        <div className="flex items-baseline gap-3 mb-2"><h2 className="text-sm">Your flow</h2><span className="text-[11px] text-gray-500">{composed.some(Boolean) ? "one starred cell per step" : "star cells and they line up here"}</span></div>
+        <div className="flex gap-3">
           {STEPS.map((s, i) => (
             <div key={s}>
-              <div className="text-[11px] text-gray-400 mb-1">{s}</div>
-              {composed[i]
-                ? <div><PhoneFrame title={`${s} · ${composed[i]!.name}`}>{composed[i]!.cells[s]}</PhoneFrame><div className="text-[11px] text-gray-500 mt-1">{composed[i]!.name}</div></div>
-                : <div className="w-full rounded-[22px] border border-dashed border-gray-200 dark:border-gray-800" style={{ aspectRatio: "390/844" }} />}
+              <div className="text-[10px] text-gray-400 mb-1">{s}</div>
+              {composed[i] ? <Thumb width={width} onClick={() => setOpen({ d: composed[i]!, s })}>{composed[i]!.cells[s]}</Thumb> : <Ghost width={width} />}
+              {composed[i] && <div className="text-[10px] text-gray-500 mt-1 truncate" style={{ width }}>{composed[i]!.name}</div>}
             </div>
           ))}
         </div>
       </section>
 
-      {/* the board */}
-      <div className="overflow-x-auto">
-        <table className="border-separate border-spacing-0 min-w-[980px] w-full">
-          <thead>
-            <tr>
-              <th className="text-left align-bottom pb-2 pr-4 w-56"><span className="text-[11px] uppercase tracking-wide text-gray-400">direction</span></th>
-              {STEPS.map((s) => <th key={s} className="text-left align-bottom pb-2 px-2"><span className="text-[11px] uppercase tracking-wide text-gray-400">{s}</span></th>)}
-            </tr>
-          </thead>
-          <tbody>
-            {DIRECTIONS.map((d) => (
-              <tr key={d.id} className="align-top">
-                <td className="pr-4 pt-4 border-t border-gray-100 dark:border-gray-900">
-                  <div className="flex items-center gap-2"><Handle id={`G-${d.id}`} /><span className="text-base">{d.name}</span></div>
-                  <div className="text-[11px] text-gray-400 mt-1">seed: {d.seed}</div>
-                  <p className="text-[12px] text-gray-500 mt-2">{d.voice}</p>
-                  <button onClick={() => setPlay({ d, i: 0 })} className="mt-3 text-[11px] px-2 py-1 rounded-md border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:border-gray-400">▶ play the flow</button>
-                </td>
-                {STEPS.map((s) => {
-                  const id = cellId(d, s); const cell = d.cells[s];
-                  return (
-                    <td key={s} className="px-2 pt-4 border-t border-gray-100 dark:border-gray-900">
-                      <div className="relative group">
-                        {cell
-                          ? <PhoneFrame title={`${d.name} · ${s}`}>{cell as ReactNode}</PhoneFrame>
-                          : <div className="w-full rounded-[22px] border border-dashed border-gray-200 dark:border-gray-800 flex items-center justify-center text-[11px] text-gray-400" style={{ aspectRatio: "390/844" }}>not drawn yet<br />star to ask for it</div>}
-                        <div className="absolute top-2 right-2"><Star id={id} stars={stars} toggle={toggle} /></div>
+      {lens === "step" ? (
+        <div className="space-y-8">
+          {STEPS.map((s) => {
+            const ds = DIRECTIONS.filter((d) => visible(d, s));
+            return (
+              <section key={s}>
+                <div className="flex items-baseline gap-3 mb-2"><h2 className="text-sm">{s}</h2><span className="text-[11px] text-gray-400">{DIRECTIONS.filter((d) => d.cells[s]).length} drawn</span></div>
+                <div className="flex flex-wrap gap-3">
+                  {ds.map((d) => {
+                    const id = cellId(d, s);
+                    return (
+                      <div key={d.id} style={{ width }}>
+                        {d.cells[s] ? <Thumb width={width} onClick={() => setOpen({ d, s })} active={stars.has(id)}>{d.cells[s]}</Thumb> : <Ghost width={width}>not drawn<br />star to ask</Ghost>}
+                        <div className="flex items-center justify-between mt-1"><span className="text-[10px] text-gray-500 truncate">{d.name}</span><Star id={id} stars={stars} toggle={toggle} size={14} /></div>
                       </div>
-                      <div className="mt-1"><Handle id={id} className="text-[10px]" /></div>
-                    </td>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {DIRECTIONS.filter((d) => !onlyStars || STEPS.some((s) => stars.has(cellId(d, s)))).map((d) => (
+            <section key={d.id} className="flex gap-6 items-start">
+              <div className="w-52 shrink-0 pt-1">
+                <div className="flex items-center gap-2"><Handle id={`G-${d.id}`} /><span className="text-sm">{d.name}</span></div>
+                <div className="text-[10px] text-gray-400 mt-1">seed: {d.seed}</div>
+                <p className="text-[11px] text-gray-500 mt-2 leading-snug">{d.voice}</p>
+              </div>
+              <div className="flex gap-3">
+                {STEPS.map((s) => {
+                  const id = cellId(d, s);
+                  return (
+                    <div key={s} style={{ width }}>
+                      {d.cells[s] ? <Thumb width={width} onClick={() => setOpen({ d, s })} active={stars.has(id)}>{d.cells[s]}</Thumb> : <Ghost width={width}>{s}<br />not drawn</Ghost>}
+                      <div className="flex items-center justify-between mt-1"><span className="text-[10px] text-gray-400">{s}</span><Star id={id} stars={stars} toggle={toggle} size={14} /></div>
+                    </div>
                   );
                 })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="text-[12px] text-gray-400 mt-4">To add a direction: name a seed in the terminal (“galaxy: a wristwatch”) and it becomes a row. To dial one in: “promote G-blank to Ideas”.</p>
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
 
-      {play && (
-        <div className="fixed inset-0 z-30 bg-black/70 flex items-center justify-center" onClick={() => setPlay(null)}>
-          <div className="w-[300px]" onClick={(e) => e.stopPropagation()}>
-            <div className="text-white text-sm mb-2 flex items-baseline justify-between"><span>{play.d.name} · {STEPS[play.i]}</span><span className="text-[11px] text-gray-400">← → · esc</span></div>
-            <PhoneFrame title={`${play.d.name} · ${STEPS[play.i]}`}>{play.d.cells[STEPS[play.i]] ?? <div className="w-[390px] h-[844px] bg-black flex items-center justify-center text-gray-500">not drawn yet</div>}</PhoneFrame>
-            <div className="flex justify-between mt-2">
-              <button onClick={() => setPlay({ ...play, i: Math.max(0, play.i - 1) })} className="text-white/80 px-3 py-1">←</button>
-              <button onClick={() => setPlay({ ...play, i: Math.min(STEPS.length - 1, play.i + 1) })} className="text-white/80 px-3 py-1">→</button>
+      <p className="text-[11px] text-gray-400 mt-8">Add a direction: “galaxy: a wristwatch”. Draw a missing cell: star it. Dial one in: “promote G-blank to Ideas”.</p>
+
+      {/* lightbox */}
+      {open && (
+        <div className="fixed inset-0 z-30 bg-black/80 flex items-center justify-center gap-8 p-6" onClick={() => setOpen(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="flex items-stretch gap-8">
+            <div className="overflow-hidden rounded-[22px] ring-1 ring-gray-700 bg-black" style={{ width: W * 0.85, height: H * 0.85 }}>
+              <div style={{ width: W, height: H, transform: "scale(0.85)", transformOrigin: "top left" }}>{open.d.cells[open.s] ?? <div className="w-[390px] h-[844px] flex items-center justify-center text-gray-500">not drawn yet</div>}</div>
+            </div>
+            <div className="w-64 text-gray-200 flex flex-col">
+              <div className="flex items-center gap-2"><Handle id={cellId(open.d, open.s)} /><Star id={cellId(open.d, open.s)} stars={stars} toggle={toggle} size={22} /></div>
+              <div className="text-xl font-light mt-3">{open.d.name}</div>
+              <div className="text-[11px] text-gray-400">{open.s} · seed: {open.d.seed}</div>
+              <p className="text-sm text-gray-300 mt-4 leading-snug">{open.d.voice}</p>
+              <div className="mt-6 flex gap-2 text-[11px]">
+                <button onClick={() => setLens("step")} className={`px-2 py-1 rounded-md border ${lens === "step" ? "border-gray-300" : "border-gray-700 text-gray-400"}`}>← → other takes on {open.s}</button>
+                <button onClick={() => setLens("direction")} className={`px-2 py-1 rounded-md border ${lens === "direction" ? "border-gray-300" : "border-gray-700 text-gray-400"}`}>← → walk the flow</button>
+              </div>
+              <div className="mt-auto text-[11px] text-gray-500">esc to close · s to star</div>
             </div>
           </div>
         </div>

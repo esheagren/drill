@@ -1,5 +1,6 @@
 /** What shipped, keyed to screens — so the wall reflects terminal work. Newest first. Claude appends on each ship. */
 export const CHANGES: { date: string; screen: string; what: string; pr: number }[] = [
+  { date: "2026-09-02", screen: "designspace", what: "Galaxy Brain as a contact sheet: 16 directions, by-step / by-direction lenses, size slider, lightbox", pr: 63 },
   { date: "2026-09-02", screen: "designspace", what: "Galaxy Brain as a board: directions × flow, stars, play-the-flow, composed flow from stars", pr: 62 },
   { date: "2026-09-02", screen: "designspace", what: "Laptop frames at full width (actual size on large monitors); rails re-flow", pr: 60 },
   { date: "2026-09-02", screen: "designspace", what: "Screens: Phone / Laptop toggle", pr: 59 },
