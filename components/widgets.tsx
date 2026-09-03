@@ -17,7 +17,7 @@ export function AreaModel({ initialA = 47, initialB = 6, compact = false }: { in
   const W = 320, H = compact ? 80 : 110;
   const aMax = Math.max(99, initialA);
   return (
-    <div>
+    <div data-c="AreaModel">
       <div className={`${compact ? "text-base" : "text-xl"} font-light tabular-nums mb-2`}>{a} × {b} = {a * b}</div>
       <div className="grid grid-cols-2 gap-3 text-[11px] text-gray-400 mb-1">
         <label>left factor: <b className="text-gray-700 dark:text-gray-200 tabular-nums">{a}</b>
@@ -51,7 +51,7 @@ export function MultiplierChain({ initialBase = 200, initialChanges = [20, -20],
   const set = (i: number, v: number) => setPs(ps.map((p, j) => (j === i ? v : p)));
   const fmt = (v: number) => (Math.round(v * 100) / 100).toLocaleString("en-US");
   return (
-    <div>
+    <div data-c="MultiplierChain">
       <div className={`${compact ? "text-base" : "text-xl"} font-light tabular-nums mb-0.5`}>{fmt(base)} → {fmt(running[running.length - 1])}</div>
       <div className="text-[11px] text-gray-400 mb-2 tabular-nums">net ×{net.toFixed(3)} ({net >= 1 ? "+" : ""}{((net - 1) * 100).toFixed(1)}%)</div>
       {!compact && (
@@ -94,7 +94,7 @@ export function LogLine({ initialX = 7.83, initialY = 3.48, compact = false }: {
   const MAX = 12, W = 640;
   const px = (lg: number) => (Math.min(lg, MAX) / MAX) * W;
   return (
-    <div>
+    <div data-c="LogLine">
       <div className={`${compact ? "text-base" : "text-xl"} font-light tabular-nums mb-0.5`}>{say(A)} × {say(B)} = {say(P)}</div>
       <div className="text-[11px] text-gray-400 mb-2 tabular-nums">{sciStr(A)} · {sciStr(B)} → {sciStr(P)}</div>
       <label className="block text-[11px] text-gray-400">A: <b className="text-gray-700 dark:text-gray-200 tabular-nums">{say(A)}</b>

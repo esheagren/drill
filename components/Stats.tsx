@@ -23,7 +23,7 @@ export default function Stats({ state, profile, onProfile, onClose, onPick, init
   return (
     <div className="fixed inset-0 z-20 bg-white dark:bg-black text-gray-900 dark:text-gray-100 flex flex-col sm:flex-row">
       {/* Nav: sidebar on wide screens, scrolling tab row on phones */}
-      <nav className="sm:w-56 shrink-0 border-b sm:border-b-0 sm:border-r border-gray-100 dark:border-gray-900 pt-[max(env(safe-area-inset-top),16px)] px-3 pb-2 sm:pb-6 flex sm:flex-col gap-1 overflow-x-auto sm:overflow-visible">
+      <nav data-c="OverlayNav" className="sm:w-56 shrink-0 border-b sm:border-b-0 sm:border-r border-gray-100 dark:border-gray-900 pt-[max(env(safe-area-inset-top),16px)] px-3 pb-2 sm:pb-6 flex sm:flex-col gap-1 overflow-x-auto sm:overflow-visible">
         <button onClick={onClose} className={navItem(false, "sm:mb-4")}>← close</button>
         <button onClick={() => setView({ kind: "history" })} className={navItem(view.kind === "history")}>History</button>
         <button onClick={() => setView({ kind: "skills", unit: FAMILIES[0] })} className={navItem(view.kind === "skills" && false)}>Skills</button>
@@ -129,7 +129,7 @@ function UnitHierarchy({ unit, state, onPick }: { unit: Family; state: EngineSta
         <p className="text-xs text-gray-500 mt-1">{FAMILY_BLURB[unit]}</p>
         <p className="text-[11px] text-gray-400 mb-5">frontier L{frontierOf(state)} · {skillsIn(unit).filter((s) => isInferred(state, s.id)).length} skills inferred, {skillsIn(unit).filter((s) => state.skills[s.id].attempts > 0).length} observed</p>
 
-        <ul className="space-y-1">
+        <ul data-c="UnitTree" className="space-y-1">
           {groups.map(({ group, skills }) => {
             const gm = groupMastery(skills, state);
             const active = group === sel;
@@ -157,7 +157,7 @@ function UnitHierarchy({ unit, state, onPick }: { unit: Family; state: EngineSta
             );
           })}
         </ul>
-        <div className="flex gap-3 mt-4 text-[10px] text-gray-400">
+        <div data-c="MasteryDots" className="flex gap-3 mt-4 text-[10px] text-gray-400">
           {[["#9ca3af", "not started"], ["#f59e0b", "weak"], ["#38bdf8", "developing"], ["#10b981", "fluent"]].map(([c, l]) => (
             <span key={l} className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full" style={{ background: c }} />{l}</span>
           ))}
@@ -246,7 +246,7 @@ function ItemMap({ group, skills }: { group: string; skills: Skill[] }) {
   const labelW = Math.max(28, ...spec.rows.map((l) => l.length * (dense ? 5.5 : 6.5)));
 
   return (
-    <div>
+    <div data-c="ItemMap">
       <div className="overflow-x-auto pb-1">
         {isStrip ? (
           <div className="grid gap-[2px]" style={{ gridTemplateColumns: `repeat(${spec.rows.length}, ${size}px)` }}>
@@ -312,7 +312,7 @@ export function StackedBars({ columns, yLabel, legend }: { columns: Column[]; yL
   const steps = isDark ? STEPS_DARK : STEPS_LIGHT;
 
   return (
-    <div className="relative">
+    <div data-c="StackedBars" className="relative">
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto select-none" role="img" aria-label={`${yLabel} per day`}>
         {ticks.map((t) => (
           <g key={t}>
