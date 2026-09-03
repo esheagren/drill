@@ -67,6 +67,10 @@ function Annotated({ id, title, src, scroll = 0, wait = 900 }: { id: string; tit
       doc.querySelectorAll<HTMLElement>("[data-c]").forEach((e) => {
         const r = e.getBoundingClientRect();
         if (r.width < 4 || r.height < 4 || r.bottom < 0 || r.top > H) return;
+        // Only what the eye can see: the element (or a descendant) must be on top at its centre.
+        const cx = r.left + r.width / 2, cy = Math.max(0, r.top) + Math.min(r.height, H - Math.max(0, r.top)) / 2;
+        const top = doc.elementFromPoint(cx, cy);
+        if (!top || !(e === top || e.contains(top))) return;
         out.push({ name: e.dataset.c!, x: r.left, y: Math.max(0, r.top), w: r.width, h: Math.min(r.height, H - Math.max(0, r.top)) });
       });
       // de-dupe by name (nested widgets appear once), keep top-most first
