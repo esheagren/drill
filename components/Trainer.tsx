@@ -10,6 +10,7 @@ import { flush, hydrate, queueAttempt, queueSession } from "@/lib/sync";
 import Keypad from "./Keypad";
 import { AreaModel, LogLine, MultiplierChain } from "./widgets";
 import { widgetSeedFor } from "@/lib/widgetSeed";
+import { generateItem } from "@/lib/items";
 import Onboarding from "./Onboarding";
 import { getProfile } from "@/lib/account";
 import type { Profile } from "@/lib/user";
@@ -75,17 +76,40 @@ export default function Trainer() {
     startRef.current = performance.now();
   }, []);
 
+  /** Catalog demo states: render a view without recording anything. */
+  const applyDemo = (demo: string, st: EngineState) => {
+    void st;
+    const fixed = generateItem("ar.split", 2);
+    setItem(fixed);
+    planRef.current = MIXED; setPlan(MIXED);
+    if (demo === "wrong" || demo === "slow") {
+      sessionStartRef.current = Date.now() - 95_000; pauseStartRef.current = Date.now();
+      setRemaining(MIXED.durationMs - 95_000);
+      setInput(demo === "wrong" ? "1" : fixed.answerText);
+      setTip(tipFor(fixed)); setPhase(demo);
+    } else if (demo === "summary") {
+      setSession({ plan: "mixed", ts: Date.now() - 480_000, durationMs: 480_000, answered: 61, correct: 55, bySkill: { "ar.split": { n: 9, c: 8 }, "pct.apply": { n: 8, c: 7 }, "fr.of": { n: 7, c: 7 }, "sn.mul": { n: 6, c: 5 } } });
+      setPhase("done");
+    } else if (demo === "timer") setTimerMenu(true);
+    else if (demo === "default") setAskDefault(4);
+    else if (demo === "history") setOverlay({ kind: "history" });
+    else if (demo === "unit") setOverlay({ kind: "skills", unit: "arithmetic" });
+    else if (demo === "profile") setOverlay({ kind: "profile" });
+  };
+
   useEffect(() => {
     let alive = true;
     const initial = mixedFor(loadDefaultMinutes());
     planRef.current = initial; setPlan(initial); setRemaining(initial.durationMs);
+    const demo = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("demo") : null;
     hydrate().then((st) => {
       if (!alive) return;
       setState(st);
+      if (demo) { applyDemo(demo, st); return; }
       advance(st);
       void flush();
     });
-    getProfile().then((p) => { if (alive) setProfile(p); });
+    getProfile().then((p) => { if (alive) setProfile(demo === "onboarding" || demo === "signin" ? { username: null, email: null } : p); });
     const onHide = () => { if (document.visibilityState === "hidden") void flush(); };
     document.addEventListener("visibilitychange", onHide);
     return () => { alive = false; document.removeEventListener("visibilitychange", onHide); };
@@ -206,7 +230,7 @@ export default function Trainer() {
   });
 
   if (!state || !item || profile === null) return <div className="min-h-dvh bg-white dark:bg-black" />;
-  if (!profile.username) return <Onboarding onDone={(username) => setProfile({ ...profile, username })} />;
+  if (!profile.username) return <Onboarding onDone={(username) => setProfile({ ...profile, username })} initialMode={typeof window !== "undefined" && new URLSearchParams(window.location.search).get("demo") === "signin" ? "signin" : "name"} />;
 
   // ── Session summary ──────────────────────────────────────────────────────
   if (phase === "done" && session) {

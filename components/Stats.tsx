@@ -298,7 +298,7 @@ interface Column { label: string; segments: Segment[] }
 const STEPS_LIGHT = ["#111827", "#6b7280", "#d1d5db"]; // gray-900 / 500 / 300
 const STEPS_DARK = ["#f3f4f6", "#9ca3af", "#4b5563"];  // gray-100 / 400 / 600
 
-function StackedBars({ columns, yLabel, legend }: { columns: Column[]; yLabel: string; legend?: string[] }) {
+export function StackedBars({ columns, yLabel, legend }: { columns: Column[]; yLabel: string; legend?: string[] }) {
   const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
   const W = 640, H = 220, padL = 36, padB = 24, padT = 16;
   const max = Math.max(1, ...columns.map((c) => c.segments.reduce((a, s) => a + s.value, 0)));
