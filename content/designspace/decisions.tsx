@@ -55,6 +55,30 @@ const fromVariants = (step: "Practice" | "Feedback" | "Summary", live: string) =
   ...(quiet.variants?.[step] ?? []).map((v) => ({ id: v.id, name: v.name, note: v.note, cell: v.cell })),
 ];
 
+// ── Miss screen: feedback voice × widget placement, composed ─────────────
+const Serif = { fontFamily: "Georgia, 'Times New Roman', serif" } as const;
+const AreaPic = ({ h = 60, w = 280 }: { h?: number; w?: number }) => <div className="flex" style={{ height: h, width: w }}><div className="bg-emerald-500/30 border border-emerald-500" style={{ width: "85%" }} /><div className="bg-sky-500/30 border border-sky-500" style={{ width: "15%" }} /></div>;
+const WidgetCard = ({ h = 200 }: { h?: number }) => <div className="rounded-xl border border-gray-700 p-3 w-full" style={{ height: h }}><div className="text-[10px] uppercase tracking-wide text-gray-500">play with it</div><div className="mt-2"><AreaPic h={Math.max(40, h - 90)} w={300} /></div><div className="text-[12px] text-gray-400 mt-2 tabular-nums">240 + 42 = 282</div></div>;
+
+export interface Voice { id: string; name: string; lines: (size: number) => ReactNode }
+export const VOICES: Voice[] = [
+  { id: "three", name: "Three sentences", lines: (z) => <div className="space-y-5" style={Serif}><div style={{ fontSize: z }} className="leading-tight">40 sixes is <span className="underline decoration-emerald-500 decoration-2">240</span>.</div><div style={{ fontSize: z }} className="leading-tight text-gray-400">7 more sixes is 42.</div><div style={{ fontSize: z }} className="leading-tight text-gray-600">282.</div></div> },
+  { id: "one", name: "One sentence", lines: (z) => <div style={{ ...Serif, fontSize: z }} className="leading-tight">Forty sixes, then seven more.</div> },
+  { id: "your-answer", name: "Your answer, then sentences", lines: (z) => <div className="space-y-5" style={Serif}><div className="text-[20px] text-gray-600 line-through">242</div><div style={{ fontSize: z }} className="leading-tight">40 sixes is 240.</div><div style={{ fontSize: z }} className="leading-tight text-gray-400">7 more sixes is 42.</div><div style={{ fontSize: z }} className="leading-tight text-gray-600">282.</div></div> },
+  { id: "column", name: "Sentences + column", lines: (z) => <div style={Serif}><div style={{ fontSize: z * 0.9 }} className="leading-tight">40 sixes is 240.</div><div style={{ fontSize: z * 0.9 }} className="leading-tight text-gray-400 mt-3">7 more sixes is 42.</div><div className="mt-5 text-[22px] leading-relaxed tabular-nums" style={{ fontFamily: "ui-monospace, Menlo, monospace" }}><div className="text-gray-300">  240</div><div className="text-gray-300">+  42</div><div className="border-t border-gray-700 w-[100px]" /><div>  282</div></div></div> },
+  { id: "card", name: "Current card", lines: () => <div><div className="text-[28px] font-light text-center">282</div><div className="text-[13px] text-gray-500 text-center mt-1">40×6 + 7×6 = 240 + 42</div><div className="mt-4 rounded-xl border border-gray-800 p-3 text-[12px]"><div className="text-[10px] uppercase tracking-wide text-gray-500">split by place</div><div className="mt-1">Multiply the tens, multiply the ones, add.</div></div></div> },
+];
+
+export interface Placement { id: string; name: string; compose: (voice: Voice) => ReactNode }
+const Head = () => <div className="px-8 pt-14 text-[13px] text-gray-500">47 × 6</div>;
+export const PLACEMENTS: Placement[] = [
+  { id: "below", name: "Below the words", compose: (v) => <S><Head /><div className="px-8 mt-6">{v.lines(28)}</div><div className="absolute inset-x-6 bottom-[110px]"><WidgetCard h={190} /></div><div className="absolute inset-x-6 bottom-6 h-12 rounded-2xl bg-gray-100 text-black flex items-center justify-center text-2xl">→</div></S> },
+  { id: "keypad-area", name: "In the keypad's place", compose: (v) => <S><Head /><div className="px-8 mt-6">{v.lines(28)}</div><div className="absolute inset-x-0 bottom-0 h-[320px] border-t border-[#1c1c1c] px-6 pt-4"><AreaPic h={110} w={340} /><div className="text-[13px] text-gray-400 mt-3 tabular-nums">240 + 42 = 282 · drag the cut</div><div className="absolute inset-x-6 bottom-6 h-12 rounded-2xl bg-gray-100 text-black flex items-center justify-center text-2xl">→</div></div></S> },
+  { id: "swipe", name: "A swipe away", compose: (v) => <S><Head /><div className="px-8 mt-6">{v.lines(32)}</div><div className="absolute right-0 top-[300px] bottom-[300px] w-[14px] rounded-l-xl bg-gray-800" /><div className="absolute bottom-10 inset-x-0 text-center text-[12px] text-gray-600">← the picture · tap to go on</div></S> },
+  { id: "inline", name: "Inline, under the step", compose: (v) => <S><Head /><div className="px-8 mt-6"><div style={Serif}><div className="text-[28px] leading-tight">40 sixes is 240.</div><div className="mt-3"><AreaPic h={44} w={280} /></div><div className="text-[28px] leading-tight text-gray-400 mt-5">7 more sixes is 42.</div>{v.id === "one" ? null : <div className="text-[28px] leading-tight text-gray-600 mt-5">282.</div>}</div></div><div className="absolute bottom-10 inset-x-0 text-center text-[12px] text-gray-600">tap to go on</div></S> },
+  { id: "hidden", name: "Hidden until asked", compose: (v) => <S><Head /><div className="px-8 mt-6">{v.lines(32)}</div><div className="absolute bottom-16 inset-x-0 text-center text-[14px] text-gray-500 underline decoration-gray-700">show me</div></S> },
+];
+
 export const DECISIONS: Decision[] = [
   { id: "keypad", name: "Keypad", step: "Answering", question: "How is input organized?", requirements: ["digits 0–9, decimal point, backspace, submit", "an e key (scientific notation) and a fraction line / — both reachable without a mode switch", "one-handed on a phone; no native keyboard"], options: KEYPAD },
   { id: "question", name: "Question", step: "Practice", question: "How is the item presented?", requirements: ["readable at arm's length", "nothing on screen that isn't the item"], options: fromVariants("Practice", "/") },
