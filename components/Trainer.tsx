@@ -260,6 +260,7 @@ export default function Trainer() {
 
   // ── Practice ─────────────────────────────────────────────────────────────
   const skill = SKILL_BY_ID[item.skillId];
+  const feedback = phase === "wrong" || phase === "slow";
   const mm = Math.floor(remaining / 60000), ss = Math.floor((remaining % 60000) / 1000);
   const started = sessionStartRef.current !== 0;
 
@@ -277,15 +278,15 @@ export default function Trainer() {
         </button>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-6 min-h-0 overflow-y-auto">
+      <main className={`flex-1 flex flex-col items-center px-6 min-h-0 overflow-y-auto ${feedback ? "justify-start pt-2 pb-28" : "justify-center"}`}>
         <div className="text-center space-y-2">
-          <div className="text-4xl sm:text-5xl font-light tracking-tight leading-tight" style={{ overflowWrap: "anywhere" }}>
+          <div className={`${feedback ? "text-2xl sm:text-3xl" : "text-4xl sm:text-5xl"} font-light tracking-tight leading-tight transition-all`} style={{ overflowWrap: "anywhere" }}>
             {item.prompt}
           </div>
           <div className="text-sm text-gray-400 dark:text-gray-500">{item.sub ?? skill.ask}</div>
         </div>
 
-        <div className="w-full max-w-sm mt-8">
+        <div className={`w-full max-w-sm ${feedback ? "mt-4" : "mt-8"}`}>
           <div
             className={[
               "w-full text-center text-3xl font-light py-3 border-b-2 min-h-[3.5rem] tabular-nums transition-colors",
@@ -298,8 +299,8 @@ export default function Trainer() {
           </div>
 
           <div className="min-h-20 mt-4 text-center">
-            {(phase === "wrong" || phase === "slow") && (
-              <button onClick={() => advance(state)} className="w-full space-y-1 active:opacity-70 text-left sm:text-center">
+            {feedback && (
+              <div className="w-full space-y-1 text-left sm:text-center">
                 {phase === "wrong" && (
                   <>
                     <div className="text-2xl font-light text-center">{item.answerText}</div>
@@ -325,23 +326,26 @@ export default function Trainer() {
                     <div className="text-xs text-gray-500 mt-1 tabular-nums">{tip.example}</div>
                   </div>
                 )}
-                <div className="pt-3 flex justify-center" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
-                  <button
-                    type="button"
-                    onClick={() => advance(state)}
-                    aria-label="Next question"
-                    className="h-12 w-24 rounded-2xl bg-gray-900 text-white dark:bg-gray-100 dark:text-black text-xl active:scale-95 transition"
-                  >
-                    →
-                  </button>
-                </div>
-              </button>
+              </div>
             )}
           </div>
         </div>
       </main>
 
-      <Keypad onKey={press} onBackspace={backspace} onSubmit={enter} submitDisabled={phase === "answer" && !input} />
+      {feedback ? (
+        <div className="fixed inset-x-0 bottom-0 flex justify-center px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-3 bg-gradient-to-t from-white via-white/90 to-transparent dark:from-black dark:via-black/90">
+          <button
+            type="button"
+            onClick={() => advance(state)}
+            aria-label="Next question"
+            className="h-14 w-full max-w-md rounded-2xl bg-gray-900 text-white dark:bg-gray-100 dark:text-black text-2xl active:scale-[0.98] transition"
+          >
+            →
+          </button>
+        </div>
+      ) : (
+        <Keypad onKey={press} onBackspace={backspace} onSubmit={enter} submitDisabled={phase === "answer" && !input} />
+      )}
 
       {timerMenu && (
         <Sheet onClose={() => setTimerMenu(false)} title="Session length">
