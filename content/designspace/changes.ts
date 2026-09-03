@@ -1,5 +1,6 @@
 /** What shipped, keyed to screens — so the wall reflects terminal work. Newest first. Claude appends on each ship. */
 export const CHANGES: { date: string; screen: string; what: string; pr: number }[] = [
+  { date: "2026-09-02", screen: "designspace", what: "Galaxy Brain → Decisions: per decision, editable requirements, the live choice, and options to star/prune; the stars are the spec", pr: 66 },
   { date: "2026-09-02", screen: "designspace", what: "Reactions (yes / maybe / no) on directions and variants; no collapses the row; included in copy-all", pr: 65 },
   { date: "2026-09-02", screen: "designspace", what: "Galaxy Brain refocused: 5 complete directions (incl. Current as baseline) + a Dial-in variants sheet for Quiet; Tailwind now scans content/ (mocks were unstyled)", pr: 64 },
   { date: "2026-09-02", screen: "designspace", what: "Galaxy Brain as a contact sheet: 16 directions, by-step / by-direction lenses, size slider, lightbox", pr: 63 },

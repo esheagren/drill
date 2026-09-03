@@ -4,7 +4,7 @@ import CopyFeedback from "@/components/DsCopy";
 const NAV = [
   ["/designspace", "Room"],
   ["/designspace/screens", "Screens"],
-  ["/designspace/galaxybrain", "Galaxy Brain"],
+  ["/designspace/decisions", "Decisions"],
   ["/designspace/ideas", "Ideas"],
   ["/designspace/principles", "Principles"],
 ] as const;

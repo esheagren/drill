@@ -11,16 +11,16 @@ export default function DsRoom() {
 
         <h2 className="text-sm font-medium mb-2">How it works</h2>
         <ol className="text-sm text-gray-600 dark:text-gray-300 space-y-2 list-decimal pl-5 mb-8">
-          <li><b>Everything has a handle.</b> Screens are <Handle id="V2" />, components are <Handle id="V2 › TechniqueCard" />, directions are <Handle id="G-V2-Ledger" />, ideas are <Handle id="I-3" />. Click any handle to copy it, paste it into the terminal.</li>
+          <li><b>Everything has a handle.</b> Screens are <Handle id="V2" />, components are <Handle id="V2 › TechniqueCard" />, options are <Handle id="D-keypad/e-slash-column" />, ideas are <Handle id="I-3" />. Click any handle to copy it, paste it into the terminal.</li>
           <li><b>Write on the wall, then hand it over.</b> Every screen has notes pinned to it — or to one of its components. When you&apos;re done, hit <b>copy all feedback</b> (top right, or per screen / per note) and paste the block into the terminal. Each note arrives under its handle, so Claude knows exactly what you meant.</li>
           <li><b>Ships come back to the wall.</b> The Changes feed lists what landed, keyed to screens, so you can see the state of things without re-reading the terminal.</li>
         </ol>
 
         <h2 className="text-sm font-medium mb-2">Things you can say</h2>
         <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1.5 mb-8 font-mono text-[13px]">
-          <li>“V2 › TechniqueCard — too much text; try the Chalk voice from G-V2-Chalk”</li>
+          <li>“D-keypad: options for a left-handed layout, and one with e and / as long-press”</li>
           <li>“read my notes on the Screens wall and do the ones marked !”</li>
-          <li>“add a galaxy-brain round for V4 seeded from a scoreboard and a receipt”</li>
+          <li>“build the spec” — implement the starred option of every decision</li>
           <li>“promote I-3 to the app”</li>
           <li>“what changed on V1 since Tuesday?”</li>
         </ul>
@@ -29,7 +29,7 @@ export default function DsRoom() {
         <div className="grid sm:grid-cols-2 gap-3">
           {[
             ["/designspace/screens", "Screens", "The wall. Every view, live, with components called out and notes pinned."],
-            ["/designspace/galaxybrain", "Galaxy Brain", "Per screen: directions that start somewhere else entirely."],
+            ["/designspace/decisions", "Decisions", "The design decomposed: per decision, requirements, what's live, and options to star or prune. The stars are the spec."],
             ["/designspace/ideas", "Ideas", "Dated mockups of specific interactions, on their way to the app."],
             ["/designspace/principles", "Principles", "What we hold the work to."],
           ].map(([href, t, d]) => (
