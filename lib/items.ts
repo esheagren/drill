@@ -494,7 +494,7 @@ const GENERATORS: Record<SkillId, Gen> = {
     if (kind <= 2) { const unit = [10, 100, 1000][kind]; n = ri(unit * 2, unit * 999); ans = Math.round(n / unit) * unit; label = `nearest ${fmtDigits(unit)}`; }
     else { const dp = kind === 3 ? 1 : 2; n = ri(100, 99999) / 10 ** (dp + 1); ans = Math.round(n * 10 ** dp) / 10 ** dp; label = `${dp} decimal place${dp > 1 ? "s" : ""}`; }
     return { skillId: "dec.round", key: `round:${n}@${kind}`, prior: P.roundPrior(kind, String(Math.round(n)).length), prompt: kind <= 2 ? fmtDigits(n) : String(n), sub: `to the ${label}`,
-      answerText: kind <= 2 ? fmtDigits(ans) : String(ans), why: `look at the next digit: ${kind <= 2 ? Math.floor((n % [10, 100, 1000][kind]) / [1, 10, 100][kind]) : String(n).split(".")[1]?.[kind === 3 ? 1 : 2]}`, inputMode: "decimal", placeholder: "value", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) < 1e-9; } };
+      answerText: kind <= 2 ? fmtDigits(ans) : String(ans), why: `look at the next digit: ${kind <= 2 ? Math.floor((n % [10, 100, 1000][kind]) / [1, 10, 100][kind]) : (String(n).split(".")[1]?.[kind === 3 ? 1 : 2] ?? "0")}`, inputMode: "decimal", placeholder: "value", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) < 1e-9; } };
   },
   // 3.4 + 2.75 → 6.15   ·   0.6 × 7 → 4.2
   "dec.ops": (L) => {

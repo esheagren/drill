@@ -10,6 +10,7 @@ import { flush, hydrate, queueAttempt, queueSession } from "@/lib/sync";
 import Keypad from "./Keypad";
 import { AreaModel, LogLine, MultiplierChain } from "./widgets";
 import { widgetSeedFor } from "@/lib/widgetSeed";
+import { sentencesFor } from "@/lib/sentences";
 import { generateItem } from "@/lib/items";
 import Onboarding from "./Onboarding";
 import { getProfile } from "@/lib/account";
@@ -287,93 +288,66 @@ export default function Trainer() {
   // ── Practice ─────────────────────────────────────────────────────────────
   const skill = SKILL_BY_ID[item.skillId];
   const feedback = phase === "wrong" || phase === "slow";
-  const mm = Math.floor(remaining / 60000), ss = Math.floor((remaining % 60000) / 1000);
   const started = sessionStartRef.current !== 0;
+  const frac = Math.max(0, Math.min(1, remaining / plan.durationMs));
+  const seed = feedback ? widgetSeedFor(item.key) : null;
+  const lines = feedback ? sentencesFor(item) : [];
+  const showTip = !!tip && (phase === "slow" || !seed);
 
   return (
-    <div className="h-dvh flex flex-col bg-white dark:bg-black text-gray-900 dark:text-gray-100 select-none overflow-hidden">
-      <header className="grid grid-cols-3 items-center px-5 pt-[max(env(safe-area-inset-top),16px)] pb-2 text-xs text-gray-400 dark:text-gray-500">
-        <div className="min-w-0 truncate">
-          {plan.id !== "mixed" && <span className="text-xs uppercase tracking-wide">{plan.label}</span>}{isReviewRef.current && <span className="ml-2">↺</span>}
+    <div className="h-dvh flex flex-col bg-white dark:bg-black text-gray-900 dark:text-gray-100 select-none overflow-hidden relative">
+      {/* the session as a line across the top, draining left to right; tap it to change the length */}
+      <button type="button" data-c="Timer" onClick={() => setTimerMenu(true)} aria-label="Change session length" className="absolute inset-x-0 top-0 h-7 z-10">
+        <div className={`h-[3px] ${started ? "bg-emerald-500" : "bg-gray-200 dark:bg-gray-800"}`} style={{ width: `${frac * 100}%`, transition: "width 1s linear" }} />
+      </button>
+
+      <header className="flex items-start justify-between gap-4 px-6 pt-[max(env(safe-area-inset-top),22px)]">
+        <div className="min-w-0">
+          {(plan.id !== "mixed" || isReviewRef.current) && (
+            <div className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1">{plan.id !== "mixed" && plan.label}{isReviewRef.current && <span className="ml-2">↺</span>}</div>
+          )}
+          <div data-c="Prompt" className="font-serif text-[26px] leading-tight" style={{ overflowWrap: "anywhere" }}>{item.prompt}</div>
+          <div className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">{item.sub ?? skill.ask}</div>
         </div>
-        <button data-c="Timer" onClick={() => setTimerMenu(true)} aria-label="Change session length" className={`text-center text-base tabular-nums ${started ? "text-gray-900 dark:text-gray-100" : ""}`}>
-          {mm}:{String(ss).padStart(2, "0")}
-        </button>
-        <button data-c="MenuButton" onClick={() => setShowMap(true)} aria-label="Menu" className="justify-self-end -mr-3 px-3 py-2 tabular-nums hover:text-gray-900 dark:hover:text-gray-100">
-          ▦
-        </button>
+        <button data-c="MenuButton" onClick={() => setShowMap(true)} aria-label="Menu" className="shrink-0 -mr-3 -mt-2 px-3 py-2 text-gray-300 dark:text-gray-700 hover:text-gray-900 dark:hover:text-gray-100">▦</button>
       </header>
 
-      <main className={`flex-1 flex flex-col items-center px-6 min-h-0 overflow-y-auto ${feedback ? "justify-start pt-2 pb-28" : "justify-center"}`}>
-        <div className="text-center space-y-2">
-          <div data-c="Prompt" className={`${feedback ? "text-2xl sm:text-3xl" : "text-4xl sm:text-5xl"} font-light tracking-tight leading-tight transition-all`} style={{ overflowWrap: "anywhere" }}>
-            {item.prompt}
+      {!feedback ? (
+        <main className="flex-1 min-h-0 flex items-center justify-center px-6">
+          <div data-c="AnswerLine" className={`text-[44px] font-light tabular-nums text-center ${phase === "correct" ? "text-emerald-600 dark:text-emerald-400" : "text-gray-700 dark:text-gray-300"}`} style={{ overflowWrap: "anywhere" }}>
+            {input}<span className={`font-thin ${phase === "correct" ? "opacity-0" : "text-gray-300 dark:text-gray-700"}`}>|</span>
           </div>
-          <div className="text-sm text-gray-400 dark:text-gray-500">{item.sub ?? skill.ask}</div>
-        </div>
-
-        <div className={`w-full max-w-sm ${feedback ? "mt-4" : "mt-8"}`}>
-          <div
-            data-c="AnswerLine"
-            className={[
-              "w-full text-center text-3xl font-light py-3 border-b-2 min-h-[3.5rem] tabular-nums transition-colors",
-              phase === "correct" || phase === "slow" ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
-              : phase === "wrong" ? "border-rose-400 text-rose-500 line-through decoration-2"
-              : "border-gray-200 dark:border-gray-800",
-            ].join(" ")}
-          >
-            {input || <span className="opacity-0">0</span>}
-          </div>
-
-          <div className="min-h-20 mt-4 text-center">
-            {feedback && (
-              <div className="w-full space-y-1 text-left sm:text-center">
-                {phase === "wrong" && (
-                  <>
-                    <div data-c="AnswerReveal" className="text-2xl font-light text-center">{item.answerText}</div>
-                    <div className="text-sm text-gray-500 text-center">{item.why}</div>
-                  </>
-                )}
-                {phase === "wrong" && (() => {
-                  const seed = widgetSeedFor(item.key);
-                  if (!seed) return null;
-                  return (
-                    <div data-c="PlayWithIt" className="mt-3 mx-auto max-w-sm rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-3 text-left" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
-                      <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">play with it</div>
-                      {seed.kind === "area" && <AreaModel initialA={seed.a} initialB={seed.b} compact />}
-                      {seed.kind === "chain" && <MultiplierChain initialBase={seed.base} initialChanges={seed.changes} compact />}
-                      {seed.kind === "log" && <LogLine initialX={seed.x} initialY={seed.y} compact />}
-                    </div>
-                  );
-                })()}
-                {tip && (
-                  <div data-c="TechniqueCard" className={`mt-3 mx-auto max-w-sm rounded-xl border px-4 py-3 text-left ${phase === "slow" ? "border-emerald-500" : "border-gray-200 dark:border-gray-800"}`}>
-                    <div className="text-xs uppercase tracking-wide text-gray-400 mb-1">{tip.title}</div>
-                    <div className="text-sm text-gray-800 dark:text-gray-200">{tip.rule}</div>
-                    <div className="text-xs text-gray-500 mt-1 tabular-nums">{tip.example}</div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </main>
-
-      {feedback ? (
-        <div className="fixed inset-x-0 bottom-0 flex justify-center px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-3 bg-gradient-to-t from-white via-white/90 to-transparent dark:from-black dark:via-black/90">
-          <button
-            type="button"
-            onClick={() => advance(state)}
-            aria-label="Next question"
-            data-c="NextBar"
-            className="h-14 w-full max-w-md rounded-2xl bg-gray-900 text-white dark:bg-gray-100 dark:text-black text-2xl active:scale-[0.98] transition"
-          >
-            →
-          </button>
-        </div>
+        </main>
       ) : (
-        <Keypad onKey={press} onBackspace={backspace} onSubmit={enter} submitDisabled={phase === "answer" && !input} />
+        <>
+          <main className="flex-1 min-h-0 overflow-y-auto px-6 pt-4 pb-3">
+            <div data-c="AnswerLine" className={`text-[24px] font-light tabular-nums ${phase === "wrong" ? "text-rose-500 line-through decoration-2" : "text-emerald-600 dark:text-emerald-400"}`}>{input}</div>
+            <div className="mt-4 space-y-3 font-serif">
+              {lines.map((l, i) => <div key={i} className={`text-[26px] leading-tight ${i === 0 ? "" : "text-gray-500"}`}>{l}</div>)}
+              <div data-c="AnswerReveal" className={`text-[26px] leading-tight ${phase === "wrong" ? "text-gray-400 dark:text-gray-500" : "text-emerald-600 dark:text-emerald-400"}`}>{item.answerText}.</div>
+            </div>
+          </main>
+          {/* the keypad's place: the picture (or the technique), then → */}
+          <div className="shrink-0 border-t border-gray-100 dark:border-gray-900 px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)] max-w-md mx-auto w-full">
+            {seed && !showTip ? (
+              <div data-c="PlayWithIt" className="rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-3" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+                {seed.kind === "area" && <AreaModel initialA={seed.a} initialB={seed.b} compact />}
+                {seed.kind === "chain" && <MultiplierChain initialBase={seed.base} initialChanges={seed.changes} compact />}
+                {seed.kind === "log" && <LogLine initialX={seed.x} initialY={seed.y} compact />}
+              </div>
+            ) : showTip && tip ? (
+              <div data-c="TechniqueCard" className={`rounded-xl border px-4 py-3 ${phase === "slow" ? "border-emerald-500" : "border-gray-200 dark:border-gray-800"}`}>
+                <div className="text-xs uppercase tracking-wide text-gray-400 mb-1">{tip.title}</div>
+                <div className="text-sm text-gray-800 dark:text-gray-200">{tip.rule}</div>
+                <div className="text-xs text-gray-500 mt-1 tabular-nums">{tip.example}</div>
+              </div>
+            ) : null}
+            <button type="button" onClick={() => advance(state)} aria-label="Next question" data-c="NextBar" className="mt-3 h-14 w-full rounded-2xl bg-gray-900 text-white dark:bg-gray-100 dark:text-black text-2xl active:scale-[0.98] transition">→</button>
+          </div>
+        </>
       )}
+
+      {!feedback && <Keypad onKey={press} onBackspace={backspace} onSubmit={enter} submitDisabled={phase === "answer" && !input} />}
 
       {timerMenu && (
         <Sheet onClose={() => setTimerMenu(false)} title="Session length">
