@@ -1,102 +1,106 @@
-import DsNotes from "@/components/DsNotes";
-import Handle from "@/components/DsHandle";
+"use client";
 
 /**
- * Galaxy Brain — pick a view, explore designs that are deliberately nothing like
- * the current one. Divergence only; nothing here is a decision. When a direction
- * has something worth keeping, it moves to Ideas as a concrete mock.
+ * Galaxy Brain — a board. Columns: the flow. Rows: directions (whole design
+ * languages, each from a named seed). Star cells; play a direction end to end;
+ * your stars compose a flow at the top. Divergence lives here; convergence
+ * (specific changes to the current design) lives in Ideas.
  */
+import { useEffect, useState, type ReactNode } from "react";
+import DsNotes from "@/components/DsNotes";
+import Handle from "@/components/DsHandle";
+import PhoneFrame from "@/components/PhoneFrame";
+import { Star, useStars } from "@/components/DsStar";
+import { DIRECTIONS, STEPS, type Direction, type Step } from "@/content/designspace/galaxy";
+
+const cellId = (d: Direction, s: Step) => `G-${d.id}/${s}`;
+
 export default function GalaxyBrain() {
+  const { stars, toggle } = useStars();
+  const [play, setPlay] = useState<{ d: Direction; i: number } | null>(null);
+  const composed = STEPS.map((s) => DIRECTIONS.find((d) => stars.has(cellId(d, s)) && d.cells[s]) ?? null);
+  const anyStars = composed.some(Boolean);
+
+  useEffect(() => {
+    if (!play) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setPlay(null); if (e.key === "ArrowRight") setPlay((p) => p && { ...p, i: Math.min(STEPS.length - 1, p.i + 1) }); if (e.key === "ArrowLeft") setPlay((p) => p && { ...p, i: Math.max(0, p.i - 1) }); };
+    window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey);
+  }, [play]);
+
   return (
     <div>
       <h1 className="text-2xl font-light tracking-tight">Galaxy Brain</h1>
-      <p className="text-sm text-gray-500 mt-1 mb-10 max-w-prose">For each view, a few directions that start from a different feeling rather than a tweak of what exists. Each one names the seed it grew from. Say which has something worth keeping.</p>
+      <p className="text-sm text-gray-500 mt-1 mb-2 max-w-prose">Across: the flow. Down: directions — whole languages, not screens, each grown from a named seed. Star what has something in it. Play a row to walk its flow. Your stars compose a flow at the top.</p>
+      <p className="text-[12px] text-gray-400 mb-8 max-w-prose">Screens = what exists · Galaxy Brain = whole languages · Ideas = specific changes to the current design. A direction moves to Ideas when it&apos;s worth dialing in.</p>
 
-      <h2 className="text-lg font-light mb-1 flex items-center gap-2"><Handle id="V2" /> Feedback after a miss</h2>
-      <p className="text-sm text-gray-500 mb-4">Today: answer, why, widget, technique card, → bar. Three other places to stand:</p>
-      <div className="grid md:grid-cols-3 gap-6">
-        <Frame seed="a shop receipt" title="Ledger">
-          <div className="font-mono text-[10px] leading-relaxed px-4 pt-5 text-gray-200">
-            <div className="text-gray-500">DRILL · 09:41</div>
-            <div className="border-b border-dashed border-gray-700 my-2" />
-            <Row l="47 × 6" r="?" />
-            <Row l="you said" r="242" dim />
-            <div className="border-b border-dashed border-gray-700 my-2" />
-            <Row l="40 × 6" r="240" />
-            <Row l="7 × 6" r="42" />
-            <div className="border-b border-gray-500 my-1" />
-            <Row l="TOTAL" r="282" bold />
-            <div className="border-b border-dashed border-gray-700 my-2" />
-            <div className="text-gray-500">technique · split by place</div>
-            <div className="text-gray-500">next → any key</div>
-          </div>
-          <p className="text-[10px] text-gray-500 mt-auto px-4 pb-3">Everything is a line item. No prose, no card. The steps <em>are</em> the receipt.</p>
-        </Frame>
+      {/* composed flow from stars */}
+      <section className="mb-10">
+        <div className="flex items-baseline gap-3 mb-2"><h2 className="text-base">Your flow</h2><span className="text-[12px] text-gray-500">{anyStars ? "composed from your stars — one cell per step" : "star cells below and they appear here, in order"}</span></div>
+        <div className="grid grid-cols-5 gap-3">
+          {STEPS.map((s, i) => (
+            <div key={s}>
+              <div className="text-[11px] text-gray-400 mb-1">{s}</div>
+              {composed[i]
+                ? <div><PhoneFrame title={`${s} · ${composed[i]!.name}`}>{composed[i]!.cells[s]}</PhoneFrame><div className="text-[11px] text-gray-500 mt-1">{composed[i]!.name}</div></div>
+                : <div className="w-full rounded-[22px] border border-dashed border-gray-200 dark:border-gray-800" style={{ aspectRatio: "390/844" }} />}
+            </div>
+          ))}
+        </div>
+      </section>
 
-        <Frame seed="a chalkboard" title="Chalk">
-          <div className="px-5 pt-8 text-gray-100" style={{ fontFamily: "Georgia, serif" }}>
-            <div className="text-[11px] text-gray-500 mb-6">47 × 6</div>
-            <div className="text-2xl leading-snug">40 sixes is <span className="underline decoration-emerald-500">240</span>.</div>
-            <div className="text-2xl leading-snug mt-4 text-gray-400">7 more sixes is 42.</div>
-            <div className="text-2xl leading-snug mt-4 text-gray-600">282.</div>
-          </div>
-          <p className="text-[10px] text-gray-500 mt-auto px-4 pb-3">One sentence at a time, the way a tutor talks. Swipe reveals the next line; the widget is a swipe away.</p>
-        </Frame>
-
-        <Frame seed="an instrument panel" title="Console">
-          <div className="px-3 pt-4 text-[9px] text-gray-300 font-mono grid grid-cols-2 gap-2">
-            <div className="col-span-2 flex justify-between text-gray-500"><span>47×6</span><span>miss · 6.1s</span></div>
-            <div className="col-span-2 h-px bg-gray-800" />
-            <div><div className="text-gray-500">split</div><div>40 | 7</div></div>
-            <div><div className="text-gray-500">partials</div><div>240 + 42</div></div>
-            <div className="col-span-2 mt-1"><div className="text-gray-500">area</div><div className="flex h-10 mt-1"><div className="bg-emerald-500/40 border border-emerald-500" style={{ width: "85%" }} /><div className="bg-sky-500/40 border border-sky-500" style={{ width: "15%" }} /></div></div>
-            <div><div className="text-gray-500">belief</div><div>0.71 → 0.58</div></div>
-            <div><div className="text-gray-500">rating</div><div>+1.2 → +1.1</div></div>
-          </div>
-          <p className="text-[10px] text-gray-500 mt-auto px-4 pb-3">Dense, honest, shows the engine&apos;s state. For the version of you that wants to see the machine.</p>
-        </Frame>
+      {/* the board */}
+      <div className="overflow-x-auto">
+        <table className="border-separate border-spacing-0 min-w-[980px] w-full">
+          <thead>
+            <tr>
+              <th className="text-left align-bottom pb-2 pr-4 w-56"><span className="text-[11px] uppercase tracking-wide text-gray-400">direction</span></th>
+              {STEPS.map((s) => <th key={s} className="text-left align-bottom pb-2 px-2"><span className="text-[11px] uppercase tracking-wide text-gray-400">{s}</span></th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {DIRECTIONS.map((d) => (
+              <tr key={d.id} className="align-top">
+                <td className="pr-4 pt-4 border-t border-gray-100 dark:border-gray-900">
+                  <div className="flex items-center gap-2"><Handle id={`G-${d.id}`} /><span className="text-base">{d.name}</span></div>
+                  <div className="text-[11px] text-gray-400 mt-1">seed: {d.seed}</div>
+                  <p className="text-[12px] text-gray-500 mt-2">{d.voice}</p>
+                  <button onClick={() => setPlay({ d, i: 0 })} className="mt-3 text-[11px] px-2 py-1 rounded-md border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:border-gray-400">▶ play the flow</button>
+                </td>
+                {STEPS.map((s) => {
+                  const id = cellId(d, s); const cell = d.cells[s];
+                  return (
+                    <td key={s} className="px-2 pt-4 border-t border-gray-100 dark:border-gray-900">
+                      <div className="relative group">
+                        {cell
+                          ? <PhoneFrame title={`${d.name} · ${s}`}>{cell as ReactNode}</PhoneFrame>
+                          : <div className="w-full rounded-[22px] border border-dashed border-gray-200 dark:border-gray-800 flex items-center justify-center text-[11px] text-gray-400" style={{ aspectRatio: "390/844" }}>not drawn yet<br />star to ask for it</div>}
+                        <div className="absolute top-2 right-2"><Star id={id} stars={stars} toggle={toggle} /></div>
+                      </div>
+                      <div className="mt-1"><Handle id={id} className="text-[10px]" /></div>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
+      <p className="text-[12px] text-gray-400 mt-4">To add a direction: name a seed in the terminal (“galaxy: a wristwatch”) and it becomes a row. To dial one in: “promote G-blank to Ideas”.</p>
 
-      <h2 className="text-lg font-light mt-14 mb-1 flex items-center gap-2"><Handle id="V1" /> Practice</h2>
-      <p className="text-sm text-gray-500 mb-4">Today: centered prompt, answer line, keypad. Two other places to stand:</p>
-      <div className="grid md:grid-cols-3 gap-6">
-        <Frame seed="a teleprompter" title="Stream" screen="V1">
-          <div className="px-4 pt-6 text-gray-100 space-y-6">
-            <div className="text-[11px] text-gray-600 line-through">36 × 4 = 144</div>
-            <div className="text-[11px] text-gray-600 line-through">1/8 → 12.5%</div>
-            <div className="text-3xl font-light">47 × 6</div>
-            <div className="text-[11px] text-gray-700">15% of 2.4 million</div>
-            <div className="text-[11px] text-gray-800">7³</div>
+      {play && (
+        <div className="fixed inset-0 z-30 bg-black/70 flex items-center justify-center" onClick={() => setPlay(null)}>
+          <div className="w-[300px]" onClick={(e) => e.stopPropagation()}>
+            <div className="text-white text-sm mb-2 flex items-baseline justify-between"><span>{play.d.name} · {STEPS[play.i]}</span><span className="text-[11px] text-gray-400">← → · esc</span></div>
+            <PhoneFrame title={`${play.d.name} · ${STEPS[play.i]}`}>{play.d.cells[STEPS[play.i]] ?? <div className="w-[390px] h-[844px] bg-black flex items-center justify-center text-gray-500">not drawn yet</div>}</PhoneFrame>
+            <div className="flex justify-between mt-2">
+              <button onClick={() => setPlay({ ...play, i: Math.max(0, play.i - 1) })} className="text-white/80 px-3 py-1">←</button>
+              <button onClick={() => setPlay({ ...play, i: Math.min(STEPS.length - 1, play.i + 1) })} className="text-white/80 px-3 py-1">→</button>
+            </div>
           </div>
-          <p className="text-[10px] text-gray-500 mt-auto px-4 pb-3">The queue is visible; answered items scroll up and fade. Rhythm over isolation.</p>
-        </Frame>
-        <Frame seed="a dial" title="Gauge" screen="V1">
-          <div className="px-4 pt-6 text-gray-100">
-            <div className="text-3xl font-light text-center">47 × 6</div>
-            <div className="mt-8 mx-auto w-28 h-28 rounded-full border-4 border-gray-800 border-t-emerald-500 flex items-center justify-center text-[10px] text-gray-400">4.8s</div>
-            <div className="text-center text-[10px] text-gray-500 mt-3">your pace on this skill</div>
-          </div>
-          <p className="text-[10px] text-gray-500 mt-auto px-4 pb-3">No countdown, no count. Just the one number that matters: are you getting faster on <em>this</em>.</p>
-        </Frame>
-        <Frame seed="a blank page" title="Nothing" screen="V1">
-          <div className="flex-1 flex items-center justify-center text-4xl font-light text-gray-100">47 × 6</div>
-          <p className="text-[10px] text-gray-500 mt-auto px-4 pb-3">No timer, no keypad chrome — a numeric keyboard slides up only when you start typing. The question is the whole screen.</p>
-        </Frame>
-      </div>
+        </div>
+      )}
 
       <DsNotes page="galaxybrain" />
     </div>
   );
-}
-
-function Frame({ seed, title, children, screen = "V2" }: { seed: string; title: string; children: React.ReactNode; screen?: string }) {
-  return (
-    <figure>
-      <div className="w-full aspect-[9/16] rounded-[20px] border border-gray-300 dark:border-gray-700 bg-black overflow-hidden flex flex-col">{children}</div>
-      <figcaption className="mt-2 flex items-baseline gap-2"><Handle id={`G-${screen}-${title}`} /><div className="text-sm">{title}</div><div className="text-[11px] text-gray-500">seed: {seed}</div></figcaption>
-    </figure>
-  );
-}
-function Row({ l, r, dim, bold }: { l: string; r: string; dim?: boolean; bold?: boolean }) {
-  return <div className={`flex justify-between ${dim ? "text-gray-500" : ""} ${bold ? "font-bold" : ""}`}><span>{l}</span><span className="tabular-nums">{r}</span></div>;
 }
