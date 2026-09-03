@@ -15,7 +15,7 @@ export default function DesignIdeas() {
     <div>
       <div className="max-w-2xl">
         <h1 className="text-2xl font-light tracking-tight">Design ideas</h1>
-        <p className="text-sm text-gray-500 mt-1 mb-10">A running sketchbook — dated mockups, newest first. Nothing here is shipped behavior.</p>
+        <p className="text-sm text-gray-500 mt-1 mb-10">Specific changes to the current design, as dated mockups, newest first — the convergent half (Galaxy Brain is the divergent half). Nothing here is shipped behavior until it says so.</p>
 
         <Entry id="I-4" date="02 Sep 2026" title="After you answer, the explanation gets the whole screen">
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
