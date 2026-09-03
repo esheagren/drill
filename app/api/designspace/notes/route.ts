@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 
-const okPage = (p: unknown) => (typeof p === "string" && /^[A-Za-z0-9_/ ›-]{1,60}$/.test(p) ? p : null);
+const okPage = (p: unknown) => (typeof p === "string" && /^[A-Za-z0-9_/ ›★↕+.-]{1,60}$/.test(p) ? p : null);
 
 /** GET ?page= → { text }  ·  PUT { page, text } — shared notes per designspace page (read by Erik and by Claude). */
 export async function GET(req: Request) {

@@ -1,5 +1,6 @@
 /** What shipped, keyed to screens — so the wall reflects terminal work. Newest first. Claude appends on each ship. */
 export const CHANGES: { date: string; screen: string; what: string; pr: number }[] = [
+  { date: "2026-09-03", screen: "designspace", what: "Decisions reorganized: the version at the top (composed from the stars), then decisions by status — working on / later / decided — with priority order, a copyable brief and link per decision; the Miss screen is one decision with two axes; stars and reactions now actually save (the notes API had been rejecting ★ and ↕ keys)", pr: 68 },
   { date: "2026-09-03", screen: "D-miss", what: "Miss screen: feedback voice × widget placement composed, with the full pairing grid", pr: 67 },
   { date: "2026-09-02", screen: "designspace", what: "Galaxy Brain → Decisions: per decision, editable requirements, the live choice, and options to star/prune; the stars are the spec", pr: 66 },
   { date: "2026-09-02", screen: "designspace", what: "Reactions (yes / maybe / no) on directions and variants; no collapses the row; included in copy-all", pr: 65 },
