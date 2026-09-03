@@ -12,7 +12,7 @@ export default function DsRoom() {
         <h2 className="text-sm font-medium mb-2">How it works</h2>
         <ol className="text-sm text-gray-600 dark:text-gray-300 space-y-2 list-decimal pl-5 mb-8">
           <li><b>Everything has a handle.</b> Screens are <Handle id="V2" />, components are <Handle id="V2 › TechniqueCard" />, directions are <Handle id="G-V2-Ledger" />, ideas are <Handle id="I-3" />. Click any handle to copy it, paste it into the terminal.</li>
-          <li><b>Write on the wall.</b> Every screen has notes pinned to it — or to one of its components. Then in the terminal: <i>“read my notes on V2”</i>. Claude reads exactly what you wrote, attached to exactly what you meant.</li>
+          <li><b>Write on the wall, then hand it over.</b> Every screen has notes pinned to it — or to one of its components. When you&apos;re done, hit <b>copy all feedback</b> (top right, or per screen / per note) and paste the block into the terminal. Each note arrives under its handle, so Claude knows exactly what you meant.</li>
           <li><b>Ships come back to the wall.</b> The Changes feed lists what landed, keyed to screens, so you can see the state of things without re-reading the terminal.</li>
         </ol>
 
