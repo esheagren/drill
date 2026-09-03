@@ -1,0 +1,11 @@
+/** What shipped, keyed to screens — so the wall reflects terminal work. Newest first. Claude appends on each ship. */
+export const CHANGES: { date: string; screen: string; what: string; pr: number }[] = [
+  { date: "2026-09-02", screen: "designspace", what: "Screens wall: sticky component rail, notes pinned to screens and components, click-to-copy handles, Changes feed", pr: 57 },
+  { date: "2026-09-02", screen: "designspace", what: "Components as annotated real screens (auto-measured callouts)", pr: 55 },
+  { date: "2026-09-02", screen: "designspace", what: "Catalog frames at a true 390×844 viewport", pr: 54 },
+  { date: "2026-09-02", screen: "V2", what: "Feedback takes the whole screen: keypad hidden, → bar", pr: 52 },
+  { date: "2026-09-02", screen: "V2", what: "Explicit → button to advance", pr: 51 },
+  { date: "2026-09-02", screen: "V2", what: "Widgets seeded with the missed item's numbers", pr: 50 },
+  { date: "2026-09-02", screen: "V1", what: "Timer freezes from submit until the next item", pr: 47 },
+  { date: "2026-09-02", screen: "V2", what: "Tips only show for numbers they fit; no placeholder in the answer box", pr: 44 },
+];

@@ -1,12 +1,11 @@
 import Link from "next/link";
 
 const NAV = [
-  ["/designspace", "Overview"],
-  ["/designspace/catalog", "Catalog"],
-  ["/designspace/components", "Components"],
+  ["/designspace", "Room"],
+  ["/designspace/screens", "Screens"],
   ["/designspace/galaxybrain", "Galaxy Brain"],
-  ["/designspace/principles", "Principles"],
   ["/designspace/ideas", "Ideas"],
+  ["/designspace/principles", "Principles"],
 ] as const;
 
 export default function DesignspaceLayout({ children }: { children: React.ReactNode }) {

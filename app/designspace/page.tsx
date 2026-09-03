@@ -1,32 +1,56 @@
 import Link from "next/link";
-import DsNotes from "@/components/DsNotes";
+import Handle from "@/components/DsHandle";
+import { CHANGES } from "@/content/designspace/changes";
 
-export default function DsOverview() {
+export default function DsRoom() {
   return (
-    <div className="max-w-2xl">
-      <h1 className="text-2xl font-light tracking-tight">Designspace</h1>
-      <p className="text-sm text-gray-500 mt-1 mb-8">The room where Drill&apos;s design gets worked on. Private; nothing here is user-facing.</p>
-      <div className="grid sm:grid-cols-2 gap-3">
-        {[
-          ["/designspace/catalog", "Catalog", "Every page and view state, live, with its canonical name — so we can say “V3” and mean the same thing."],
-          ["/designspace/components", "Components", "The named pieces the views are built from, each shown in isolation."],
-          ["/designspace/galaxybrain", "Galaxy Brain", "Pick a view and explore designs that are deliberately nothing like the current one."],
-          ["/designspace/principles", "Principles", "The rules we hold ourselves to, distilled from the best writing on doing this well with AI."],
-          ["/designspace/ideas", "Ideas", "The dated sketchbook: small mockups of specific interactions, newest first."],
-        ].map(([href, t, d]) => (
-          <Link key={href} href={href} className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 hover:bg-gray-50 dark:hover:bg-gray-950">
-            <div className="text-base">{t}</div>
-            <div className="text-[13px] text-gray-500 mt-1">{d}</div>
-          </Link>
-        ))}
+    <div className="grid lg:grid-cols-[1fr_300px] gap-12">
+      <div className="max-w-2xl">
+        <h1 className="text-2xl font-light tracking-tight">The room</h1>
+        <p className="text-sm text-gray-500 mt-1 mb-8">Drill&apos;s design, on a wall you and Claude can both point at. You work in the terminal; this is where the pictures are.</p>
+
+        <h2 className="text-sm font-medium mb-2">How it works</h2>
+        <ol className="text-sm text-gray-600 dark:text-gray-300 space-y-2 list-decimal pl-5 mb-8">
+          <li><b>Everything has a handle.</b> Screens are <Handle id="V2" />, components are <Handle id="V2 › TechniqueCard" />, directions are <Handle id="G-V2-Ledger" />, ideas are <Handle id="I-3" />. Click any handle to copy it, paste it into the terminal.</li>
+          <li><b>Write on the wall.</b> Every screen has notes pinned to it — or to one of its components. Then in the terminal: <i>“read my notes on V2”</i>. Claude reads exactly what you wrote, attached to exactly what you meant.</li>
+          <li><b>Ships come back to the wall.</b> The Changes feed lists what landed, keyed to screens, so you can see the state of things without re-reading the terminal.</li>
+        </ol>
+
+        <h2 className="text-sm font-medium mb-2">Things you can say</h2>
+        <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1.5 mb-8 font-mono text-[13px]">
+          <li>“V2 › TechniqueCard — too much text; try the Chalk voice from G-V2-Chalk”</li>
+          <li>“read my notes on the Screens wall and do the ones marked !”</li>
+          <li>“add a galaxy-brain round for V4 seeded from a scoreboard and a receipt”</li>
+          <li>“promote I-3 to the app”</li>
+          <li>“what changed on V1 since Tuesday?”</li>
+        </ul>
+
+        <h2 className="text-sm font-medium mb-2">Places</h2>
+        <div className="grid sm:grid-cols-2 gap-3">
+          {[
+            ["/designspace/screens", "Screens", "The wall. Every view, live, with components called out and notes pinned."],
+            ["/designspace/galaxybrain", "Galaxy Brain", "Per screen: directions that start somewhere else entirely."],
+            ["/designspace/ideas", "Ideas", "Dated mockups of specific interactions, on their way to the app."],
+            ["/designspace/principles", "Principles", "What we hold the work to."],
+          ].map(([href, t, d]) => (
+            <Link key={href} href={href} className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 hover:bg-gray-50 dark:hover:bg-gray-950">
+              <div className="text-base">{t}</div><div className="text-[13px] text-gray-500 mt-1">{d}</div>
+            </Link>
+          ))}
+        </div>
       </div>
-      <h2 className="text-base mt-10 mb-2">How to work in here</h2>
-      <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1.5 list-disc pl-5">
-        <li>Every page has a <b>Notes</b> box at the bottom. Write reactions or asks there; they save to the database and Claude reads them when you point it at the page (“look at my notes on the catalog”).</li>
-        <li>Names in the Catalog and Components pages are the vocabulary. Use them in requests: “V2 should…”, “the TechniqueCard is too…”.</li>
-        <li>Galaxy Brain is for divergence, not decisions. Say which direction has something worth keeping and it moves to Ideas as a concrete mock, then to the app.</li>
-      </ul>
-      <DsNotes page="overview" />
+
+      <aside className="lg:sticky lg:top-16 self-start">
+        <div className="text-[11px] uppercase tracking-wide text-gray-400 mb-2">Changes</div>
+        <ul className="space-y-2.5 text-[12px]">
+          {CHANGES.map((c, i) => (
+            <li key={i} className="grid grid-cols-[52px_1fr] gap-2">
+              <span className="text-gray-400 tabular-nums">{c.date.slice(5)}</span>
+              <span><Handle id={c.screen} className="mr-1" />{c.what} <a className="text-gray-400" href={`https://github.com/esheagren/drill/pull/${c.pr}`}>#{c.pr}</a></span>
+            </li>
+          ))}
+        </ul>
+      </aside>
     </div>
   );
 }

@@ -8,6 +8,7 @@
 import { useState } from "react";
 
 import DsNotes from "@/components/DsNotes";
+import Handle from "@/components/DsHandle";
 
 export default function DesignIdeas() {
   return (
@@ -16,7 +17,7 @@ export default function DesignIdeas() {
         <h1 className="text-2xl font-light tracking-tight">Design ideas</h1>
         <p className="text-sm text-gray-500 mt-1 mb-10">A running sketchbook — dated mockups, newest first. Nothing here is shipped behavior.</p>
 
-        <Entry date="02 Sep 2026" title="After you answer, the explanation gets the whole screen">
+        <Entry id="I-4" date="02 Sep 2026" title="After you answer, the explanation gets the whole screen">
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
             Once an answer is in, the keypad is dead weight — you can&apos;t type anything useful. So the feedback state
             drops the keypad entirely and uses that room: the problem stays up top, then the answer, then a real
@@ -63,7 +64,7 @@ export default function DesignIdeas() {
           </div>
         </Entry>
 
-        <Entry date="02 Sep 2026" title="Explain this problem, not a cousin of it">
+        <Entry id="I-3" date="02 Sep 2026" title="Explain this problem, not a cousin of it">
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
             The tips library pairs a general rule with a canned example — so 11³ gets a card whose example is 13³.
             The fix isn&apos;t better matching; it&apos;s that each generator should emit <em>worked steps for its own
@@ -89,7 +90,7 @@ export default function DesignIdeas() {
           </div>
         </Entry>
 
-        <Entry date="02 Sep 2026" title="A widget, when a picture is faster than a sentence">
+        <Entry id="I-2" date="02 Sep 2026" title="A widget, when a picture is faster than a sentence">
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
             With the whole lower screen available, some techniques deserve ten seconds of play instead of prose.
             Two early sketches below; the vetted, polished versions live in <a href="/widgetlibrary" className="underline">/widgetlibrary</a>.
@@ -100,7 +101,7 @@ export default function DesignIdeas() {
           </div>
         </Entry>
 
-        <Entry date="02 Sep 2026" title="Words a person would say">
+        <Entry id="I-1" date="02 Sep 2026" title="Words a person would say">
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
             The current rules read like compressed documentation. Rewrite them the way you&apos;d say them out loud,
             one idea per sentence, this problem&apos;s numbers doing the talking:
@@ -131,10 +132,10 @@ export default function DesignIdeas() {
 
 // ── scaffolding ────────────────────────────────────────────────────────────
 
-function Entry({ date, title, children }: { date: string; title: string; children: React.ReactNode }) {
+function Entry({ id, date, title, children }: { id: string; date: string; title: string; children: React.ReactNode }) {
   return (
     <section className="mb-14">
-      <div className="text-[11px] uppercase tracking-wide text-gray-400">{date}</div>
+      <div className="text-[11px] uppercase tracking-wide text-gray-400 flex items-center gap-2"><Handle id={id} />{date}</div>
       <h2 className="text-lg font-light mt-0.5 mb-3" style={{ textWrap: "balance" }}>{title}</h2>
       {children}
     </section>
