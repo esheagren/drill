@@ -1,4 +1,5 @@
 import DsNotes from "@/components/DsNotes";
+import Handle from "@/components/DsHandle";
 
 /**
  * Galaxy Brain — pick a view, explore designs that are deliberately nothing like
@@ -11,7 +12,7 @@ export default function GalaxyBrain() {
       <h1 className="text-2xl font-light tracking-tight">Galaxy Brain</h1>
       <p className="text-sm text-gray-500 mt-1 mb-10 max-w-prose">For each view, a few directions that start from a different feeling rather than a tweak of what exists. Each one names the seed it grew from. Say which has something worth keeping.</p>
 
-      <h2 className="text-lg font-light mb-1">V2 · Feedback after a miss</h2>
+      <h2 className="text-lg font-light mb-1 flex items-center gap-2"><Handle id="V2" /> Feedback after a miss</h2>
       <p className="text-sm text-gray-500 mb-4">Today: answer, why, widget, technique card, → bar. Three other places to stand:</p>
       <div className="grid md:grid-cols-3 gap-6">
         <Frame seed="a shop receipt" title="Ledger">
@@ -56,10 +57,10 @@ export default function GalaxyBrain() {
         </Frame>
       </div>
 
-      <h2 className="text-lg font-light mt-14 mb-1">V1 · Practice</h2>
+      <h2 className="text-lg font-light mt-14 mb-1 flex items-center gap-2"><Handle id="V1" /> Practice</h2>
       <p className="text-sm text-gray-500 mb-4">Today: centered prompt, answer line, keypad. Two other places to stand:</p>
       <div className="grid md:grid-cols-3 gap-6">
-        <Frame seed="a teleprompter" title="Stream">
+        <Frame seed="a teleprompter" title="Stream" screen="V1">
           <div className="px-4 pt-6 text-gray-100 space-y-6">
             <div className="text-[11px] text-gray-600 line-through">36 × 4 = 144</div>
             <div className="text-[11px] text-gray-600 line-through">1/8 → 12.5%</div>
@@ -69,7 +70,7 @@ export default function GalaxyBrain() {
           </div>
           <p className="text-[10px] text-gray-500 mt-auto px-4 pb-3">The queue is visible; answered items scroll up and fade. Rhythm over isolation.</p>
         </Frame>
-        <Frame seed="a dial" title="Gauge">
+        <Frame seed="a dial" title="Gauge" screen="V1">
           <div className="px-4 pt-6 text-gray-100">
             <div className="text-3xl font-light text-center">47 × 6</div>
             <div className="mt-8 mx-auto w-28 h-28 rounded-full border-4 border-gray-800 border-t-emerald-500 flex items-center justify-center text-[10px] text-gray-400">4.8s</div>
@@ -77,7 +78,7 @@ export default function GalaxyBrain() {
           </div>
           <p className="text-[10px] text-gray-500 mt-auto px-4 pb-3">No countdown, no count. Just the one number that matters: are you getting faster on <em>this</em>.</p>
         </Frame>
-        <Frame seed="a blank page" title="Nothing">
+        <Frame seed="a blank page" title="Nothing" screen="V1">
           <div className="flex-1 flex items-center justify-center text-4xl font-light text-gray-100">47 × 6</div>
           <p className="text-[10px] text-gray-500 mt-auto px-4 pb-3">No timer, no keypad chrome — a numeric keyboard slides up only when you start typing. The question is the whole screen.</p>
         </Frame>
@@ -88,11 +89,11 @@ export default function GalaxyBrain() {
   );
 }
 
-function Frame({ seed, title, children }: { seed: string; title: string; children: React.ReactNode }) {
+function Frame({ seed, title, children, screen = "V2" }: { seed: string; title: string; children: React.ReactNode; screen?: string }) {
   return (
     <figure>
       <div className="w-full aspect-[9/16] rounded-[20px] border border-gray-300 dark:border-gray-700 bg-black overflow-hidden flex flex-col">{children}</div>
-      <figcaption className="mt-2"><div className="text-sm">{title}</div><div className="text-[11px] text-gray-500">seed: {seed}</div></figcaption>
+      <figcaption className="mt-2 flex items-baseline gap-2"><Handle id={`G-${screen}-${title}`} /><div className="text-sm">{title}</div><div className="text-[11px] text-gray-500">seed: {seed}</div></figcaption>
     </figure>
   );
 }
