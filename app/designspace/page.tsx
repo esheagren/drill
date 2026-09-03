@@ -12,6 +12,7 @@ export default function DsRoom() {
         <h2 className="text-sm font-medium mb-2">How it works</h2>
         <ol className="text-sm text-gray-600 dark:text-gray-300 space-y-2 list-decimal pl-5 mb-8">
           <li><b>Everything has a handle.</b> Screens are <Handle id="V2" />, components are <Handle id="V2 › TechniqueCard" />, options are <Handle id="D-keypad/e-slash-column" />, ideas are <Handle id="I-3" />. Click any handle to copy it, paste it into the terminal.</li>
+          <li><b>★ shortlists, ✕ rules out, status files it.</b> Star as many options as you like — a star means “I like this one”. ✕ hides an option (tick “show the ✕” to see it again). The version at the top of Decisions uses the starred option; when several are starred, a small picker there says which one goes in. Set a decision to <i>decided</i> when the pick is final; set it back to reopen.</li>
           <li><b>Write on the wall, then hand it over.</b> Every screen has notes pinned to it — or to one of its components. When you&apos;re done, hit <b>copy all feedback</b> (top right, or per screen / per note) and paste the block into the terminal. Each note arrives under its handle, so Claude knows exactly what you meant.</li>
           <li><b>Ships come back to the wall.</b> The Changes feed lists what landed, keyed to screens, so you can see the state of things without re-reading the terminal.</li>
         </ol>
