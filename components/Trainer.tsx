@@ -102,6 +102,7 @@ export default function Trainer() {
     const initial = mixedFor(loadDefaultMinutes());
     planRef.current = initial; setPlan(initial); setRemaining(initial.durationMs);
     const demo = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("demo") : null;
+    if (demo) document.documentElement.classList.add("demo");
     hydrate().then((st) => {
       if (!alive) return;
       setState(st);

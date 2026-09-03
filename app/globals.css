@@ -35,3 +35,8 @@ input[type="number"]::-webkit-outer-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
 }
+
+/* Catalog demo frames render the real app in a scaled iframe; hide desktop scrollbars there. */
+html.demo { scrollbar-width: none; }
+html.demo ::-webkit-scrollbar { display: none; }
+html.demo * { scrollbar-width: none; }
