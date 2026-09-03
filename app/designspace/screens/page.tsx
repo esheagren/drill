@@ -122,7 +122,7 @@ function ScreenBlock({ id, title, src, scroll = 0, wait = 900, note, W, H }: Scr
     }, 150);
   };
 
-  const Frame = () => (
+  const frameEl = (
     <div ref={wrap} className={`w-full ${phone ? "rounded-[22px]" : "rounded-lg"} border border-gray-300 dark:border-gray-700 overflow-hidden bg-black relative`} style={{ height: H * k, maxWidth: W }}>
       <div style={{ width: W, height: H, transform: `scale(${k})`, transformOrigin: "top left" }}>
         <iframe ref={frame} src={src} title={`${id} ${title}`} width={W} height={H} style={{ border: 0, display: "block", background: "black" }} onLoad={() => setTimeout(measure, wait)} />
@@ -148,7 +148,7 @@ function ScreenBlock({ id, title, src, scroll = 0, wait = 900, note, W, H }: Scr
       {phone ? (
         <div className="grid gap-6 items-start lg:grid-cols-[200px_minmax(240px,340px)_1fr]">
           <ComponentRail boxes={boxes} id={id} hover={hover} setHover={setHover} vertical />
-          <Frame />
+          {frameEl}
           <div className="lg:sticky lg:top-16">
             <div className="text-[11px] uppercase tracking-wide text-gray-400 mb-2">notes on {id}</div>
             <PinnedNotes screen={id} components={boxes.map((b) => b.name)} />
@@ -157,7 +157,7 @@ function ScreenBlock({ id, title, src, scroll = 0, wait = 900, note, W, H }: Scr
       ) : (
         <div className="space-y-4">
           <ComponentRail boxes={boxes} id={id} hover={hover} setHover={setHover} />
-          <Frame />
+          {frameEl}
           <div className="grid lg:grid-cols-[1fr_minmax(320px,420px)] gap-6 items-start">
             <div className="text-[12px] text-gray-500">{note}</div>
             <div>
