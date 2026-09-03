@@ -30,7 +30,7 @@ export default function Onboarding({ onDone, initialMode = "name" }: { onDone: (
 
   return (
     <div className="fixed inset-0 z-30 bg-white dark:bg-black text-gray-900 dark:text-gray-100 flex items-center justify-center px-6">
-      <div className="w-full max-w-xs space-y-6">
+      <div data-c="OnboardingForm" className="w-full max-w-xs space-y-6">
         <div className="text-center">
           <div className="text-3xl font-light tracking-tight">Drill</div>
           <div className="text-sm text-gray-400 mt-1">{mode === "name" ? "What should we call you?" : "Sign in to your account"}</div>

@@ -33,7 +33,7 @@ export default function Account({ profile, onChange }: { profile: Profile; onCha
   };
 
   return (
-    <section className="mt-8 text-sm text-gray-500 space-y-5">
+    <section data-c="AccountForm" className="mt-8 text-sm text-gray-500 space-y-5">
       <h2 className="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500">Account</h2>
 
       <div className="space-y-1">

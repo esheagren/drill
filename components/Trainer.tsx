@@ -79,7 +79,8 @@ export default function Trainer() {
   /** Catalog demo states: render a view without recording anything. */
   const applyDemo = (demo: string, st: EngineState) => {
     void st;
-    const fixed = generateItem("ar.split", 2);
+    const skill = (new URLSearchParams(window.location.search).get("skill") ?? "ar.split") as SkillId;
+    const fixed = generateItem(SKILL_BY_ID[skill] ? skill : "ar.split", 2);
     setItem(fixed);
     planRef.current = MIXED; setPlan(MIXED);
     if (demo === "wrong" || demo === "slow") {
@@ -240,10 +241,10 @@ export default function Trainer() {
     return (
       <div className="min-h-dvh flex flex-col bg-white dark:bg-black text-gray-900 dark:text-gray-100">
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-          <div className="text-7xl font-light tabular-nums">{session.answered}</div>
+          <div data-c="SummaryCount" className="text-7xl font-light tabular-nums">{session.answered}</div>
           <div className="text-sm text-gray-400 mt-1">answered · {plan.label} · {Math.round(plan.durationMs / 60000)} min</div>
           <div className="text-2xl font-light mt-6 tabular-nums">{session.correct} correct · {pct}%</div>
-          <ul className="mt-8 w-full max-w-xs text-sm space-y-1">
+          <ul data-c="SkillTally" className="mt-8 w-full max-w-xs text-sm space-y-1">
             {rows.map(([id, t]) => (
               <li key={id} className="flex justify-between text-gray-500">
                 <span>{SKILL_BY_ID[id as SkillId].name}</span>
@@ -253,7 +254,7 @@ export default function Trainer() {
           </ul>
         </div>
         <div className="px-6 pb-[max(env(safe-area-inset-bottom),24px)] space-y-2 max-w-md mx-auto w-full">
-          <div className="flex gap-2">
+          <div data-c="AgainRow" className="flex gap-2">
             <button onClick={() => restart()} className="flex-1 h-14 rounded-2xl bg-gray-900 text-white dark:bg-gray-100 dark:text-black text-lg active:scale-[0.98] transition">
               Again
             </button>
@@ -295,17 +296,17 @@ export default function Trainer() {
         <div className="min-w-0 truncate">
           {plan.id !== "mixed" && <span className="text-xs uppercase tracking-wide">{plan.label}</span>}{isReviewRef.current && <span className="ml-2">↺</span>}
         </div>
-        <button onClick={() => setTimerMenu(true)} aria-label="Change session length" className={`text-center text-base tabular-nums ${started ? "text-gray-900 dark:text-gray-100" : ""}`}>
+        <button data-c="Timer" onClick={() => setTimerMenu(true)} aria-label="Change session length" className={`text-center text-base tabular-nums ${started ? "text-gray-900 dark:text-gray-100" : ""}`}>
           {mm}:{String(ss).padStart(2, "0")}
         </button>
-        <button onClick={() => setShowMap(true)} aria-label="Menu" className="justify-self-end -mr-3 px-3 py-2 tabular-nums hover:text-gray-900 dark:hover:text-gray-100">
+        <button data-c="MenuButton" onClick={() => setShowMap(true)} aria-label="Menu" className="justify-self-end -mr-3 px-3 py-2 tabular-nums hover:text-gray-900 dark:hover:text-gray-100">
           ▦
         </button>
       </header>
 
       <main className={`flex-1 flex flex-col items-center px-6 min-h-0 overflow-y-auto ${feedback ? "justify-start pt-2 pb-28" : "justify-center"}`}>
         <div className="text-center space-y-2">
-          <div className={`${feedback ? "text-2xl sm:text-3xl" : "text-4xl sm:text-5xl"} font-light tracking-tight leading-tight transition-all`} style={{ overflowWrap: "anywhere" }}>
+          <div data-c="Prompt" className={`${feedback ? "text-2xl sm:text-3xl" : "text-4xl sm:text-5xl"} font-light tracking-tight leading-tight transition-all`} style={{ overflowWrap: "anywhere" }}>
             {item.prompt}
           </div>
           <div className="text-sm text-gray-400 dark:text-gray-500">{item.sub ?? skill.ask}</div>
@@ -313,6 +314,7 @@ export default function Trainer() {
 
         <div className={`w-full max-w-sm ${feedback ? "mt-4" : "mt-8"}`}>
           <div
+            data-c="AnswerLine"
             className={[
               "w-full text-center text-3xl font-light py-3 border-b-2 min-h-[3.5rem] tabular-nums transition-colors",
               phase === "correct" || phase === "slow" ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
@@ -328,7 +330,7 @@ export default function Trainer() {
               <div className="w-full space-y-1 text-left sm:text-center">
                 {phase === "wrong" && (
                   <>
-                    <div className="text-2xl font-light text-center">{item.answerText}</div>
+                    <div data-c="AnswerReveal" className="text-2xl font-light text-center">{item.answerText}</div>
                     <div className="text-sm text-gray-500 text-center">{item.why}</div>
                   </>
                 )}
@@ -336,7 +338,7 @@ export default function Trainer() {
                   const seed = widgetSeedFor(item.key);
                   if (!seed) return null;
                   return (
-                    <div className="mt-3 mx-auto max-w-sm rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-3 text-left" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+                    <div data-c="PlayWithIt" className="mt-3 mx-auto max-w-sm rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-3 text-left" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
                       <div className="text-xs uppercase tracking-wide text-gray-400 mb-2">play with it</div>
                       {seed.kind === "area" && <AreaModel initialA={seed.a} initialB={seed.b} compact />}
                       {seed.kind === "chain" && <MultiplierChain initialBase={seed.base} initialChanges={seed.changes} compact />}
@@ -345,7 +347,7 @@ export default function Trainer() {
                   );
                 })()}
                 {tip && (
-                  <div className={`mt-3 mx-auto max-w-sm rounded-xl border px-4 py-3 text-left ${phase === "slow" ? "border-emerald-500" : "border-gray-200 dark:border-gray-800"}`}>
+                  <div data-c="TechniqueCard" className={`mt-3 mx-auto max-w-sm rounded-xl border px-4 py-3 text-left ${phase === "slow" ? "border-emerald-500" : "border-gray-200 dark:border-gray-800"}`}>
                     <div className="text-xs uppercase tracking-wide text-gray-400 mb-1">{tip.title}</div>
                     <div className="text-sm text-gray-800 dark:text-gray-200">{tip.rule}</div>
                     <div className="text-xs text-gray-500 mt-1 tabular-nums">{tip.example}</div>
@@ -363,6 +365,7 @@ export default function Trainer() {
             type="button"
             onClick={() => advance(state)}
             aria-label="Next question"
+            data-c="NextBar"
             className="h-14 w-full max-w-md rounded-2xl bg-gray-900 text-white dark:bg-gray-100 dark:text-black text-2xl active:scale-[0.98] transition"
           >
             →
@@ -401,7 +404,7 @@ export default function Trainer() {
 function Sheet({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-30 flex items-end sm:items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="w-full max-w-sm bg-white dark:bg-black text-gray-900 dark:text-gray-100 rounded-t-3xl sm:rounded-3xl p-5 pb-[max(env(safe-area-inset-bottom),20px)]" onClick={(e) => e.stopPropagation()}>
+      <div data-c="Sheet" className="w-full max-w-sm bg-white dark:bg-black text-gray-900 dark:text-gray-100 rounded-t-3xl sm:rounded-3xl p-5 pb-[max(env(safe-area-inset-bottom),20px)]" onClick={(e) => e.stopPropagation()}>
         <div className="text-base mb-4">{title}</div>
         {children}
       </div>

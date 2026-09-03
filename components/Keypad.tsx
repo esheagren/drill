@@ -24,7 +24,7 @@ export default function Keypad({ onKey, onBackspace, onSubmit, submitDisabled }:
     "h-14 rounded-2xl text-2xl font-light select-none active:scale-95 transition-transform touch-manipulation";
   const key = `${base} bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100`;
   return (
-    <div className="grid grid-cols-4 gap-2 px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-2 max-w-md mx-auto w-full">
+    <div data-c="Keypad" className="grid grid-cols-4 gap-2 px-3 pb-[max(env(safe-area-inset-bottom),12px)] pt-2 max-w-md mx-auto w-full">
       {ROWS.map((row, i) => (
         <div key={i} className="contents">
           {row.map((k) => (
