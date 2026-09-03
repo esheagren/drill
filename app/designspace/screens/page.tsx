@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import Handle from "@/components/DsHandle";
 import PinnedNotes from "@/components/DsPinnedNotes";
+import CopyFeedback from "@/components/DsCopy";
 
 const FILES: Record<string, string> = {
   Timer: "Trainer.tsx", MenuButton: "Trainer.tsx", Prompt: "Trainer.tsx", AnswerLine: "Trainer.tsx", Keypad: "Keypad.tsx",
@@ -47,6 +48,7 @@ export default function Screens() {
   return (
     <div className="grid grid-cols-[120px_1fr] gap-8">
       <nav className="sticky top-16 self-start text-[12px] space-y-0.5 max-h-[80vh] overflow-y-auto">
+        <div className="mb-3"><CopyFeedback prefix="" scope="everything" label="copy all feedback" className="w-full text-left" /></div>
         {SCREENS.map((s) => (
           <a key={s.id} href={`#${s.id}`} className={`block px-2 py-1 rounded-md ${active === s.id ? "bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100" : "text-gray-500"}`}><span className="font-mono">{s.id}</span> <span className="text-gray-400">{s.title}</span></a>
         ))}

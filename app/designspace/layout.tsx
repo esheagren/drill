@@ -1,4 +1,5 @@
 import Link from "next/link";
+import CopyFeedback from "@/components/DsCopy";
 
 const NAV = [
   ["/designspace", "Room"],
@@ -17,7 +18,8 @@ export default function DesignspaceLayout({ children }: { children: React.ReactN
           {NAV.map(([href, label]) => (
             <Link key={href} href={href} className="px-2.5 py-1 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900 whitespace-nowrap">{label}</Link>
           ))}
-          <Link href="/" className="ml-auto text-gray-400 shrink-0">← app</Link>
+          <CopyFeedback prefix="" scope="everything" label="copy all feedback" className="ml-auto shrink-0" />
+          <Link href="/" className="text-gray-400 shrink-0">← app</Link>
         </div>
       </nav>
       <div className="max-w-5xl mx-auto px-5 py-8">{children}</div>

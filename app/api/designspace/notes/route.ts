@@ -8,8 +8,8 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const prefix = url.searchParams.get("prefix");
   if (prefix !== null) {
-    const pre = okPage(prefix); if (!pre) return NextResponse.json({ ok: false }, { status: 400 });
-    const rows = await sql().query(`SELECT page, text, updated_at FROM designspace_notes WHERE page LIKE $1 || '%' AND text <> '' ORDER BY updated_at DESC`, [pre]);
+    const pre = prefix === "" ? "" : okPage(prefix); if (pre === null) return NextResponse.json({ ok: false }, { status: 400 });
+    const rows = await sql().query(`SELECT page, text, updated_at FROM designspace_notes WHERE page LIKE $1 || '%' AND text <> '' ORDER BY page ASC`, [pre]);
     return NextResponse.json({ ok: true, notes: rows });
   }
   const page = okPage(url.searchParams.get("page"));

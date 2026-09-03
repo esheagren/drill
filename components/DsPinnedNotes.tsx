@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import CopyFeedback from "./DsCopy";
 
 /**
  * Notes pinned to a screen (V2) or a component on it (V2 › TechniqueCard).
@@ -25,6 +26,11 @@ export default function PinnedNotes({ screen, components }: { screen: string; co
   };
   return (
     <div className="text-sm">
+      <div className="flex items-center gap-1.5 mb-2 justify-end">
+        <span className="text-[10px] uppercase tracking-wide text-gray-400 mr-auto">copy</span>
+        <CopyFeedback prefix={target} scope={target} label="this" rows={text.trim() ? [{ page: target, text }] : []} />
+        <CopyFeedback prefix={screen} scope={screen} label="screen" />
+      </div>
       <div className="flex items-center gap-2 mb-2">
         <select value={target} onChange={(e) => setTarget(e.target.value)} className="bg-transparent border border-gray-200 dark:border-gray-800 rounded-lg px-2 py-1 text-[12px] font-mono max-w-full">
           <option value={screen}>{screen}</option>
