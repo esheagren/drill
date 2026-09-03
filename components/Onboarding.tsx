@@ -4,8 +4,8 @@ import { useState } from "react";
 import { setUsername, signIn } from "@/lib/account";
 
 /** First entry: pick a name, or sign in to an account made on another device. */
-export default function Onboarding({ onDone }: { onDone: (username: string) => void }) {
-  const [mode, setMode] = useState<"name" | "signin">("name");
+export default function Onboarding({ onDone, initialMode = "name" }: { onDone: (username: string) => void; initialMode?: "name" | "signin" }) {
+  const [mode, setMode] = useState<"name" | "signin">(initialMode);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

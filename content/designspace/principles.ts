@@ -1,0 +1,18 @@
+/**
+ * Design principles for Drill. Distilled from Anshu Chimala, "How to turn your AI
+ * into a world-class designer" (Lenny's Newsletter, 1 Sep 2026), plus how each
+ * applies here. Edit freely — this file is the source of the Principles page.
+ */
+export const SOURCE = { title: "How to turn your AI into a world-class designer", author: "Anshu Chimala", where: "Lenny's Newsletter, 1 Sep 2026", url: "https://www.lennysnewsletter.com/p/how-to-turn-your-ai-into-a-world" };
+
+export const PRINCIPLES: { title: string; idea: string; here: string }[] = [
+  { title: "Start from a feeling, not a layout", idea: "Great design aims at an emotional response. A model's instinct is the opposite — the most predictable choice at every step — so the human's job is to name the feeling first and hold the work to it.", here: "Drill should feel like a quiet gym: calm, fast, nothing decorative. Every screen gets checked against that before anything else." },
+  { title: "Diverge before you converge (Double Diamond)", idea: "Three stages: Discover — explore varied directions with bold briefs; Define — develop one identity through iteration; Deliver — polish by removing.", here: "Galaxy Brain is Discover, Ideas is Define, the app is Deliver. Don't skip the first stage by tweaking the current screen." },
+  { title: "Seed the variety", idea: "Start each direction from an unrelated seed — a random string, an object, a place — to knock the model off its defaults and avoid generic output.", here: "Every Galaxy Brain frame names its seed (a receipt, a chalkboard, a dial). No frame is allowed to be 'the current design but nicer'." },
+  { title: "Be ambitious and specific in the brief", idea: "Generic asks produce generic work. Inject distinctive references and constraints; your taste is the input that makes the result yours.", here: "Requests use the Catalog vocabulary (V2, TechniqueCard) plus a feeling and a reference, not 'make it better'." },
+  { title: "Use a critic that only sees the screen", idea: "A separate, stronger model scores screenshots against clear criteria, blind to the code, and the builder iterates until it reaches a 9/10 — with a stopping rule.", here: "Before a view ships, screenshot it at phone width and judge it on: calm, legible at arm's length, one job per screen, no AI tells." },
+  { title: "Real images beat drawn ones", idea: "Generated imagery or video reads as crafted; CSS gradients and shapes read as machine-made. Use it where it carries meaning.", here: "Drill is text and number; the exception is the widgets, which must earn their place by explaining something a sentence can't." },
+  { title: "Subtract ruthlessly", idea: "Remove anything that doesn't do work: redundant labels, extra gradients, gratuitous motion. Restraint reads as taste; models over-explain by default.", here: "Recent removals: mastery dots and skill names from the practice header, the answer-box placeholder, the 'a faster way' label, the session counter. Keep going." },
+  { title: "Remove the AI tells", idea: "Certain patterns signal 'generated': cream backgrounds with terracotta accents, everything centered, rounded cards with accent rails, emoji as section markers, over-explaining copy.", here: "Copy is the current tell in Drill — technique text reads like documentation. Rewrite as something a person would say, with this problem's numbers." },
+  { title: "Name things so you can talk about them", idea: "Shared vocabulary is what makes iteration fast; without it every request is a paragraph of description.", here: "That's what Catalog (V1…V12) and Components are for." },
+];

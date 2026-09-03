@@ -60,6 +60,12 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at    timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS designspace_notes (
+  page        text PRIMARY KEY,
+  text        text        NOT NULL DEFAULT '',
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS user_state (
   user_token  text PRIMARY KEY,
   engine      jsonb       NOT NULL,
