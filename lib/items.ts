@@ -381,7 +381,7 @@ const GENERATORS: Record<SkillId, Gen> = {
     const r = pick(by(L, [6, 8, 9, 12], [3, 4, 6, 7, 8, 9, 10, 12], [2, 3, 5, 7, 11, 14, 15, 18, 24]));
     const ans = 72 / r;
     return { skillId: "co.double", key: `cdb:${r}`, prior: P.doublingTimePrior(r), prompt: `growing ${r}% a year`, sub: "years to double · within 1",
-      answerText: `≈ ${ans.toFixed(1)} years`, why: `rule of 72: 72 ÷ ${r}`, inputMode: "decimal", placeholder: "years", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) <= 1; } };
+      answerText: `≈ ${Number.isInteger(ans) ? ans : ans.toFixed(1)} years`, why: `rule of 72: 72 ÷ ${r}`, inputMode: "decimal", placeholder: "years", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) <= 1; } };
   },
   // 1,000 growing 10% a year for 3 years → 1,331
   "co.growth": (L) => {
