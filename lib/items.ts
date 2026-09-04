@@ -30,7 +30,7 @@ export interface Item {
 
 /** Integer answer. Accepts "12", "10^12", "^12", "e12", "1e12". */
 const intEq = (input: string, target: number) => {
-  const s = input.trim().toLowerCase().replace(/\s+/g, "");
+  const s = input.trim().toLowerCase().replace(/[\s,]+/g, "");
   const m = s.match(/^(?:10\^|\^|1?e|10e)?(-?\d+)$/);   // "10e12" is how 10^12 is typed on a keypad with e and no ^
   return !!m && parseInt(m[1], 10) === target;
 };
@@ -69,7 +69,7 @@ const GENERATORS: Record<SkillId, Gen> = {
     let x: number, y: number;
     do { x = by(L, ri(2, 6), ri(2, 9), ri(3, 12)); y = by(L, ri(2, 9), ri(2, 12), ri(6, 12)); } while (x === 10 || y === 10);
     return {
-      skillId: "ar.mul12", key: `mul:${Math.min(x, y)}x${Math.max(x, y)}`, prior: P.mulPrior(x, y), prompt: `${x} × ${y}`, answerText: String(x * y),
+      skillId: "ar.mul12", key: `mul:${Math.min(x, y)}x${Math.max(x, y)}`, prior: P.mulPrior(x, y), prompt: `${x} × ${y}`, answerText: fmtDigits(x * y),
       why: `${x} × ${y} = ${x * y}`, inputMode: "numeric", placeholder: "product", check: (s) => intEq(s, x * y),
     };
   },
@@ -79,7 +79,7 @@ const GENERATORS: Record<SkillId, Gen> = {
     do { a = by(L, ri(13, 15), ri(13, 20), ri(13, 20)); b = by(L, ri(2, 9), ri(2, 12), ri(13, 20)); } while (b === 10 || a === 20 && b === 10);
     const [x, y] = Math.random() < 0.5 ? [a, b] : [b, a];
     return {
-      skillId: "ar.mul20", key: `mul:${Math.min(x, y)}x${Math.max(x, y)}`, prior: P.mulPrior(x, y), prompt: `${x} × ${y}`, answerText: String(x * y),
+      skillId: "ar.mul20", key: `mul:${Math.min(x, y)}x${Math.max(x, y)}`, prior: P.mulPrior(x, y), prompt: `${x} × ${y}`, answerText: fmtDigits(x * y),
       why: x > 10 && y > 10 ? `${x}×${y} = ${x}×10 + ${x}×${y - 10} = ${x * 10} + ${x * (y - 10)}` : `${x} × ${y} = ${x * y}`,
       inputMode: "numeric", placeholder: "product", check: (s) => intEq(s, x * y),
     };
@@ -91,7 +91,7 @@ const GENERATORS: Record<SkillId, Gen> = {
     const [x, y] = Math.random() < 0.5 ? [a, b] : [b, a];
     const big = Math.max(x, y), small = Math.min(x, y);
     return {
-      skillId: "ar.mul25", key: `mul:${small}x${big}`, prior: P.mulPrior(x, y) + 0.4, prompt: `${x} × ${y}`, answerText: String(x * y),
+      skillId: "ar.mul25", key: `mul:${small}x${big}`, prior: P.mulPrior(x, y) + 0.4, prompt: `${x} × ${y}`, answerText: fmtDigits(x * y),
       why: `${big}×${small} = 20×${small} + ${big - 20}×${small} = ${20 * small} + ${(big - 20) * small}`,
       inputMode: "numeric", placeholder: "product", check: (s) => intEq(s, x * y),
     };
@@ -100,7 +100,7 @@ const GENERATORS: Record<SkillId, Gen> = {
   "ar.sq12": (L) => {
     const n = by(L, ri(2, 6), ri(2, 9), ri(6, 12));
     return {
-      skillId: "ar.sq12", key: `sq:${n}`, prior: P.squarePrior(n), prompt: `${n}²`, answerText: String(n * n),
+      skillId: "ar.sq12", key: `sq:${n}`, prior: P.squarePrior(n), prompt: `${n}²`, answerText: fmtDigits(n * n),
       why: `${n} × ${n}`, inputMode: "numeric", placeholder: "value", check: (s) => intEq(s, n * n),
     };
   },
@@ -108,7 +108,7 @@ const GENERATORS: Record<SkillId, Gen> = {
   "ar.sq25": (L) => {
     const n = by(L, ri(13, 16), ri(13, 20), ri(16, 25));
     return {
-      skillId: "ar.sq25", key: `sq:${n}`, prior: P.squarePrior(n), prompt: `${n}²`, answerText: String(n * n),
+      skillId: "ar.sq25", key: `sq:${n}`, prior: P.squarePrior(n), prompt: `${n}²`, answerText: fmtDigits(n * n),
       why: `(${n - 10}+10)² = ${(n - 10) ** 2} + ${20 * (n - 10)} + 100`, inputMode: "numeric", placeholder: "value", check: (s) => intEq(s, n * n),
     };
   },
@@ -116,7 +116,7 @@ const GENERATORS: Record<SkillId, Gen> = {
   "ar.cube10": (L) => {
     const n = by(L, ri(2, 5), ri(2, 8), ri(5, 10));
     return {
-      skillId: "ar.cube10", key: `cube:${n}`, prior: P.cubePrior(n), prompt: `${n}³`, answerText: String(n ** 3),
+      skillId: "ar.cube10", key: `cube:${n}`, prior: P.cubePrior(n), prompt: `${n}³`, answerText: fmtDigits(n ** 3),
       why: `${n}² = ${n * n}, × ${n} = ${n ** 3}`, inputMode: "numeric", placeholder: "value", check: (s) => intEq(s, n ** 3),
     };
   },
@@ -124,7 +124,7 @@ const GENERATORS: Record<SkillId, Gen> = {
   "ar.cube15": (L) => {
     const n = by(L, ri(11, 12), ri(11, 14), ri(12, 15));
     return {
-      skillId: "ar.cube15", key: `cube:${n}`, prior: P.cubePrior(n), prompt: `${n}³`, answerText: String(n ** 3),
+      skillId: "ar.cube15", key: `cube:${n}`, prior: P.cubePrior(n), prompt: `${n}³`, answerText: fmtDigits(n ** 3),
       why: `${n}² = ${n * n}, × ${n} = ${n ** 3}`, inputMode: "numeric", placeholder: "value", check: (s) => intEq(s, n ** 3),
     };
   },
@@ -195,7 +195,7 @@ const GENERATORS: Record<SkillId, Gen> = {
     const [lo, hi] = by(L, [2, 5], [2, 9], [3, 9]);
     const a = ri(lo, hi), b = ri(lo, hi);
     return {
-      skillId: "coef.mul", key: `mul:${Math.min(a, b)}x${Math.max(a, b)}`, prior: P.mulPrior(a, b), prompt: `${a} × ${b}`, answerText: String(a * b), why: `${a} × ${b} = ${a * b}`,
+      skillId: "coef.mul", key: `mul:${Math.min(a, b)}x${Math.max(a, b)}`, prior: P.mulPrior(a, b), prompt: `${a} × ${b}`, answerText: fmtDigits(a * b), why: `${a} × ${b} = ${a * b}`,
       inputMode: "numeric", placeholder: "product", check: (s) => intEq(s, a * b),
     };
   },
@@ -513,33 +513,33 @@ const GENERATORS: Record<SkillId, Gen> = {
   // 47 × 6 → 282
   "ar.split": (L) => {
     const a = by(L, ri(12, 39), ri(13, 69), ri(23, 99)); const b = by(L, ri(2, 5), ri(3, 8), ri(6, 9));
-    return { skillId: "ar.split", key: `mul:${Math.min(a, b)}x${Math.max(a, b)}`, prior: P.splitPrior(a, b), prompt: `${a} × ${b}`, answerText: String(a * b),
+    return { skillId: "ar.split", key: `mul:${Math.min(a, b)}x${Math.max(a, b)}`, prior: P.splitPrior(a, b), prompt: `${a} × ${b}`, answerText: fmtDigits(a * b),
       why: `${Math.floor(a / 10) * 10}×${b} + ${a % 10}×${b} = ${Math.floor(a / 10) * 10 * b} + ${(a % 10) * b}`, inputMode: "numeric", placeholder: "product", check: (s) => intEq(s, a * b) };
   },
   // 46 × 5 → 230  (half, then ×10)   ·  36 × 25 → 900 (quarter, ×100)
   "ar.short5": (L) => {
     const m = pick(by(L, [5], [5, 50], [25, 50, 5])); const a = by(L, ri(12, 48) * 2, ri(12, 99), m === 25 ? ri(3, 24) * 4 : ri(12, 199));
     const why = m === 5 ? `half of ${a} = ${a / 2}, × 10` : m === 50 ? `half of ${a} = ${a / 2}, × 100` : `quarter of ${a} = ${a / 4}, × 100`;
-    return { skillId: "ar.short5", key: `mul:${Math.min(a, m)}x${Math.max(a, m)}`, prior: P.short5Prior(a, m), prompt: `${a} × ${m}`, answerText: String(a * m), why, inputMode: "numeric", placeholder: "product", check: (s) => intEq(s, a * m) };
+    return { skillId: "ar.short5", key: `mul:${Math.min(a, m)}x${Math.max(a, m)}`, prior: P.short5Prior(a, m), prompt: `${a} × ${m}`, answerText: fmtDigits(a * m), why, inputMode: "numeric", placeholder: "product", check: (s) => intEq(s, a * m) };
   },
   // 34 × 11 → 374   ·   47 × 101 → 4747
   "ar.short11": (L) => {
     const m = pick(by(L, [11], [11, 11, 101], [11, 101])); const a = by(L, ri(12, 45), ri(12, 89), ri(23, 99));
     const why = m === 11 ? `${a}×10 + ${a} = ${a * 10} + ${a}` : `${a}×100 + ${a}`;
-    return { skillId: "ar.short11", key: `mul:${Math.min(a, m)}x${Math.max(a, m)}`, prior: P.short11Prior(a, m), prompt: `${a} × ${m}`, answerText: String(a * m), why, inputMode: "numeric", placeholder: "product", check: (s) => intEq(s, a * m) };
+    return { skillId: "ar.short11", key: `mul:${Math.min(a, m)}x${Math.max(a, m)}`, prior: P.short11Prior(a, m), prompt: `${a} × ${m}`, answerText: fmtDigits(a * m), why, inputMode: "numeric", placeholder: "product", check: (s) => intEq(s, a * m) };
   },
   // 16 × 35 → 8 × 70 → 560
   "ar.double": (L) => {
     const a = pick(by(L, [4, 8, 12, 16], [8, 12, 14, 16, 18, 24], [12, 14, 16, 18, 22, 24, 28, 32]));
     const b = pick(by(L, [15, 25, 35, 45], [15, 25, 35, 45, 55, 75], [15, 35, 45, 55, 65, 75, 85, 95]));
-    return { skillId: "ar.double", key: `mul:${Math.min(a, b)}x${Math.max(a, b)}`, prior: P.doublePrior(a, b), prompt: `${a} × ${b}`, answerText: String(a * b),
+    return { skillId: "ar.double", key: `mul:${Math.min(a, b)}x${Math.max(a, b)}`, prior: P.doublePrior(a, b), prompt: `${a} × ${b}`, answerText: fmtDigits(a * b),
       why: `${a / 2} × ${b * 2}${a % 4 === 0 ? ` = ${a / 4} × ${b * 4}` : ""}`, inputMode: "numeric", placeholder: "product", check: (s) => intEq(s, a * b) };
   },
   // 98 × 7 → 700 − 14 → 686
   "ar.near100": (L) => {
     const a = pick(by(L, [99, 98, 101], [97, 98, 99, 101, 102, 103], [96, 97, 98, 99, 101, 102, 103, 104, 995, 1005].filter((x) => x < 200)));
     const b = by(L, ri(3, 9), ri(4, 12), ri(6, 25));
-    return { skillId: "ar.near100", key: `mul:${Math.min(a, b)}x${Math.max(a, b)}`, prior: P.near100Prior(a, b), prompt: `${a} × ${b}`, answerText: String(a * b),
+    return { skillId: "ar.near100", key: `mul:${Math.min(a, b)}x${Math.max(a, b)}`, prior: P.near100Prior(a, b), prompt: `${a} × ${b}`, answerText: fmtDigits(a * b),
       why: `${b}×100 ${a < 100 ? "−" : "+"} ${b}×${Math.abs(100 - a)} = ${100 * b} ${a < 100 ? "−" : "+"} ${b * Math.abs(100 - a)}`, inputMode: "numeric", placeholder: "product", check: (s) => intEq(s, a * b) };
   },
   // 72 ÷ 8 → 9

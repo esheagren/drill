@@ -316,22 +316,23 @@ export default function Trainer() {
             <div className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1">{plan.id !== "mixed" && plan.label}{isReviewRef.current && <span className="ml-2">↺</span>}</div>
           )}
           <div data-c="Prompt" className="font-serif text-[26px] leading-tight" style={{ overflowWrap: "anywhere" }}>{item.prompt}</div>
-          <div className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">{item.sub ?? skill.ask}</div>
+          {/* the answer, right under the question: a box whose label goes away as you type; after submit it holds the verdict */}
+          <div data-c="AnswerLine" className={`mt-2 inline-flex items-center min-h-11 min-w-[7ch] max-w-full px-3 py-1.5 rounded-xl border-2 text-[24px] font-light tabular-nums transition-colors ${
+            phase === "wrong" ? "border-rose-400/70 text-rose-500 line-through decoration-2"
+            : phase === "correct" || phase === "slow" ? "border-emerald-500/70 text-emerald-600 dark:text-emerald-400"
+            : input ? "border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100" : "border-gray-200 dark:border-gray-800"}`} style={{ overflowWrap: "anywhere" }}>
+            {input ? <>{input}{phase === "answer" && <span className="font-thin text-gray-300 dark:text-gray-700">|</span>}</> : <span className="text-[15px] text-gray-400 dark:text-gray-500">{item.sub ?? skill.ask}</span>}
+          </div>
         </div>
         <button data-c="MenuButton" onClick={() => setShowMap(true)} aria-label="Menu" className="shrink-0 -mr-3 -mt-2 px-3 py-2 text-gray-300 dark:text-gray-700 hover:text-gray-900 dark:hover:text-gray-100">▦</button>
       </header>
 
       {!feedback ? (
-        <main className="flex-1 min-h-0 flex items-center justify-center px-6">
-          <div data-c="AnswerLine" className={`text-[44px] font-light tabular-nums text-center ${phase === "correct" ? "text-emerald-600 dark:text-emerald-400" : "text-gray-700 dark:text-gray-300"}`} style={{ overflowWrap: "anywhere" }}>
-            {input}<span className={`font-thin ${phase === "correct" ? "opacity-0" : "text-gray-300 dark:text-gray-700"}`}>|</span>
-          </div>
-        </main>
+        <main className="flex-1 min-h-0" />
       ) : (
         <>
-          <main className="flex-1 min-h-0 overflow-y-auto px-6 pt-4 pb-3">
-            <div data-c="AnswerLine" className={`text-[24px] font-light tabular-nums ${phase === "wrong" ? "text-rose-500 line-through decoration-2" : "text-emerald-600 dark:text-emerald-400"}`}>{input}</div>
-            <div className="mt-4 space-y-3 font-serif">
+          <main className="flex-1 min-h-0 overflow-y-auto px-6 pt-5 pb-3">
+            <div className="space-y-3 font-serif">
               {lines.map((l, i) => <div key={i} className={`text-[26px] leading-tight ${i === 0 ? "" : "text-gray-500"}`}>{l}</div>)}
               {phase === "wrong" && (() => { const mm = item.answerText.match(/^(.*?)\s*\((.*)\)\s*$/); const primary = mm ? mm[1] : item.answerText; return (
                 <div data-c="AnswerReveal" className="text-[26px] leading-tight text-gray-900 dark:text-gray-100">{primary}.{mm && <span className="block text-[18px] text-gray-400 dark:text-gray-500 mt-1">{mm[2]}</span>}</div>

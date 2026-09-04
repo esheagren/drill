@@ -34,7 +34,7 @@ export function sentencesFor(item: Item): string[] {
     switch (id) {
       case "ar.mul12": case "coef.mul": return [`${prod(hi, lo)} is ${f(lo * hi)}.`];
       case "ar.mul20": return lo > 10 ? [`${hi} tens is ${f(hi * 10)}.`, `${hi} ${times(lo - 10)} more is ${f(hi * (lo - 10))}.`] : [`${prod(hi, lo)} is ${f(lo * hi)}.`];
-      case "ar.mul25": return [`20 ${lo <= 12 ? times(lo) : `× ${lo}`} is ${f(20 * lo)}.`, `${hi - 20} more ${lo <= 12 ? times(lo) : `× ${lo}`} is ${f((hi - 20) * lo)}.`];
+      case "ar.mul25": return [`20 ${lo <= 12 ? times(lo) : `× ${lo}`} is ${f(20 * lo)}.`, `${lo <= 12 ? `${hi - 20} more ${times(lo)}` : `${hi - 20} × ${lo} more`} is ${f((hi - 20) * lo)}.`];
       case "ar.split": { const tens = Math.floor(hi / 10) * 10, ones = hi % 10; return [`${tens} ${times(lo)} is ${f(tens * lo)}.`, ...(ones ? [`${ones} more ${times(lo)} is ${f(ones * lo)}.`] : [])]; }
       case "ar.short5": { const mm = [5, 25, 50].includes(lo) ? lo : hi, a = mm === lo ? hi : lo; return mm === 5 ? [`Half of ${a} is ${f(a / 2)}.`, `Ten times that: ${f(a * 5)}.`] : mm === 50 ? [`Half of ${a} is ${f(a / 2)}.`, `A hundred times that.`] : [`A quarter of ${a} is ${f(a / 4)}.`, `A hundred times that.`]; }
       case "ar.short11": { const mm = lo === 11 || lo === 101 ? lo : hi, a = mm === lo ? hi : lo; return mm === 11 ? [`${a} tens is ${f(a * 10)}.`, `One more ${a} makes ${f(a * 11)}.`] : [`${a} hundreds is ${f(a * 100)}.`, `One more ${a} makes ${f(a * 101)}.`]; }
@@ -43,7 +43,7 @@ export function sentencesFor(item: Item): string[] {
     }
   }
   if ((m = k.match(/^sq:(\d+)$/))) { const n = +m[1]; return n <= 12 ? [`${n} ${times(n)} is ${n * n}.`] : [`${n}² is (${n - 10} + 10)².`, `${(n - 10) ** 2} + ${20 * (n - 10)} + 100.`]; }
-  if ((m = k.match(/^cube:(\d+)$/))) { const n = +m[1]; return [`${n} squared is ${n * n}.`, `${prod(n * n, n)} is ${f(n ** 3)}.`]; }
+  if ((m = k.match(/^cube:(\d+)$/))) { const n = +m[1], sq = n * n; const tens = Math.floor(sq / 10) * 10, ones = sq % 10; return n <= 10 ? [`${n} squared is ${sq}.`, `${sq} × ${n} is ${f(n ** 3)}.`] : [`${n} squared is ${sq}.`, `${sq} × ${n}: ${tens} × ${n} is ${f(tens * n)}, ${ones} × ${n} is ${ones * n} — ${f(n ** 3)}.`]; }
   if ((m = k.match(/^div:(\d+)\/(\d+)$/))) {
     const n = +m[1], d = +m[2], q = n / d;
     if (id === "ar.divfacts") return [`${prod(d, q)} is ${n}.`];
