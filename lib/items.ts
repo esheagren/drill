@@ -31,7 +31,7 @@ export interface Item {
 /** Integer answer. Accepts "12", "10^12", "^12", "e12", "1e12". */
 const intEq = (input: string, target: number) => {
   const s = input.trim().toLowerCase().replace(/\s+/g, "");
-  const m = s.match(/^(?:10\^|\^|1?e)?(-?\d+)$/);
+  const m = s.match(/^(?:10\^|\^|1?e|10e)?(-?\d+)$/);   // "10e12" is how 10^12 is typed on a keypad with e and no ^
   return !!m && parseInt(m[1], 10) === target;
 };
 
