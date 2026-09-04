@@ -8,7 +8,7 @@ import { SKILL_BY_ID, type SkillId } from "@/lib/skills";
 import { MIXED, loadDefaultMinutes, mixedFor, saveDefaultMinutes, saveSession, type Plan, type SessionRecord } from "@/lib/sessions";
 import { flush, hydrate, queueAttempt, queueSession } from "@/lib/sync";
 import Keypad from "./Keypad";
-import { AreaModel, LogLine, MultiplierChain } from "./widgets";
+import { AreaModel, LogLine, PercentBar } from "./widgets";
 import { widgetSeedFor } from "@/lib/widgetSeed";
 import { sentencesFor } from "@/lib/sentences";
 import { generateItem } from "@/lib/items";
@@ -121,7 +121,7 @@ export default function Trainer() {
       advance(st);
       void flush();
     });
-    getProfile().then((p) => { if (alive) setProfile(demo === "onboarding" || demo === "signin" ? { username: null, email: null } : p); });
+    getProfile().then((p) => { if (alive) setProfile(demo === "onboarding" || demo === "signin" ? { username: null, email: null } : demo && !p.username ? { username: "demo", email: null } : p); });
     const onHide = () => { if (document.visibilityState === "hidden") void flush(); };
     document.addEventListener("visibilitychange", onHide);
     return () => { alive = false; document.removeEventListener("visibilitychange", onHide); };
@@ -341,9 +341,9 @@ export default function Trainer() {
           {/* the keypad's place: the picture (or the technique), then → */}
           <div className="shrink-0 border-t border-gray-100 dark:border-gray-900 px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)] max-w-md mx-auto w-full">
             {seed && !showTip ? (
-              <div data-c="PlayWithIt" className="rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-3" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+              <div data-c="PlayWithIt" className="rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-3 max-h-[46dvh] overflow-y-auto" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
                 {seed.kind === "area" && <AreaModel initialA={seed.a} initialB={seed.b} compact />}
-                {seed.kind === "chain" && <MultiplierChain initialBase={seed.base} initialChanges={seed.changes} compact />}
+                {seed.kind === "steps" && <PercentBar rows={seed.rows} compact />}
                 {seed.kind === "log" && <LogLine initialX={seed.x} initialY={seed.y} compact />}
               </div>
             ) : showTip && tip ? (

@@ -7,7 +7,7 @@
  */
 import type { ReactNode } from "react";
 
-export type WidgetKey = "line" | "bar" | "array" | "chain";
+export type WidgetKey = "line" | "bar" | "array";
 export interface Idea {
   id: string;
   rank: number;
@@ -74,9 +74,9 @@ export const IDEAS: Idea[] = [
     idea: "Percent is per hundred — a ratio with a fixed second term. Scaling multiplies both quantities by the same factor; a percent change is a multiplier (×1.15, ×0.85), and successive changes multiply. Unit rates make comparison possible.",
     where: "6.RP (ratios, unit rates, percent as rate per 100) → 7.RP (proportional relationships, percent problems, multi-step percent).",
     reps: ["the double number line (Japanese textbooks; 6.RP)", "ratio tables (Dutch RME)", "tape / bar diagrams (Singapore)", "the 10×10 hundredths grid", "percent bars"],
-    interactive: "The same bar with two scales — quantity above, percent below — slide the pointer and read both. A chain of multipliers for successive changes (built).",
+    interactive: "The bar in percent steps (built 9/3): find 10%, build the percent from tenths, halves and hundredths, add it on or take it off — one row per step, each a sentence and a bar. Successive changes re-base the bar. The multiplier-chain sliders were retired: dragging a parameter never showed the procedure.",
     serves: "pct.anchor · pct.compose · pct.what · pct.apply · pct.find · pct.reverse · pct.chain · co.pctbig · co.chainbig · co.unitprice · co.percap",
-    widget: ["bar", "chain"], status: "partly",
+    widget: ["bar"], status: "partly",
     notes: "Shares the bar with fractions: one picture, two labels. That is the consolidation this page argues for.",
   },
   {
@@ -93,9 +93,9 @@ export const IDEAS: Idea[] = [
     idea: "Growth compounds: equal factors in equal times. Doubling time, the rule of 72, and the log line where equal steps are equal factors. Multiplying powers of ten is adding exponents.",
     where: "8.EE (exponents) → HS F-LE (exponential vs linear) → financial literacy.",
     reps: ["growth bars / ladders", "tables of repeated multiplication", "semi-log graphs", "the chessboard-and-rice story"],
-    interactive: "The chain with n identical steps and a rate slider (built for two steps); the log line where a multiplier is a fixed length you can step along.",
+    interactive: "Percent steps, one row per year (built); the log line where a multiplier is a fixed length you can step along.",
     serves: "co.growth · co.double · co.chainbig · exp.add · exp.sub · sn.mul · sn.div",
-    widget: ["chain", "line"], status: "built",
+    widget: ["bar", "line"], status: "partly",
   },
   {
     id: "additive", rank: 8, name: "Additive structure and compensation",
@@ -131,18 +131,16 @@ export const IDEAS: Idea[] = [
 export const OUT_OF_SCOPE = "integers and negatives (chip models, the line) · algebra (algebra tiles, the balance scale, function machines) · geometry and measurement (geoboard, tangrams, unit squares) · data and probability (dot plots, spinners) · functions and graphs · trigonometry (the unit circle)";
 
 // ── the minimal set: four pictures ─────────────────────────────────────────
-export interface Picture { key: WidgetKey; name: string; what: string; carries: string; status: "built" | "proposed"; sketch: ReactNode }
+export interface Picture { key: WidgetKey; name: string; what: string; carries: string; status: "built" | "partly" | "proposed"; sketch: ReactNode }
 
 const Sk = ({ children }: { children: ReactNode }) => <div className="relative h-[64px] w-full rounded-lg bg-black text-gray-100 overflow-hidden px-3 py-2">{children}</div>;
 export const PICTURES: Picture[] = [
   { key: "array", name: "The Array", what: "a rectangle you cut; the pieces re-count", carries: "multiplication, squares, splitting, near-100, halve-and-double; division as the missing side; remainders as the ragged last column", status: "built",
     sketch: <Sk><div className="flex h-full"><div className="bg-emerald-500/30 border border-emerald-500" style={{ width: "72%" }} /><div className="bg-sky-500/30 border border-sky-500" style={{ width: "28%" }} /></div></Sk> },
-  { key: "bar", name: "The Bar", what: "one length in parts, read three ways", carries: "fractions, equivalence, comparison, fraction-of; percent and ratio with a second scale; part-whole for addition", status: "proposed",
+  { key: "bar", name: "The Bar", what: "one length in parts, read three ways", carries: "percent steps (built): 10% first, then tenths, halves, add or take off; fractions, equivalence, comparison, fraction-of (proposed); part-whole for addition", status: "partly",
     sketch: <Sk><div className="grid grid-cols-8 gap-[2px] h-[28px] mt-1">{Array.from({ length: 8 }, (_, i) => <div key={i} className={`border ${i < 3 ? "bg-emerald-500/40 border-emerald-500" : "border-gray-700"}`} />)}</div><div className="flex justify-between text-[9px] text-gray-500 mt-1"><span>0</span><span>3/8 · 0.375 · 37.5%</span><span>1</span></div></Sk> },
   { key: "line", name: "The Line", what: "a number line that zooms — linear or by tens", carries: "magnitude, place value, scientific notation, rounding and tolerance, additive jumps; the log mode multiplies", status: "proposed",
     sketch: <Sk><div className="relative mt-4 h-[3px] bg-gray-700"><div className="absolute left-0 top-0 h-full bg-emerald-500/70" style={{ width: "58%" }} /><div className="absolute top-0 h-full bg-sky-500/70" style={{ left: "58%", width: "22%" }} /><div className="absolute -top-[5px] w-[13px] h-[13px] rounded-full bg-gray-100" style={{ left: "80%" }} /></div><div className="flex justify-between text-[9px] text-gray-500 mt-2"><span>1</span><span>thousand</span><span>million</span><span>billion</span></div></Sk> },
-  { key: "chain", name: "The Chain", what: "bars that multiply, one change at a time", carries: "percent up and down, successive changes, growth and doubling, rates", status: "built",
-    sketch: <Sk><div className="space-y-[5px] mt-1">{[["start", 100], ["×1.25", 62], ["×1.10", 68]].map(([k, w], i) => <div key={k} className="flex items-center gap-2 text-[9px] text-gray-500"><span className="w-8 text-right">{k}</span><div className={`h-[9px] rounded-sm ${i === 2 ? "bg-gray-100" : i === 0 ? "bg-gray-500/60" : "bg-emerald-500/60"}`} style={{ width: `${(w as number) * 0.7}%` }} /></div>)}</div></Sk> },
 ];
 
 // ── libraries and literature worth mining ──────────────────────────────────

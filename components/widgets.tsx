@@ -5,6 +5,7 @@
  * trainer's feedback state, seeded with the numbers of the item just answered.
  */
 import { useState } from "react";
+import type { Row } from "@/lib/percentSteps";
 
 // ── Area model ─────────────────────────────────────────────────────────────
 
@@ -119,6 +120,39 @@ export function LogLine({ initialX = 7.83, initialY = 3.48, compact = false }: {
           <circle cx={px(y)} cy={64} r={4} className="fill-sky-500" />
         </svg>
       </div>
+    </div>
+  );
+}
+
+// ── Percent steps ──────────────────────────────────────────────────────────
+// The bar in percent mode: find 10%, build the percent from tenths, halves and
+// hundredths, then add it on or take it off. One row per step; tap for the next.
+
+export function PercentBar({ rows, compact = false, allAtOnce = false }: { rows: Row[]; compact?: boolean; allAtOnce?: boolean }) {
+  const [shown, setShown] = useState(allAtOnce ? rows.length : Math.min(2, rows.length));
+  const max = Math.max(...rows.map((r) => (r.bar * Math.max(10, ...r.shade.map((s) => s.to))) / 10));
+  const done = shown >= rows.length;
+  return (
+    <div data-c="PercentBar" className="select-none cursor-pointer" onClick={() => !done && setShown((n) => n + 1)}>
+      <div className={compact ? "space-y-2" : "space-y-3"}>
+        {rows.slice(0, shown).map((r, i) => {
+          const cells = Math.max(10, Math.ceil(Math.max(...r.shade.map((s) => s.to)) - 1e-9));
+          const width = ((r.bar * cells) / 10 / max) * 100;
+          return (
+            <div key={i} className={i === shown - 1 ? "animate-[fade_.25s_ease-out]" : ""}>
+              <div className={`${compact ? "text-[13px]" : "text-sm"} leading-snug tabular-nums ${r.result ? "text-gray-900 dark:text-gray-100" : "text-gray-600 dark:text-gray-300"}`}>{r.text}</div>
+              <div className="relative h-3 mt-1" style={{ width: `${width}%` }}>
+                <div className="absolute inset-y-0 left-0 rounded-sm bg-gray-200 dark:bg-gray-800" style={{ width: `${(10 / cells) * 100}%` }} />
+                {r.shade.map((s, j) => (
+                  <div key={j} className={`absolute inset-y-0 rounded-sm ${s.tone === "focus" ? "bg-emerald-500/55" : s.tone === "add" ? "bg-emerald-500" : "bg-rose-500/70"}`} style={{ left: `${(s.from / cells) * 100}%`, width: `${((s.to - s.from) / cells) * 100}%`, backgroundImage: s.tone === "remove" ? "repeating-linear-gradient(135deg, transparent 0 3px, rgba(0,0,0,.35) 3px 5px)" : undefined }} />
+                ))}
+                <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: "linear-gradient(to left, rgba(127,127,127,.55) 1px, transparent 1px)", backgroundSize: `${100 / cells}% 100%` }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {!done && <div className="text-[11px] text-gray-400 mt-2">tap for the next step · {rows.length - shown} more</div>}
     </div>
   );
 }
