@@ -5,6 +5,7 @@
  * a written move fall back to the generator's one-line working.
  */
 import type { Item } from "./items";
+import { percentSentences } from "./percentSteps";
 
 const WORDS = ["", "", "twos", "threes", "fours", "fives", "sixes", "sevens", "eights", "nines", "tens", "elevens", "twelves"];
 const times = (n: number) => WORDS[n] ?? `${n}s`;
@@ -24,6 +25,7 @@ const prod = (a: number, b: number) => (b <= 12 ? `${a} ${times(b)}` : a <= 12 ?
 
 export function sentencesFor(item: Item): string[] {
   const k = item.key;
+  const ps = percentSentences(k); if (ps) return ps;
   let m: RegExpMatchArray | null;
   const id = item.skillId;
 

@@ -6,7 +6,8 @@
  * that version with one option swapped.
  */
 import type { ReactNode } from "react";
-import { AreaModel, LogLine, MultiplierChain } from "@/components/widgets";
+import { AreaModel, LogLine, PercentBar } from "@/components/widgets";
+import { percentRowsFor } from "@/lib/percentSteps";
 
 export const W = 390, H = 844;
 
@@ -99,7 +100,7 @@ const SAMPLE_CHAIN: Sample = {
   item: "15% of 2.4 million", wrong: "36,000", answer: "360,000", sum: "10% = 240,000 · 5% = 120,000", technique: "ten percent, then half", tip: "Take 10%, then half of that, and add.",
   l1: <>10% of 2.4 million is <U>240,000</U>.</>, l2: "5% is half of that: 120,000.", l3: "360,000.", one: "Ten percent, then half of it.", col: ["  240,000", "+ 120,000", "  360,000"], caption: "2,400,000 × 0.15 = 360,000",
   pic: (_h, w) => <Bars w={w} rows={[["start", 100, "2,400,000"], ["×0.10", 10, "240,000"], ["+ half", 15, "360,000"]]} />,
-  live: () => <MultiplierChain initialBase={2400000} initialChanges={[-85]} compact />,
+  live: () => <PercentBar rows={percentRowsFor("cpb:15%2.4e6")!} compact allAtOnce />,
 };
 const SAMPLE_LOG: Sample = {
   item: "60 million × 3 thousand", wrong: "18 million", answer: "180 billion", sum: "6×3 = 18 · 10⁷ × 10³ = 10¹⁰", technique: "digits, then zeros", tip: "Multiply the leading digits, then add the zeros.",
@@ -148,7 +149,7 @@ export const PLACEMENTS: Option[] = [
 // ── Widgets: the pictures we build with (a set, not a choice) ───────────────
 const WIDGETS: Option[] = [
   { id: "area", name: "Area model", current: true, note: "a rectangle cut at the tens — drag the cut and the two products re-count. Built.", serves: "times tables past 12 · squares from 12² · split-by-place multiplication (ar.split)", sample: SAMPLE_AREA },
-  { id: "chain", name: "Multiplier chain", current: true, note: "each percent change is a bar and a ×factor; the chain shows the net. Built.", serves: "percent of / up / down (pct.apply, pct.find, pct.reverse, pct.chain) · percent of big numbers (co.pctbig) · chained changes (co.chainbig) · growth (co.growth)", sample: SAMPLE_CHAIN },
+  { id: "steps", name: "Percent steps", current: true, note: "find 10%, build the percent from tenths and halves, add it on or take it off — one row per step, tap for the next. Built 9/3, replacing the multiplier-chain sliders.", serves: "percent of / up / down / find / reverse (pct.*) · percent of big numbers (co.pctbig) · chained changes (co.chainbig) · growth (co.growth)", sample: SAMPLE_CHAIN },
   { id: "log", name: "Log number line", current: true, note: "a log-scale line from 1 to 10¹²; multiplying is laying two lengths end to end. Built.", serves: "magnitude multiplication (mag.mul) only — should also carry sn.* reading and mag.div", sample: SAMPLE_LOG },
   { id: "strip", name: "Fraction strip", note: "one bar in n parts, k shaded; the same bar read as a fraction, a decimal, a percent. Proposed.", serves: "all of fractions (fr.unit … fr.fromdec) · decimal ↔ percent (dec.pct) · percent anchors (pct.anchor, pct.what)", sample: SAMPLE_STRIP },
   { id: "point", name: "Place-value slider", note: "the digits stay put; the point hops. ×10 and ÷10 as motion, not rules. Proposed.", serves: "zeros and powers of ten (pv.zeros, exp.add, exp.sub) · decimal scaling (dec.scale, dec.ops) · normalizing sci-notation (sn.norm)", sample: SAMPLE_POINT },

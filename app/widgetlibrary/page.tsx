@@ -6,10 +6,13 @@
  * three pictures that each explain a whole family of techniques.
  */
 import { useState } from "react";
-import { AreaModel, LogLine, MultiplierChain } from "@/components/widgets";
+import { AreaModel, LogLine, PercentBar } from "@/components/widgets";
+import { percentRowsFor } from "@/lib/percentSteps";
 
 export default function WidgetLibrary() {
   const [preset, setPreset] = useState<[number, number]>([47, 6]);
+  const [pct, setPct] = useState("pctch:up30,down5%500000");
+  const PCT: [string, string][] = [["pctch:up30,down5%500000", "500,000 up 30%, then down 5%"], ["pctap:up18%64000", "64,000 up 18%"], ["pcta:5%940", "5% of 940"], ["pctc:75%400", "75% of 400"], ["pctr:off20%200", "after 20% off: 160"], ["pctf:down30%1200", "1,200 → 840"], ["cpb:15%2.4e6", "15% of 2.4 million"], ["cgr:10%x3y1000", "1,000 growing 10% for 3 years"]];
   const presets: [number, number][] = [[47, 6], [98, 7], [34, 11], [16, 35]];
   return (
     <div className="min-h-dvh bg-white dark:bg-black text-gray-900 dark:text-gray-100">
@@ -41,13 +44,18 @@ export default function WidgetLibrary() {
         </Shelf>
 
         <Shelf
-          title="Multiplier chain"
-          serves="percent change · reverse percent · successive changes · compound growth"
-          note="Every percent change is one multiplication. Chains multiply — which is why up 20 / down 20 doesn't cancel, and why 'undo' means divide."
+          title="Percent steps"
+          serves="percent of · percent change · reverse percent · successive changes · compound growth"
+          note="Worked the way you'd do it in your head: find 10%, build the percent from tenths, halves of a tenth and hundredths (or a round number minus a little), then add it on or take it off. Each step is a sentence and a bar; tap for the next."
         >
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {PCT.map(([k, label]) => (
+              <button key={k} type="button" onClick={() => setPct(k)}
+                className={`px-2 py-0.5 rounded-lg text-[11px] tabular-nums border ${pct === k ? "border-gray-900 dark:border-gray-100" : "border-gray-200 dark:border-gray-800 text-gray-500"}`}>{label}</button>
+            ))}
+          </div>
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 p-5">
-            <MultiplierChain />
-            <p className="text-[11px] text-gray-400 mt-2">To undo a step, divide by its multiplier — sliding a change back to 0 shows why the opposite percent doesn&apos;t do it.</p>
+            <PercentBar key={pct} rows={percentRowsFor(pct)!} allAtOnce />
           </div>
         </Shelf>
 

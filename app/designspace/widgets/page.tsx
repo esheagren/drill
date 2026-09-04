@@ -14,7 +14,7 @@ import { Star, useStars } from "@/components/DsStar";
 import { Out, useReactions } from "@/components/DsReact";
 import { IDEAS, LIBRARIES, OUT_OF_SCOPE, PICTURES, type Idea, type WidgetKey } from "@/content/designspace/widgets";
 
-const STATUS: Record<Idea["status"] | "proposed" | "built", string> = { built: "text-emerald-500", partly: "text-sky-500", proposed: "text-amber-500", later: "text-gray-400" };
+const STATUS: Record<Idea["status"], string> = { built: "text-emerald-500", partly: "text-sky-500", proposed: "text-amber-500", later: "text-gray-400" };
 const pictureName = (k: WidgetKey) => PICTURES.find((p) => p.key === k)!.name;
 
 /** One note per row, saved on the wall under its handle. */
@@ -55,12 +55,12 @@ export default function Widgets() {
         <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(listText()); setCopied(true); setTimeout(() => setCopied(false), 900); } catch {} }} className="text-[11px] px-1.5 py-0.5 rounded-md border border-gray-200 dark:border-gray-800 text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 ml-auto">{copied ? "copied ✓" : "copy the list"}</button>
       </div>
       <p className="text-[13px] text-gray-600 dark:text-gray-300 max-w-3xl leading-snug">
-        As few pictures as possible, each as good as we can make it. The test for a picture is whether the idea is really the same underneath — a fraction, a percent and a ratio are one length read three ways, so they get one bar, not three widgets. Below: the ten conceptual ideas K-12 mathematics develops that matter for adult arithmetic, ranked for Drill, each with the representations teachers and researchers use for it and what an interactive version would do. Then the four pictures that carry the list, and the libraries worth mining before drawing anything. ★ to prioritize, ✕ to exclude, a note on any row; “design W-bar” starts the design process for one.
+        As few pictures as possible, each as good as we can make it. The test for a picture is whether the idea is really the same underneath — a fraction, a percent and a ratio are one length read three ways, so they get one bar, not three widgets. Below: the ten conceptual ideas K-12 mathematics develops that matter for adult arithmetic, ranked for Drill, each with the representations teachers and researchers use for it and what an interactive version would do. Then the three pictures that carry the list, and the libraries worth mining before drawing anything. ★ to prioritize, ✕ to exclude, a note on any row; “design W-bar” starts the design process for one.
       </p>
 
       {/* ── the set ─────────────────────────────────────────────────── */}
       <section id="set" className="scroll-mt-24 mt-10">
-        <div className="flex items-baseline gap-3 mb-3"><h2 className="text-sm">The set</h2><span className="text-[11px] text-gray-500">four pictures; two exist. Sharing array and place-value slider from the Decisions row fold into the Array and the Line.</span></div>
+        <div className="flex items-baseline gap-3 mb-3"><h2 className="text-sm">The set</h2><span className="text-[11px] text-gray-500">three pictures. The multiplier chain folded into the Bar as percent steps (9/3); the sharing array and place-value slider fold into the Array and the Line.</span></div>
         <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {PICTURES.map((p) => {
             const id = wid(p.key); const out = reactions[id] === "no";
