@@ -295,6 +295,11 @@ export default function Trainer() {
   const frac = Math.max(0, Math.min(1, remaining / plan.durationMs));
   const seed = feedback ? widgetSeedFor(item.key) : null;
   const lines = feedback ? sentencesFor(item) : [];
+  // the explanation must reach the answer: if the last sentence doesn't state it, add it as the last line
+  const am = item.answerText.match(/^(.*?)\s*\((.*)\)\s*$/); const primary = (am ? am[1] : item.answerText).trim(); const alt = am?.[2];
+  const answerKey = primary.replace(/^≈\s*/, "").replace(/[,\s]/g, "").replace(/years?$/i, "");
+  const stated = new RegExp(`(^|[^\\d.])${answerKey.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}(?!\\d|\\.\\d)`).test((lines[lines.length - 1] ?? "").replace(/[,\s]/g, ""));
+  const shown = feedback && !stated ? [...lines, `${primary}.`] : lines;
 
   return (
     <div className="h-dvh flex flex-col bg-white dark:bg-black text-gray-900 dark:text-gray-100 select-none overflow-hidden relative">
@@ -326,10 +331,11 @@ export default function Trainer() {
         <>
           <main className="flex-1 min-h-0 overflow-y-auto px-6 pt-5 pb-3">
             <div className="space-y-3 font-serif">
-              {lines.map((l, i) => <div key={i} className={`text-[26px] leading-tight ${i === 0 ? "" : "text-gray-500"}`}>{l}</div>)}
-              {phase === "wrong" && (() => { const mm = item.answerText.match(/^(.*?)\s*\((.*)\)\s*$/); const primary = mm ? mm[1] : item.answerText; return (
-                <div data-c="AnswerReveal" className="text-[26px] leading-tight text-gray-900 dark:text-gray-100">{primary}.{mm && <span className="block text-[18px] text-gray-400 dark:text-gray-500 mt-1">{mm[2]}</span>}</div>
-              ); })()}
+              {shown.map((l, i) => { const last = i === shown.length - 1; return (
+                <div key={i} data-c={last ? "AnswerReveal" : undefined} className={`text-[26px] leading-tight ${last ? (phase === "slow" ? "text-emerald-600 dark:text-emerald-400" : "text-gray-900 dark:text-gray-100") : i === 0 ? "text-gray-700 dark:text-gray-300" : "text-gray-500"}`}>
+                  {l}{last && alt && <span className="block text-[18px] text-gray-400 dark:text-gray-500 mt-1">{alt}</span>}
+                </div>
+              ); })}
             </div>
           </main>
           {/* the keypad's place: the picture when there is one, then → */}

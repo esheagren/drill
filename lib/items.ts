@@ -347,7 +347,7 @@ const GENERATORS: Record<SkillId, Gen> = {
     const head = pick(by(L, [ri(2, 9)], [ri(2, 9), ri(11, 99)], [ri(2, 9), ri(11, 99), ri(12, 98) / 10]));
     const base = head * 10 ** sc.exp; const ans = base / d; const t = toSci(ans);
     return { skillId: "co.fracsci", key: `cfs:1/${d}x${head}e${sc.exp}`, prior: P.fracSciPrior(d, head / d < 1), prompt: `1/${d} of ${shortWords(head, sc.exp)}`, sub: "in e-notation · within ½%",
-      answerText: `${Number(t.c.toFixed(3))}e${t.e}  (${toScaleWords(ans)})`, why: `${head} ÷ ${d} = ${(head / d).toFixed(2)}, × 10^${sc.exp}${head / d < 1 ? " → renormalize" : ""}`, inputMode: "text", placeholder: "2.5e8", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) / ans <= 0.005; } };
+      answerText: `${toScaleWords(ans)}  (${Number(t.c.toFixed(3))}e${t.e})`, why: `${head} ÷ ${d} = ${(head / d).toFixed(2)}, × 10^${sc.exp}${head / d < 1 ? " → renormalize" : ""}`, inputMode: "text", placeholder: "2.5e8", check: (s) => { const v = parseValue(s); return v !== null && Math.abs(v - ans) / ans <= 0.005; } };
   },
   // 250 thousand up 40%, then down 25% → 262,500
   "co.chainbig": (L) => {
