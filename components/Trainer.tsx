@@ -40,6 +40,7 @@ export default function Trainer() {
   const [timerMenu, setTimerMenu] = useState(false);
   const [askDefault, setAskDefault] = useState<number | null>(null); // minutes just chosen, pending "make default?"
   const [session, setSession] = useState<SessionRecord | null>(null);
+  const [touch, setTouch] = useState(true);            // the on-screen keypad is for phones; a computer has a keyboard
 
   const startRef = useRef(0);          // item start
   const sessionStartRef = useRef(0);   // 0 = not started (waits for first key)
@@ -98,6 +99,14 @@ export default function Trainer() {
     else if (demo === "unit") setOverlay({ kind: "skills", unit: "arithmetic" });
     else if (demo === "profile") setOverlay({ kind: "profile" });
   };
+
+  useEffect(() => {
+    const mq = window.matchMedia("(pointer: coarse)");
+    const demo = new URLSearchParams(window.location.search).has("demo");
+    const sync = () => setTouch(mq.matches || demo);
+    sync(); mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -223,7 +232,7 @@ export default function Trainer() {
       if (showMap || showUnits || timerMenu || askDefault !== null || phase === "done" || !profile?.username) return;
       if ((e.target as HTMLElement)?.tagName === "INPUT") return;
       if ((e.target as HTMLElement)?.tagName === "INPUT") return;
-      if (/^[0-9.e/]$/.test(e.key)) { e.preventDefault(); press(e.key); }
+      if (/^[0-9.e/^]$/.test(e.key)) { e.preventDefault(); press(e.key); }
       else if (e.key === "Backspace") { e.preventDefault(); backspace(); }
       else if (e.key === "Enter") { e.preventDefault(); enter(); }
       else if (phase === "slow" || phase === "wrong") { e.preventDefault(); if (state) advance(state); }
@@ -349,7 +358,8 @@ export default function Trainer() {
         </>
       )}
 
-      {!feedback && <Keypad onKey={press} onBackspace={backspace} onSubmit={enter} submitDisabled={phase === "answer" && !input} />}
+      {!feedback && touch && <Keypad onKey={press} onBackspace={backspace} onSubmit={enter} submitDisabled={phase === "answer" && !input} />}
+      {!feedback && !touch && <div className="h-10" />}
 
       {timerMenu && (
         <Sheet onClose={() => setTimerMenu(false)} title="Session length">
