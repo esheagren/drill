@@ -42,12 +42,16 @@ export function sentencesFor(item: Item): string[] {
       case "ar.near100": { const d = Math.abs(100 - hi); return [`${lo} hundreds is ${f(100 * lo)}.`, d === 1 ? `${hi < 100 ? "Take away one" : "Add one more"} ${lo}.` : `${hi < 100 ? "Take away" : "Add"} ${lo} ${times(d)}: ${f(lo * d)}.`]; }
     }
   }
-  if ((m = k.match(/^sq:(\d+)$/))) { const n = +m[1]; return n <= 12 ? [`${n} ${times(n)} is ${n * n}.`] : [`${n}² is (${n - 10} + 10)².`, `${(n - 10) ** 2} + ${20 * (n - 10)} + 100.`]; }
+  if ((m = k.match(/^sq:(\d+)$/))) { const n = +m[1]; return n <= 12 ? [`${n} ${times(n)} is ${n * n}.`] : [`${n}² is (${n - 10} + 10)².`, `${(n - 10) ** 2} + ${20 * (n - 10)} + 100 is ${n * n}.`]; }
   if ((m = k.match(/^cube:(\d+)$/))) { const n = +m[1], sq = n * n; const tens = Math.floor(sq / 10) * 10, ones = sq % 10; return n <= 10 ? [`${n} squared is ${sq}.`, `${sq} × ${n} is ${f(n ** 3)}.`] : [`${n} squared is ${sq}.`, `${sq} × ${n}: ${tens} × ${n} is ${f(tens * n)}, ${ones} × ${n} is ${ones * n} — ${f(n ** 3)}.`]; }
   if ((m = k.match(/^div:(\d+)\/(\d+)$/))) {
     const n = +m[1], d = +m[2], q = n / d;
-    if (id === "ar.divfacts") return [`${prod(d, q)} is ${n}.`];
-    const tens = Math.floor(q / 10) * 10; return [`${d} × ${tens} is ${f(d * tens)}.`, `${f(n - d * tens)} left, which is ${d} × ${q % 10}.`];
+    if (id === "ar.divfacts") return [`${prod(d, q)} is ${n}, so ${n} ÷ ${d} is ${q}.`];
+    if (d === 2) return [`Half of ${n} is ${q}.`];
+    if (d === 4) return [`Half of ${n} is ${n / 2}.`, `Half again: ${q}.`];
+    if (d === 8) return [`Half of ${n} is ${n / 2}, half again is ${n / 4}.`, `Half once more: ${q}.`];
+    if (d === 5) return [`Dividing by 5 is doubling, then ÷ 10.`, `${n} × 2 is ${2 * n}; ÷ 10 is ${q}.`];
+    const tens = Math.floor(q / 10) * 10, ones = q % 10; return [`${d} × ${tens} is ${f(d * tens)}, leaving ${f(n - d * tens)}.`, `${f(n - d * tens)} is ${d} × ${ones}, so ${tens} + ${ones} = ${q}.`];
   }
   if ((m = k.match(/^rem:(\d+)%(\d+)$/))) {
     const n = +m[1], d = +m[2], r = n % d, sum = String(n).split("").reduce((a, c) => a + +c, 0);
