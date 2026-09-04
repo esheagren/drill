@@ -324,7 +324,9 @@ export default function Trainer() {
             <div data-c="AnswerLine" className={`text-[24px] font-light tabular-nums ${phase === "wrong" ? "text-rose-500 line-through decoration-2" : "text-emerald-600 dark:text-emerald-400"}`}>{input}</div>
             <div className="mt-4 space-y-3 font-serif">
               {lines.map((l, i) => <div key={i} className={`text-[26px] leading-tight ${i === 0 ? "" : "text-gray-500"}`}>{l}</div>)}
-              <div data-c="AnswerReveal" className={`text-[26px] leading-tight ${phase === "wrong" ? "text-gray-400 dark:text-gray-500" : "text-emerald-600 dark:text-emerald-400"}`}>{item.answerText}.</div>
+              {phase === "wrong" && (() => { const mm = item.answerText.match(/^(.*?)\s*\((.*)\)\s*$/); const primary = mm ? mm[1] : item.answerText; return (
+                <div data-c="AnswerReveal" className="text-[26px] leading-tight text-gray-900 dark:text-gray-100">{primary}.{mm && <span className="block text-[18px] text-gray-400 dark:text-gray-500 mt-1">{mm[2]}</span>}</div>
+              ); })()}
             </div>
           </main>
           {/* the keypad's place: the picture (or the technique), then → */}
