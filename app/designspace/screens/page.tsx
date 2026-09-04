@@ -14,7 +14,7 @@ import CopyFeedback from "@/components/DsCopy";
 const FILES: Record<string, string> = {
   Timer: "Trainer.tsx", MenuButton: "Trainer.tsx", Prompt: "Trainer.tsx", AnswerLine: "Trainer.tsx", Keypad: "Keypad.tsx",
   AnswerReveal: "Trainer.tsx", PlayWithIt: "Trainer.tsx · lib/widgetSeed.ts", AreaModel: "widgets.tsx", MultiplierChain: "widgets.tsx", LogLine: "widgets.tsx",
-  TechniqueCard: "Trainer.tsx · lib/tips.ts", NextBar: "Trainer.tsx", SummaryCount: "Trainer.tsx", SkillTally: "Trainer.tsx", AgainRow: "Trainer.tsx", Sheet: "Trainer.tsx",
+  NextBar: "Trainer.tsx", SummaryCount: "Trainer.tsx", SkillTally: "Trainer.tsx", AgainRow: "Trainer.tsx", Sheet: "Trainer.tsx",
   OverlayNav: "Stats.tsx", StackedBars: "Stats.tsx", UnitTree: "Stats.tsx", MasteryDots: "Stats.tsx", ItemMap: "Stats.tsx · lib/maps.ts", AccountForm: "Account.tsx", OnboardingForm: "Onboarding.tsx",
 };
 

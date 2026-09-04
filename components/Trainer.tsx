@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Item } from "@/lib/items";
 import { appendLog, budgetFor, nextSkill, pickItem, record, saveState, type EngineState } from "@/lib/engine";
-import { markSeen, tipFor, type Tip } from "@/lib/tips";
 import { SKILL_BY_ID, type SkillId } from "@/lib/skills";
 import { MIXED, loadDefaultMinutes, mixedFor, saveDefaultMinutes, saveSession, type Plan, type SessionRecord } from "@/lib/sessions";
 import { flush, hydrate, queueAttempt, queueSession } from "@/lib/sync";
@@ -27,7 +26,6 @@ export default function Trainer() {
   const [item, setItem] = useState<Item | null>(null);
   const [input, setInput] = useState("");
   const [phase, setPhase] = useState<Phase>("answer");
-  const [tip, setTip] = useState<Tip | null>(null);
   const [overlay, setOverlay] = useState<View | null>(null);
   const showMap = overlay !== null;
   const showUnits = false; // folded into the single overlay
@@ -74,7 +72,6 @@ export default function Trainer() {
     setItem(pickItem(st, id));
     setInput("");
     setPhase("answer");
-    setTip(null);
     startRef.current = performance.now();
   }, []);
 
@@ -89,7 +86,7 @@ export default function Trainer() {
       sessionStartRef.current = Date.now() - 95_000; pauseStartRef.current = Date.now();
       setRemaining(MIXED.durationMs - 95_000);
       setInput(demo === "wrong" ? "1" : fixed.answerText);
-      setTip(tipFor(fixed)); setPhase(demo);
+      setPhase(demo);
     } else if (demo === "summary") {
       setSession({ plan: "mixed", ts: Date.now() - 480_000, durationMs: 480_000, answered: 61, correct: 55, bySkill: { "ar.split": { n: 9, c: 8 }, "pct.apply": { n: 8, c: 7 }, "fr.of": { n: 7, c: 7 }, "sn.mul": { n: 6, c: 5 } } });
       setPhase("done");
@@ -206,9 +203,6 @@ export default function Trainer() {
 
     pauseStartRef.current = Date.now();   // clock stops the moment an answer is in
     const slow = ok && latency > budgetFor(item) && !res.ignored;
-    const chosen = !ok || slow ? tipFor(item) : null;
-    setTip(chosen);
-    if (chosen) markSeen(chosen.id);
     if (ok && !slow) { setPhase("correct"); setTimeout(() => advance(next), ADVANCE_MS); }
     else if (ok) setPhase("slow");   // correct but over budget: pause with the technique; any key continues
     else setPhase("wrong");
@@ -301,7 +295,6 @@ export default function Trainer() {
   const frac = Math.max(0, Math.min(1, remaining / plan.durationMs));
   const seed = feedback ? widgetSeedFor(item.key) : null;
   const lines = feedback ? sentencesFor(item) : [];
-  const showTip = !!tip && (phase === "slow" || !seed);
 
   return (
     <div className="h-dvh flex flex-col bg-white dark:bg-black text-gray-900 dark:text-gray-100 select-none overflow-hidden relative">
@@ -339,21 +332,15 @@ export default function Trainer() {
               ); })()}
             </div>
           </main>
-          {/* the keypad's place: the picture (or the technique), then → */}
+          {/* the keypad's place: the picture when there is one, then → */}
           <div className="shrink-0 border-t border-gray-100 dark:border-gray-900 px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)] max-w-md mx-auto w-full">
-            {seed && !showTip ? (
+            {seed && (
               <div data-c="PlayWithIt" className="rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-3 max-h-[46dvh] overflow-y-auto" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
                 {seed.kind === "area" && <AreaModel initialA={seed.a} initialB={seed.b} compact />}
                 {seed.kind === "steps" && <PercentBar rows={seed.rows} compact />}
                 {seed.kind === "log" && <LogLine initialX={seed.x} initialY={seed.y} compact />}
               </div>
-            ) : showTip && tip ? (
-              <div data-c="TechniqueCard" className={`rounded-xl border px-4 py-3 ${phase === "slow" ? "border-emerald-500" : "border-gray-200 dark:border-gray-800"}`}>
-                <div className="text-xs uppercase tracking-wide text-gray-400 mb-1">{tip.title}</div>
-                <div className="text-sm text-gray-800 dark:text-gray-200">{tip.rule}</div>
-                <div className="text-xs text-gray-500 mt-1 tabular-nums">{tip.example}</div>
-              </div>
-            ) : null}
+            )}
             <button type="button" onClick={() => advance(state)} aria-label="Next question" data-c="NextBar" className="mt-3 h-14 w-full rounded-2xl bg-gray-900 text-white dark:bg-gray-100 dark:text-black text-2xl active:scale-[0.98] transition">→</button>
           </div>
         </>
