@@ -25,6 +25,7 @@ export default function DsRoom() {
           <li>“D-timer: redesign” with the brief pasted — work on one decision</li>
           <li>“compare E-compensate/area and E-compensate/line on the boundary example”</li>
           <li>“design W-bar” — start the design process for one picture from the Widgets list</li>
+          <li>“add to the list: …” · “do the first three on the list”</li>
           <li>“promote I-3 to the app”</li>
           <li>“what changed on V1 since Tuesday?”</li>
         </ul>
@@ -37,6 +38,7 @@ export default function DsRoom() {
             ["/designspace/problems", "Problems", "Problem families, concepts, example sets, and the explanations that can carry them."],
             ["/designspace/workbench", "Workbench", "Compare explanations with the same numbers, preview the feedback screen, and copy a complete AI brief."],
             ["/designspace/widgets", "Widgets", "The K-12 ideas ranked for Drill, the representations for each, and the three pictures that carry them."],
+            ["/designspace/todo", "To-do", "The running list. Tick to close; Claude adds what you mention."],
             ["/designspace/ideas", "Ideas", "Dated mockups of specific interactions, on their way to the app."],
             ["/designspace/principles", "Principles", "What we hold the work to."],
           ].map(([href, t, d]) => (
