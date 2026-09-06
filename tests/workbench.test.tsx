@@ -6,7 +6,7 @@ import { problemById } from "../content/designspace/problems";
 
 test("workbench applies numbers, switches strategies, saves and restores, exports context, and never records attempts",async()=> {
   const dom=new JSDOM('<!doctype html><div id="root"></div>',{url:"http://localhost/designspace/workbench?problem=compensate"});
-  Object.assign(globalThis,{window:dom.window,self:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,IS_REACT_ACT_ENVIRONMENT:true});
+  Object.assign(globalThis,{window:dom.window,self:dom.window,document:dom.window.document,sessionStorage:dom.window.sessionStorage,HTMLElement:dom.window.HTMLElement,IS_REACT_ACT_ENVIRONMENT:true});
   let clipboard="";
   Object.defineProperty(globalThis,"navigator",{configurable:true,value:dom.window.navigator});
   Object.defineProperty(navigator,"clipboard",{configurable:true,value:{writeText:async(s:string)=>{clipboard=s;}}});
@@ -36,6 +36,7 @@ test("workbench applies numbers, switches strategies, saves and restores, export
   };
   try {
     await act(async()=>root.render(<Bench problem={p} initialValues={[98,7,0]} initialCandidate="area" invalidLink={false}/>));
+    assert.equal(document.querySelectorAll('[data-testid="learner-preview"]').length,1);
     assert.match(document.querySelector('[data-testid="learner-preview"]')!.textContent!,/686/);
     assert.doesNotMatch(document.querySelector('[data-testid="learner-preview"]')!.textContent!,/Developer|Prerequisite|Save study/);
     await act(async()=> {
@@ -46,12 +47,17 @@ test("workbench applies numbers, switches strategies, saves and restores, export
         inputs[i].dispatchEvent(new dom.window.Event("change",{bubbles:true}));
       }
     });
-    await click("Apply numbers to both candidates");
+    await click("Apply numbers");
     assert.match(document.querySelector('[data-testid="study-prompt"]')!.textContent!,/102 × 8/);
-    await click("Preview this explanation");
+    await click(p.candidates.find(c=>c.id==="line")!.name);
     await click("Save study");
     assert.deepEqual(JSON.parse(wall["study P-compensate"]),{version:1,values:[102,8,0],candidate:"line"});
-    await click("Copy AI brief + feedback");
+    await click("Copy this review");
+    assert.doesNotMatch(clipboard,/Keep the correction strip visible/);
+    const compare=Array.from(document.querySelectorAll("label")).find(l=>l.textContent==="Compare")!.querySelector("input")!;
+    await act(async()=>compare.click());
+    assert.equal(document.querySelectorAll('[data-testid="learner-preview"]').length,2);
+    await click("Copy this review");
     assert.match(clipboard,/102 × 8/);assert.match(clipboard,/E-compensate\/line/);assert.match(clipboard,/Keep the correction strip visible/);assert.match(clipboard,/boundary: 102 × 8/);
     await click("Copy study link");assert.match(clipboard,/candidate=line/);assert.match(clipboard,/v0=102/);
     const anchor=Array.from(document.querySelectorAll("button")).find(b=>b.textContent?.includes("98 × 7"))!;

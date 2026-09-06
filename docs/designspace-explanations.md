@@ -3,27 +3,40 @@
 DesignSpace is the development environment for Erik and AI collaborators. Its
 catalog, handles, rules, and editing controls are not learner-facing navigation.
 
+## Organization
+
+- **Review**: active design questions, recent changes, one current product screen,
+  and the existing task list.
+- **Explore**: screen options, explanation studies, and sketches. One preview is
+  visible by default; turn on Compare for an alternative.
+- **Reference**: product brief, principles, problem families, and representations.
+
+The existing page URLs and handles remain stable. Help lives at
+`/designspace/help`; the global feedback archive is under Utilities.
+
 ## Using the workbench
 
-1. Open `/designspace/problems`. Search by concept, name, or skill ID, or filter
-   by representation. Each family has an anchor, a transfer example, and a
-   boundary example. These are design fixtures, not a new practice curriculum.
-2. Open a family in `/designspace/workbench`. Both explanation candidates use the
-   same numbers. Apply custom numbers to compare them on another case.
-3. Select a candidate to inspect it in the shared trainer feedback layout. Check
-   the 320, 390, and 480 px previews, individual steps, and the complete correction.
-   The preview arrow cycles fixtures and never records a learner attempt.
-4. Star promising strategies, rule out others, and write notes under the candidate
-   or problem handle. Candidate notes apply across examples; include the numbers
-   in a note when feedback concerns a particular case.
-5. **Save study** persists the applied numbers and selected candidate. On another
-   visit, **Restore saved study** opens that shared selection. Unsaved field edits
-   must be applied before saving. A copied study link explicitly preserves its
-   own values, independent of the shared study.
-6. **Copy AI brief + feedback** exports the exact case, both explanation plans,
-   representation rules, shortlist/exclusions, prerequisite assumptions, limits,
-   transfer fixtures, saved notes, and a reproducible link. Wait for the notes'
-   “saved” indicator before copying.
+1. Choose a problem family and an anchor, transfer, or boundary example. These
+   are design fixtures, not a new practice curriculum. Expand Change the numbers
+   to apply another case.
+2. Select an explanation to inspect in the shared trainer feedback layout.
+   Compare uses the same numbers for both strategies. Check the 320, 390, and
+   480 px previews, individual steps, and the complete correction. The preview
+   arrow cycles fixtures and never records a learner attempt.
+3. Add feedback beside the preview. Each submitted note captures its example,
+   view, build version, and link. Drafts survive switching examples within the
+   browser session. Resolve finished feedback; show Resolved to reopen it.
+   Existing freeform notes remain available under Earlier notes.
+4. Star promising strategies and rule out others. Stars are a shortlist;
+   selecting a preview does not choose it for implementation. Expand
+   Implementation decision to record a choice and its reason, or reopen it.
+5. **Save study** persists applied numbers and the selected candidate. **Restore
+   saved study** opens that shared selection. A copied study link preserves its
+   own values and view, independent of the shared study.
+6. **Copy this review** exports the selected case and plans, representation rules,
+   transfer fixtures, relevant open feedback, earlier notes, and recorded
+   decisions. Comparison adds the other candidate to this scope. Add a draft
+   before copying. Utilities → Copy all saved feedback includes the full archive.
 
 Example request: “Compare E-compensate/area and E-compensate/line on the boundary
 example. Keep the correction visible at 320 px, then check 97 × 6.”
@@ -44,6 +57,15 @@ handles stable so saved feedback remains attached. The existing authenticated
 notes API stores stars, exclusions, and notes. `study P-<family>` stores a version-1
 JSON record containing `values` and `candidate`; no database migration is needed.
 Studies are shared and use the existing wall's last-write-wins behavior.
+
+New feedback uses `review <scope>/<id>` with a version-1 JSON record containing
+text, target, resolved status, and review context. Implementation choices use
+`decision <scope>` with choice, reason, context, status, and timestamp. Screen
+preview selections use `preview screen-options`. Legacy `pick`, `status`, star,
+exclusion, and freeform note keys remain intact. Choosing a screen option updates
+its legacy pick/status records; reopening changes its status back to working.
+There is no database migration. Preview links can override the shared selection
+without changing it.
 
 To add a family, define its structural unknown, intended insight, possible error
 (as a hypothesis), input bounds, and at least three fixtures. Add candidate moves

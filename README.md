@@ -45,4 +45,4 @@ Deployed on Vercel; pushes to `main` go to production.
 
 ## DesignSpace
 
-The authenticated `/designspace` includes a Problems catalog and an explanation workbench for comparing mathematical strategies with shared examples and learner previews. See [the workbench guide](docs/designspace-explanations.md) for handles, saved studies, AI briefs, and extending the schema.
+The authenticated `/designspace` groups work into Review, Explore, and Reference. Product screens and explanation studies show one preview with contextual feedback; comparison is optional. See [the DesignSpace guide](docs/designspace-explanations.md) for saved studies, review exports, implementation decisions, and extending the math schema.
