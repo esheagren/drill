@@ -57,7 +57,7 @@ export function sentencesFor(item: Item): string[] {
     const n = +m[1], d = +m[2], r = n % d, sum = String(n).split("").reduce((a, c) => a + +c, 0);
     if (d === 3 || d === 9) return [`The digits add to ${sum}.`, `${sum} ÷ ${d} leaves ${r}.`];
     if (d === 4) return [`Only the last two digits matter: ${n % 100}.`, `${n % 100} ÷ 4 leaves ${r}.`];
-    if (d === 2 || d === 5 || d === 10) return [`Only the last digit matters: ${n % 10}.`];
+    if (d === 2 || d === 5 || d === 10) return [`Only the last digit matters: ${n % 10}.`, d === 10 ? `So the remainder is ${r}.` : `${n % 10} ÷ ${d} leaves ${r}.`];
     if (d === 6) return [`Even, and the digits add to ${sum}.`, `${sum} ÷ 3 leaves ${sum % 3}, so ÷ 6 leaves ${r}.`];
     const q = Math.floor(n / d); return [`${d} × ${q} is ${f(d * q)}.`, `${f(n)} − ${f(d * q)} leaves ${r}.`];
   }

@@ -305,7 +305,8 @@ export default function Trainer() {
     <div className="h-dvh flex flex-col bg-white dark:bg-black text-gray-900 dark:text-gray-100 select-none overflow-hidden relative">
       {/* the session as a line across the top, draining left to right; tap it to change the length */}
       <button type="button" data-c="Timer" onClick={() => setTimerMenu(true)} aria-label="Change session length" className="absolute inset-x-0 top-0 h-7 z-10">
-        <div className={`h-[3px] ${started ? "bg-emerald-500" : "bg-gray-200 dark:bg-gray-800"}`} style={{ width: `${frac * 100}%`, transition: "width 1s linear" }} />
+        <div className={`h-[3px] ${!started ? "bg-gray-200 dark:bg-gray-800" : feedback ? "bg-amber-400" : "bg-emerald-500"}`} style={{ width: `${frac * 100}%`, transition: "width 1s linear" }} />
+        {feedback && started && <div className="absolute right-6 top-[6px] text-[10px] uppercase tracking-wide text-amber-500">paused</div>}
       </button>
 
       <header className="flex items-start justify-between gap-4 px-6 pt-[max(env(safe-area-inset-top),22px)]">
