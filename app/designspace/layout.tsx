@@ -5,6 +5,8 @@ const NAV = [
   ["/designspace", "Room"],
   ["/designspace/screens", "Screens"],
   ["/designspace/decisions", "Decisions"],
+  ["/designspace/problems", "Problems"],
+  ["/designspace/workbench", "Workbench"],
   ["/designspace/widgets", "Widgets"],
   ["/designspace/ideas", "Ideas"],
   ["/designspace/principles", "Principles"],

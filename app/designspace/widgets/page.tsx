@@ -7,6 +7,8 @@
  * set of pictures that carries the list. ★ prioritizes, ✕ excludes, notes per
  * row; handles W-<id>. Say "design W-bar" to start on one.
  */
+import Link from "next/link";
+import { PROBLEMS, REPRESENTATION_RULES } from "@/content/designspace/problems";
 import { useEffect, useRef, useState } from "react";
 import DsNotes from "@/components/DsNotes";
 import Handle from "@/components/DsHandle";
@@ -61,11 +63,11 @@ export default function Widgets() {
       {/* ── the set ─────────────────────────────────────────────────── */}
       <section id="set" className="scroll-mt-24 mt-10">
         <div className="flex items-baseline gap-3 mb-3"><h2 className="text-sm">The set</h2><span className="text-[11px] text-gray-500">three pictures. The multiplier chain folded into the Bar as percent steps (9/3); the sharing array and place-value slider fold into the Array and the Line.</span></div>
-        <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {PICTURES.map((p) => {
             const id = wid(p.key); const out = reactions[id] === "no";
             return (
-              <div key={p.key} className={`rounded-xl border p-3 ${stars.has(id) ? "border-amber-400" : "border-gray-200 dark:border-gray-800"} ${out ? "opacity-40" : ""}`}>
+              <div key={p.key} id={`W-${p.key}`} className={`scroll-mt-20 rounded-xl border p-3 ${stars.has(id) ? "border-amber-400" : "border-gray-200 dark:border-gray-800"} ${out ? "opacity-40" : ""}`}>
                 {p.sketch}
                 <div className="flex items-start justify-between gap-2 mt-2">
                   <div className="min-w-0"><div className="flex items-center gap-2"><Handle id={id} /><span className="text-sm">{p.name}</span><span className={`text-[10px] uppercase tracking-wide ${STATUS[p.status]}`}>{p.status}</span></div><div className="text-[12px] text-gray-500 mt-1">{p.what}</div></div>
@@ -73,6 +75,8 @@ export default function Widgets() {
                 </div>
                 <div className="text-[11px] text-gray-600 dark:text-gray-300 mt-2 leading-snug"><span className="uppercase tracking-wide text-[9px] text-gray-400">carries</span> {p.carries}</div>
                 <div className="text-[11px] text-gray-400 mt-1">ideas: {IDEAS.filter((i) => i.widget.includes(p.key)).map((i) => i.rank).join(", ")}</div>
+                <details className="text-xs mt-3"><summary className="cursor-pointer text-gray-500">Representation rules</summary><p className="mt-2">{REPRESENTATION_RULES[p.key].meaning}</p><ul className="list-disc pl-4 mt-2 space-y-1">{REPRESENTATION_RULES[p.key].rules.map(r=><li key={r}>{r}</li>)}</ul><p className="text-gray-500 mt-2">{REPRESENTATION_RULES[p.key].avoid}</p></details>
+                <div className="mt-3 text-xs space-y-1"><div className="text-gray-500">Explore with problems</div>{PROBLEMS.filter(f=>f.candidates.some(c=>c.widget===p.key)).map(f=><Link key={f.id} className="block underline underline-offset-2" href={`/designspace/workbench?problem=${f.id}&candidate=${f.candidates.find(c=>c.widget===p.key)!.id}`}>{f.name} →</Link>)}</div>
               </div>
             );
           })}

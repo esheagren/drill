@@ -8,6 +8,7 @@ import { MIXED, loadDefaultMinutes, mixedFor, saveDefaultMinutes, saveSession, t
 import { flush, hydrate, queueAttempt, queueSession } from "@/lib/sync";
 import Keypad from "./Keypad";
 import { AreaModel, LogLine, PercentBar } from "./widgets";
+import FeedbackBody from "./FeedbackBody";
 import { widgetSeedFor } from "@/lib/widgetSeed";
 import { sentencesFor } from "@/lib/sentences";
 import { generateItem } from "@/lib/items";
@@ -328,28 +329,11 @@ export default function Trainer() {
       {!feedback ? (
         <main className="flex-1 min-h-0" />
       ) : (
-        <>
-          <main className="flex-1 min-h-0 overflow-y-auto px-6 pt-5 pb-3">
-            <div className="space-y-3 font-serif">
-              {shown.map((l, i) => { const last = i === shown.length - 1; return (
-                <div key={i} data-c={last ? "AnswerReveal" : undefined} className={`text-[26px] leading-tight ${last ? (phase === "slow" ? "text-emerald-600 dark:text-emerald-400" : "text-gray-900 dark:text-gray-100") : i === 0 ? "text-gray-700 dark:text-gray-300" : "text-gray-500"}`}>
-                  {l}{last && alt && <span className="block text-[18px] text-gray-400 dark:text-gray-500 mt-1">{alt}</span>}
-                </div>
-              ); })}
-            </div>
-          </main>
-          {/* the keypad's place: the picture when there is one, then → */}
-          <div className="shrink-0 border-t border-gray-100 dark:border-gray-900 px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)] max-w-md mx-auto w-full">
-            {seed && (
-              <div data-c="PlayWithIt" className="rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-3 max-h-[46dvh] overflow-y-auto" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
-                {seed.kind === "area" && <AreaModel initialA={seed.a} initialB={seed.b} compact />}
-                {seed.kind === "steps" && <PercentBar rows={seed.rows} compact />}
-                {seed.kind === "log" && <LogLine initialX={seed.x} initialY={seed.y} compact />}
-              </div>
-            )}
-            <button type="button" onClick={() => advance(state)} aria-label="Next question" data-c="NextBar" className="mt-3 h-14 w-full rounded-2xl bg-gray-900 text-white dark:bg-gray-100 dark:text-black text-2xl active:scale-[0.98] transition">→</button>
-          </div>
-        </>
+        <FeedbackBody lines={shown} alt={alt} slow={phase === "slow"} onNext={() => advance(state)} picture={seed ? (
+          seed.kind === "area" ? <AreaModel initialA={seed.a} initialB={seed.b} compact />
+          : seed.kind === "steps" ? <PercentBar rows={seed.rows} compact />
+          : <LogLine initialX={seed.x} initialY={seed.y} compact />
+        ) : undefined} />
       )}
 
       {!feedback && touch && <Keypad onKey={press} onBackspace={backspace} onSubmit={enter} submitDisabled={phase === "answer" && !input} />}
