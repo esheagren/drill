@@ -36,6 +36,7 @@ export default function DsRoom() {
             ["/designspace/decisions", "Decisions", "The version at the top, composed from what's starred. Below it the decisions by status: working on, later, decided."],
             ["/designspace/widgets", "Widgets", "The K-12 ideas ranked for Drill, the representations for each, and the four pictures that carry them."],
             ["/designspace/todo", "To-do", "The running list. Tick to close; Claude adds what you mention."],
+            ["/designspace/framing", "Framing", "Who it's for, what it promises, and the program — the session sectioned by focus."],
             ["/designspace/ideas", "Ideas", "Dated mockups of specific interactions, on their way to the app."],
             ["/designspace/principles", "Principles", "What we hold the work to."],
           ].map(([href, t, d]) => (
