@@ -24,6 +24,7 @@ export default function DsRoom() {
           <li>“build the version” — implement what the Decisions page shows at the top</li>
           <li>“D-timer: redesign” with the brief pasted — work on one decision</li>
           <li>“design W-bar” — start the design process for one picture from the Widgets list</li>
+          <li>“add to the list: …” · “do the first three on the list”</li>
           <li>“promote I-3 to the app”</li>
           <li>“what changed on V1 since Tuesday?”</li>
         </ul>
@@ -34,6 +35,7 @@ export default function DsRoom() {
             ["/designspace/screens", "Screens", "The wall. Every view, live, with components called out and notes pinned."],
             ["/designspace/decisions", "Decisions", "The version at the top, composed from what's starred. Below it the decisions by status: working on, later, decided."],
             ["/designspace/widgets", "Widgets", "The K-12 ideas ranked for Drill, the representations for each, and the four pictures that carry them."],
+            ["/designspace/todo", "To-do", "The running list. Tick to close; Claude adds what you mention."],
             ["/designspace/ideas", "Ideas", "Dated mockups of specific interactions, on their way to the app."],
             ["/designspace/principles", "Principles", "What we hold the work to."],
           ].map(([href, t, d]) => (
