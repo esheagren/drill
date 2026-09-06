@@ -42,3 +42,7 @@ npm run dev
 Deployed on Vercel; pushes to `main` go to production.
 
 **Technique tips** (`lib/tips.data.ts`, 73 entries). Reusable tricks — GMAT-prep percent methods, Benjamin's *Secrets of Mental Math*, Trachtenberg/Vedic shortcuts, divisibility rules — each tagged with knowledge components and pinned to skills. After a miss, or a correct answer slower than the item's budget, the most relevant tip you haven't seen recently is shown under the answer (`lib/tips.ts`).
+
+## DesignSpace
+
+The authenticated `/designspace` includes a Problems catalog and an explanation workbench for comparing mathematical strategies with shared examples and learner previews. See [the workbench guide](docs/designspace-explanations.md) for handles, saved studies, AI briefs, and extending the schema.

@@ -7,13 +7,13 @@ export default function DsRoom() {
     <div className="grid lg:grid-cols-[1fr_300px] gap-12">
       <div className="max-w-2xl">
         <h1 className="text-2xl font-light tracking-tight">The room</h1>
-        <p className="text-sm text-gray-500 mt-1 mb-8">Drill&apos;s design, on a wall you and Claude can both point at. You work in the terminal; this is where the pictures are.</p>
+        <p className="text-sm text-gray-500 mt-1 mb-8">Drill&apos;s design, on a wall you and an AI collaborator can both point at. You work in the terminal; this is where the pictures are.</p>
 
         <h2 className="text-sm font-medium mb-2">How it works</h2>
         <ol className="text-sm text-gray-600 dark:text-gray-300 space-y-2 list-decimal pl-5 mb-8">
           <li><b>Everything has a handle.</b> Screens are <Handle id="V2" />, components are <Handle id="V2 › TechniqueCard" />, options are <Handle id="D-keypad/e-slash-column" />, ideas are <Handle id="I-3" />. Click any handle to copy it, paste it into the terminal.</li>
           <li><b>★ shortlists, ✕ rules out, status files it.</b> Star as many options as you like — a star means “I like this one”. ✕ hides an option (tick “show the ✕” to see it again). The version at the top of Decisions uses the starred option; when several are starred, a small picker there says which one goes in. Set a decision to <i>decided</i> when the pick is final; set it back to reopen.</li>
-          <li><b>Write on the wall, then hand it over.</b> Every screen has notes pinned to it — or to one of its components. When you&apos;re done, hit <b>copy all feedback</b> (top right, or per screen / per note) and paste the block into the terminal. Each note arrives under its handle, so Claude knows exactly what you meant.</li>
+          <li><b>Write on the wall, then hand it over.</b> Every screen has notes pinned to it — or to one of its components. When you&apos;re done, hit <b>copy all feedback</b> (top right, or per screen / per note) and paste the block into the terminal. Each note arrives under its handle, so your AI collaborator knows exactly what you meant.</li>
           <li><b>Ships come back to the wall.</b> The Changes feed lists what landed, keyed to screens, so you can see the state of things without re-reading the terminal.</li>
         </ol>
 
@@ -23,6 +23,7 @@ export default function DsRoom() {
           <li>“read my notes on the Screens wall and do the ones marked !”</li>
           <li>“build the version” — implement what the Decisions page shows at the top</li>
           <li>“D-timer: redesign” with the brief pasted — work on one decision</li>
+          <li>“compare E-compensate/area and E-compensate/line on the boundary example”</li>
           <li>“design W-bar” — start the design process for one picture from the Widgets list</li>
           <li>“add to the list: …” · “do the first three on the list”</li>
           <li>“promote I-3 to the app”</li>
@@ -34,7 +35,9 @@ export default function DsRoom() {
           {[
             ["/designspace/screens", "Screens", "The wall. Every view, live, with components called out and notes pinned."],
             ["/designspace/decisions", "Decisions", "The version at the top, composed from what's starred. Below it the decisions by status: working on, later, decided."],
-            ["/designspace/widgets", "Widgets", "The K-12 ideas ranked for Drill, the representations for each, and the four pictures that carry them."],
+            ["/designspace/problems", "Problems", "Problem families, concepts, example sets, and the explanations that can carry them."],
+            ["/designspace/workbench", "Workbench", "Compare explanations with the same numbers, preview the feedback screen, and copy a complete AI brief."],
+            ["/designspace/widgets", "Widgets", "The K-12 ideas ranked for Drill, the representations for each, and the three pictures that carry them."],
             ["/designspace/todo", "To-do", "The running list. Tick to close; Claude adds what you mention."],
             ["/designspace/framing", "Framing", "Who it's for, what it promises, and the program — the session sectioned by focus."],
             ["/designspace/ideas", "Ideas", "Dated mockups of specific interactions, on their way to the app."],
