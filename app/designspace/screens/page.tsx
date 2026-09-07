@@ -8,8 +8,8 @@
  */
 import { useEffect, useRef, useState } from "react";
 import Handle from "@/components/DsHandle";
-import PinnedNotes from "@/components/DsPinnedNotes";
-import CopyFeedback from "@/components/DsCopy";
+import DesignReviewPanel from "@/components/DesignReviewPanel";
+import { designHash, reviewVersion } from "@/lib/designReview";
 
 const FILES: Record<string, string> = {
   Timer: "Trainer.tsx", MenuButton: "Trainer.tsx", Prompt: "Trainer.tsx", AnswerLine: "Trainer.tsx", Keypad: "Keypad.tsx",
@@ -20,9 +20,9 @@ const FILES: Record<string, string> = {
 
 interface Screen { id: string; title: string; src: string; scroll?: number; wait?: number; note?: string }
 const SCREENS: Screen[] = [
-  { id: "V1", title: "Practice", src: "/", note: "The default screen." },
-  { id: "V2", title: "Feedback · miss", src: "/?demo=wrong&skill=ar.split", wait: 1500, note: "Keypad gone; answer, why, widget, technique, → bar." },
-  { id: "V2b", title: "Feedback · miss · percent", src: "/?demo=wrong&skill=pct.apply", scroll: 260, wait: 1500, note: "Same state, multiplier-chain widget." },
+  { id: "V1", title: "Practice", src: "/?demo=answer", note: "Practice preview; attempts are not recorded." },
+  { id: "V2", title: "Feedback · miss", src: "/?demo=wrong&skill=ar.split", wait: 1500, note: "The explanation and its picture, with the session paused." },
+  { id: "V2b", title: "Feedback · miss · percent", src: "/?demo=wrong&skill=pct.apply", scroll: 260, wait: 1500, note: "Percent explanation with step-by-step bars." },
   { id: "V2c", title: "Feedback · miss · magnitude", src: "/?demo=wrong&skill=mag.mul", scroll: 260, wait: 1500, note: "Same state, log-line widget." },
   { id: "V3", title: "Feedback · slow", src: "/?demo=slow", wait: 1500, note: "Correct but over budget." },
   { id: "V4", title: "Session summary", src: "/?demo=summary" },
@@ -40,35 +40,23 @@ const DEVICES = { phone: { w: 390, h: 844, label: "Phone" }, laptop: { w: 1440, 
 type Device = keyof typeof DEVICES;
 
 export default function Screens() {
-  const [active, setActive] = useState("V1");
+  const [active, setActive] = useState("V2");
   const [device, setDevice] = useState<Device>("phone");
-  useEffect(() => { try { const d = localStorage.getItem("ds:device") as Device | null; if (d && DEVICES[d]) setDevice(d); } catch {} }, []);
-  const pick = (d: Device) => { setDevice(d); try { localStorage.setItem("ds:device", d); } catch {} };
+  const [outlines, setOutlines] = useState(false);
   useEffect(() => {
-    const io = new IntersectionObserver((es) => { for (const e of es) if (e.isIntersecting) setActive((e.target as HTMLElement).id); }, { rootMargin: "-40% 0px -55% 0px" });
-    document.querySelectorAll("section[data-screen]").forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, []);
-  return (
-    <div className="grid grid-cols-[120px_1fr] gap-8">
-      <nav className="sticky top-16 self-start text-[12px] space-y-0.5 max-h-[80vh] overflow-y-auto">
-        <div className="mb-3 space-y-2">
-          <div className="flex rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden text-[11px]">
-            {(Object.keys(DEVICES) as Device[]).map((d) => (
-              <button key={d} onClick={() => pick(d)} className={`flex-1 py-1 ${device === d ? "bg-gray-900 text-white dark:bg-gray-100 dark:text-black" : "text-gray-500"}`}>{DEVICES[d].label}</button>
-            ))}
-          </div>
-          <CopyFeedback prefix="" scope="everything" label="copy all feedback" className="w-full text-left" />
-        </div>
-        {SCREENS.map((s) => (
-          <a key={s.id} href={`#${s.id}`} className={`block px-2 py-1 rounded-md ${active === s.id ? "bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100" : "text-gray-500"}`}><span className="font-mono">{s.id}</span> <span className="text-gray-400">{s.title}</span></a>
-        ))}
-      </nav>
-      <div className="space-y-20">
-        {SCREENS.map((s) => <ScreenBlock key={`${s.id}-${device}`} {...s} W={DEVICES[device].w} H={DEVICES[device].h} />)}
-      </div>
+    const sync = () => { const id=designHash(window.location.hash); if(SCREENS.some(s=>s.id===id))setActive(id); };
+    sync(); window.addEventListener("hashchange",sync);
+    try { const d=(new URLSearchParams(window.location.search).get("device") || localStorage.getItem("ds:device")) as Device; if(DEVICES[d])setDevice(d); }catch{}
+    return ()=>window.removeEventListener("hashchange",sync);
+  },[]);
+  const screen=SCREENS.find(s=>s.id===active)!;
+  return <div>
+    <div className="flex flex-wrap items-center gap-4 mb-6"><h1 className="text-2xl font-light">Review the product</h1><label className="ml-auto text-xs text-gray-500">Device <select value={device} onChange={e=>{const d=e.target.value as Device;setDevice(d);try{localStorage.setItem("ds:device",d);}catch{}}} className="bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg p-2 ml-2"><option value="phone">Phone</option><option value="laptop">Laptop</option></select></label><label className="text-xs text-gray-500"><input type="checkbox" checked={outlines} onChange={e=>setOutlines(e.target.checked)} className="mr-2"/>Component outlines</label></div>
+    <div className="grid lg:grid-cols-[180px_minmax(0,1fr)] gap-6">
+      <nav aria-label="Product screens" className="lg:sticky lg:top-20 self-start flex lg:block flex-wrap gap-1 text-xs">{SCREENS.map(s=><a key={s.id} href={`#${s.id}`} onClick={()=>setActive(s.id)} aria-current={active===s.id?"page":undefined} className={`block rounded-lg px-3 py-2 ${active===s.id?"bg-gray-100 dark:bg-gray-900":"text-gray-500"}`}>{s.title}</a>)}</nav>
+      <ScreenBlock key={`${active}-${device}`} {...screen} W={DEVICES[device].w} H={DEVICES[device].h} outlines={outlines}/>
     </div>
-  );
+  </div>;
 }
 
 interface Box { name: string; x: number; y: number; w: number; h: number }
@@ -90,13 +78,17 @@ function ComponentRail({ boxes, id, hover, setHover, vertical = false }: { boxes
   );
 }
 
-function ScreenBlock({ id, title, src, scroll = 0, wait = 900, note, W, H }: Screen & { W: number; H: number }) {
+function ScreenBlock({ id, title, src, scroll = 0, wait = 900, note, W, H, outlines }: Screen & { W: number; H: number; outlines: boolean }) {
   const phone = W < 600;
   const wrap = useRef<HTMLDivElement>(null);
   const frame = useRef<HTMLIFrameElement>(null);
   const [k, setK] = useState(0.8);
   const [boxes, setBoxes] = useState<Box[]>([]);
   const [hover, setHover] = useState<string | null>(null);
+  const [example, setExample] = useState(title);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const observer = useRef<MutationObserver | null>(null);
+  useEffect(()=>()=>{if(timer.current)clearTimeout(timer.current);observer.current?.disconnect();},[]);
 
   useEffect(() => {
     const el = wrap.current; if (!el) return;
@@ -107,7 +99,9 @@ function ScreenBlock({ id, title, src, scroll = 0, wait = 900, note, W, H }: Scr
   const measure = () => {
     const f = frame.current; const doc = f?.contentDocument; const win = f?.contentWindow; if (!doc || !win) return;
     if (scroll) { const m = doc.querySelector("main"); (m && m.scrollHeight > m.clientHeight ? m : win).scrollTo(0, scroll); }
-    setTimeout(() => {
+    if(timer.current)clearTimeout(timer.current);
+    timer.current=setTimeout(() => {
+      setExample(doc.querySelector('[data-c="Prompt"]')?.textContent || title);
       const out: Box[] = [];
       doc.querySelectorAll<HTMLElement>("[data-c]").forEach((e) => {
         const r = e.getBoundingClientRect();
@@ -125,9 +119,14 @@ function ScreenBlock({ id, title, src, scroll = 0, wait = 900, note, W, H }: Scr
   const frameEl = (
     <div ref={wrap} className={`w-full ${phone ? "rounded-[22px]" : "rounded-lg"} border border-gray-300 dark:border-gray-700 overflow-hidden bg-black relative`} style={{ height: H * k, maxWidth: W }}>
       <div style={{ width: W, height: H, transform: `scale(${k})`, transformOrigin: "top left" }}>
-        <iframe ref={frame} src={src} title={`${id} ${title}`} width={W} height={H} style={{ border: 0, display: "block", background: "black" }} onLoad={() => setTimeout(measure, wait)} />
+        <iframe ref={frame} src={src} title={`${id} ${title}`} width={W} height={H} style={{ border: 0, display: "block", background: "black" }} onLoad={() => {
+          if(timer.current)clearTimeout(timer.current);
+          timer.current=setTimeout(measure,wait);
+          observer.current?.disconnect();
+          if(frame.current?.contentDocument){observer.current=new MutationObserver(()=>{const prompt=frame.current?.contentDocument?.querySelector('[data-c="Prompt"]')?.textContent;if(prompt)setExample(prompt);});observer.current.observe(frame.current.contentDocument.body,{subtree:true,childList:true,characterData:true});}
+        }} />
         <div className="absolute inset-0 pointer-events-none">
-          {boxes.map((b, i) => (
+          {(outlines ? boxes : []).map((b, i) => (
             <div key={b.name} style={{ opacity: hover && hover !== b.name ? 0.25 : 1 }}>
               <div className="absolute rounded-md" style={{ left: b.x, top: b.y, width: b.w, height: b.h, outline: `${hover === b.name ? 3 : 2}px solid #f59e0b`, outlineOffset: 2 }} />
               <div className="absolute w-6 h-6 rounded-full bg-amber-500 text-black text-[13px] font-semibold flex items-center justify-center" style={{ left: b.x + b.w - 12, top: b.y - 12 }}>{i + 1}</div>
@@ -140,33 +139,15 @@ function ScreenBlock({ id, title, src, scroll = 0, wait = 900, note, W, H }: Scr
 
   return (
     <section id={id} data-screen className="scroll-mt-20">
-      <div className="flex items-baseline gap-3 mb-3">
+      <div className="flex flex-wrap items-baseline gap-3 mb-3">
         <Handle id={id} className="text-[13px]" />
         <h2 className="text-lg font-light">{title}</h2>
         {note && <span className="text-[12px] text-gray-500">{note}</span>}
       </div>
-      {phone ? (
-        <div className="grid gap-6 items-start lg:grid-cols-[200px_minmax(240px,340px)_1fr]">
-          <ComponentRail boxes={boxes} id={id} hover={hover} setHover={setHover} vertical />
-          {frameEl}
-          <div className="lg:sticky lg:top-16">
-            <div className="text-[11px] uppercase tracking-wide text-gray-400 mb-2">notes on {id}</div>
-            <PinnedNotes screen={id} components={boxes.map((b) => b.name)} />
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <ComponentRail boxes={boxes} id={id} hover={hover} setHover={setHover} />
-          {frameEl}
-          <div className="grid lg:grid-cols-[1fr_minmax(320px,420px)] gap-6 items-start">
-            <div className="text-[12px] text-gray-500">{note}</div>
-            <div>
-              <div className="text-[11px] uppercase tracking-wide text-gray-400 mb-2">notes on {id}</div>
-              <PinnedNotes screen={id} components={boxes.map((b) => b.name)} />
-            </div>
-          </div>
-        </div>
-      )}
+      <div className="grid xl:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
+        <div className="min-w-0">{frameEl}{outlines && <div className="mt-4"><ComponentRail boxes={boxes} id={id} hover={hover} setHover={setHover}/></div>}</div>
+        <aside className="xl:sticky xl:top-20"><DesignReviewPanel scope={id} targets={boxes.map(b=>`${id} › ${b.name}`)} context={{question:"What should improve in this part of the product?",example,view:`${title} · ${W} × ${H}`,version:reviewVersion(),link:`/designspace/screens?device=${phone?"phone":"laptop"}#${id}`}} brief={`Current product screen: ${id}. ${note??""}`}/></aside>
+      </div>
     </section>
   );
 }
