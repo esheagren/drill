@@ -1,5 +1,6 @@
 /** What shipped, keyed to screens — so the wall reflects terminal work. Newest first. Claude appends on each ship. */
 export const CHANGES: { date: string; screen: string; what: string; pr: number }[] = [
+  { date: "2026-09-08", screen: "V4", what: "Summary: Again, the length picker, skills and history move to the top; the count and tally sit beneath", pr: 83 },
   { date: "2026-09-06", screen: "V1", what: "Remainders retired (612 ÷ 2 → 0 asked for the remainder; the cue vanished as you typed). An item's own ask — remainder, as a percent, = 10^? — now stays as a caption under the question while you type; the box placeholder is the generic label", pr: 82 },
   { date: "2026-09-06", screen: "designspace", what: "Problems and explanation workbench: eight problem families, 16 explanation candidates, shared feedback previews, editable examples, and saved studies", pr: 79 },
   { date: "2026-09-06", screen: "designspace", what: "Framing page: the four personas ranked (Erik first, the numbers professional as the front door), what's decided (a short daily block, no claims, the world's numbers from the start), and the program — the session in four blocks with a recommended split you can change, the timer line as the program, the summary by block. Three open questions", pr: 80 },

@@ -245,20 +245,8 @@ export default function Trainer() {
     const rows = Object.entries(session.bySkill).sort((a, b) => b[1]!.n - a[1]!.n);
     return (
       <div className="min-h-dvh flex flex-col bg-white dark:bg-black text-gray-900 dark:text-gray-100">
-        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-          <div data-c="SummaryCount" className="text-7xl font-light tabular-nums">{session.answered}</div>
-          <div className="text-sm text-gray-400 mt-1">answered · {plan.label} · {Math.round(plan.durationMs / 60000)} min</div>
-          <div className="text-2xl font-light mt-6 tabular-nums">{session.correct} correct · {pct}%</div>
-          <ul data-c="SkillTally" className="mt-8 w-full max-w-xs text-sm space-y-1">
-            {rows.map(([id, t]) => (
-              <li key={id} className="flex justify-between text-gray-500">
-                <span>{SKILL_BY_ID[id as SkillId]?.name ?? id}</span>
-                <span className="tabular-nums">{t!.c}/{t!.n}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="px-6 pb-[max(env(safe-area-inset-bottom),24px)] space-y-2 max-w-md mx-auto w-full">
+        {/* the way on is at the top: Again, a length, and the two places to look */}
+        <div className="px-6 pt-[max(env(safe-area-inset-top),20px)] space-y-2 max-w-md mx-auto w-full">
           <div data-c="AgainRow" className="flex gap-2">
             <button onClick={() => restart()} className="flex-1 h-14 rounded-2xl bg-gray-900 text-white dark:bg-gray-100 dark:text-black text-lg active:scale-[0.98] transition">
               Again
@@ -283,6 +271,19 @@ export default function Trainer() {
             {plan.id !== "mixed" && <button onClick={() => restart(MIXED)} className="h-12">back to mixed</button>}
             <button onClick={() => setShowMap(true)} className="h-12">history</button>
           </div>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center px-6 pb-12 text-center">
+          <div data-c="SummaryCount" className="text-7xl font-light tabular-nums">{session.answered}</div>
+          <div className="text-sm text-gray-400 mt-1">answered · {plan.label} · {Math.round(plan.durationMs / 60000)} min</div>
+          <div className="text-2xl font-light mt-6 tabular-nums">{session.correct} correct · {pct}%</div>
+          <ul data-c="SkillTally" className="mt-8 w-full max-w-xs text-sm space-y-1">
+            {rows.map(([id, t]) => (
+              <li key={id} className="flex justify-between text-gray-500">
+                <span>{SKILL_BY_ID[id as SkillId]?.name ?? id}</span>
+                <span className="tabular-nums">{t!.c}/{t!.n}</span>
+              </li>
+            ))}
+          </ul>
         </div>
         {overlay && <Stats state={state} profile={profile} onProfile={setProfile} onClose={() => setOverlay(null)} onPick={pick} initial={overlay ?? undefined} />}
       </div>
