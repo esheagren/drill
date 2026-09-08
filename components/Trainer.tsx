@@ -252,7 +252,7 @@ export default function Trainer() {
           <ul data-c="SkillTally" className="mt-8 w-full max-w-xs text-sm space-y-1">
             {rows.map(([id, t]) => (
               <li key={id} className="flex justify-between text-gray-500">
-                <span>{SKILL_BY_ID[id as SkillId].name}</span>
+                <span>{SKILL_BY_ID[id as SkillId]?.name ?? id}</span>
                 <span className="tabular-nums">{t!.c}/{t!.n}</span>
               </li>
             ))}
@@ -316,12 +316,13 @@ export default function Trainer() {
             <div className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1">{plan.id !== "mixed" && plan.label}{isReviewRef.current && <span className="ml-2">↺</span>}</div>
           )}
           <div data-c="Prompt" className="font-serif text-[26px] leading-tight" style={{ overflowWrap: "anywhere" }}>{item.prompt}</div>
+          {(() => { const ask = item.sub ?? skill.ask; return ["product", "value", "quotient"].includes(ask) ? null : <div className="text-[13px] text-gray-400 dark:text-gray-500 mt-0.5">{ask}</div>; })()}
           {/* the answer, right under the question: a box whose label goes away as you type; after submit it holds the verdict */}
           <div data-c="AnswerLine" className={`mt-2 inline-flex items-center min-h-11 min-w-[7ch] max-w-full px-3 py-1.5 rounded-xl border-2 text-[24px] font-light tabular-nums transition-colors ${
             phase === "wrong" ? "border-rose-400/70 text-rose-500 line-through decoration-2"
             : phase === "correct" || phase === "slow" ? "border-emerald-500/70 text-emerald-600 dark:text-emerald-400"
             : input ? "border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100" : "border-gray-200 dark:border-gray-800"}`} style={{ overflowWrap: "anywhere" }}>
-            {input ? <>{input}{phase === "answer" && <span className="font-thin text-gray-300 dark:text-gray-700">|</span>}</> : <span className="text-[15px] text-gray-400 dark:text-gray-500">{item.sub ?? skill.ask}</span>}
+            {input ? <>{input}{phase === "answer" && <span className="font-thin text-gray-300 dark:text-gray-700">|</span>}</> : <span className="text-[15px] text-gray-400 dark:text-gray-500">{skill.ask}</span>}
           </div>
         </div>
         <button data-c="MenuButton" onClick={() => setShowMap(true)} aria-label="Menu" className="shrink-0 -mr-3 -mt-2 px-3 py-2 text-gray-300 dark:text-gray-700 hover:text-gray-900 dark:hover:text-gray-100">▦</button>

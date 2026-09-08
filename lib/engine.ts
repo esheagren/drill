@@ -180,8 +180,9 @@ export function nextSkill(state: EngineState, lastId: SkillId | null, pool?: Ski
     if (Math.random() < share) { const p = pickProbe(get, lastId); if (p) return { id: p, probe: true }; }
   }
   const eligible = pool
-    ? SKILLS.filter((s) => pool.includes(s.id))
+    ? SKILLS.filter((s) => pool.includes(s.id) && !s.retired)
     : SKILLS.filter((s) => {
+      if (s.retired) return false;
         const b = get(s.id);
         if (s.tier === "onramp") return b < 0.6;                         // only when shaky
         if (b < 0.2 && s.prereqs.some((p) => get(p) < 0.5)) return false; // wait for prerequisites
