@@ -74,7 +74,7 @@ export const evidenceOf = (correct: boolean, score: number): Evidence => (!corre
 // ── probes ────────────────────────────────────────────────────────────────
 /** The uncertain node whose answer would move the most other nodes; null if nothing is uncertain enough. */
 export function pickProbe(get: (id: SkillId) => number, exclude: SkillId | null): SkillId | null {
-  const cands = SKILLS.filter((s) => s.id !== exclude).map((s) => {
+  const cands = SKILLS.filter((s) => s.id !== exclude && !s.retired).map((s) => {
     const b = get(s.id);
     const u = 1 - 2 * Math.abs(b - 0.5);            // 1 at 0.5, 0 at 0/1
     const r = ancestors(s.id).size + descendants(s.id).size;

@@ -72,6 +72,8 @@ export type Tier = "onramp" | "core" | "combo";
 export interface Skill {
   id: SkillId;
   family: Family;
+  /** Retired skills stay defined (old attempts, demos) but are never practised. */
+  retired?: boolean;
   /** Trajectory level L0–L7 (see docs/learning-trajectory.md). */
   level: number;
   tier: Tier;
@@ -211,7 +213,7 @@ export const SKILLS: Skill[] = withMeta([
     ask: "quotient", prereqs: ["ar.divfacts"], ccss: ["4.NBT.B.6"], targetMs: 6000,
   },
   {
-    id: "ar.rem", family: "arithmetic", group: "Remainders", name: "Remainders",
+    id: "ar.rem", family: "arithmetic", group: "Remainders", name: "Remainders", retired: true,   // retired 2026-09-06 (Erik: remove this question type)
     ask: "remainder", prereqs: ["ar.divfacts"], ccss: ["4.OA.B.4"], targetMs: 6000,
   },
 
@@ -501,7 +503,8 @@ export const FAMILY_BLURB: Record<Family, string> = {
 };
 
 export const FAMILIES: Family[] = ["arithmetic", "fractions", "decimals", "percents", "place-value", "exponents", "scientific", "operations", "magnitude", "combo"];
-export const skillsIn = (f: Family) => SKILLS.filter((s) => s.family === f);
+export const ACTIVE_SKILLS = SKILLS.filter((s) => !s.retired);
+export const skillsIn = (f: Family) => ACTIVE_SKILLS.filter((s) => s.family === f);
 /** Subsections of a unit, in order, each with its band skills. */
 export const groupsIn = (f: Family): { group: string; skills: Skill[] }[] => {
   const out: { group: string; skills: Skill[] }[] = [];
